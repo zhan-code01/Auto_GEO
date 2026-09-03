@@ -1,0 +1,11 @@
+diff --git a/backend/database/models.py b/backend/database/models.py
+--- a/backend/database/models.py
++++ b/backend/database/models.py
+@@ -1231,6 +1231,7 @@
+     created_at = Column(DateTime, default=func.now(), comment="创建时间")
+     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), comment="更新时间")
+     expires_at = Column(DateTime, nullable=True, comment="过期时间")
++    title = Column(String(120), nullable=True, comment="会话标题，用于列表展示")
+ 
+     user = relationship("User", backref="conversation_sessions", foreign_keys=[system_user_id])
+     messages = relationship(

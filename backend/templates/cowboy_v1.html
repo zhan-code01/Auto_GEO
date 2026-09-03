@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ meta_title }}</title>
+
+    <!-- =========================
+         AI / SEO 增强（新增）
+         说明：以下变量建议在你的模板数据里提供：
+         meta_description, meta_keywords, canonical_url, site_url,
+         og_image_url(可选), logo_url(可选), ai_overview(可选),
+         has_site_search(可选，布尔值：有站内搜索则 true)
+         ========================= -->
+
+    <!-- 基础 SEO Meta -->
+    <meta name="description" content="{{ meta_description }}">
+    <meta name="keywords" content="{{ meta_keywords }}">
+    <meta name="author" content="{{ company_name }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    <!-- Open Graph（社交分享/很多AI摘要会优先读） -->
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ company_name }}">
+    <meta property="og:title" content="{{ meta_title }}">
+    <meta property="og:description" content="{{ meta_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:image" content="{{ og_image_url | default(image_hero_bg) }}">
+
+    <!-- Twitter Card（可选，但推荐） -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ meta_title }}">
+    <meta name="twitter:description" content="{{ meta_description }}">
+    <meta name="twitter:image" content="{{ og_image_url | default(image_hero_bg) }}">
+
+    <!-- AI / 搜索引擎：结构化数据（JSON-LD） -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "{{ company_name }}",
+      "url": "{{ site_url }}",
+      "inLanguage": "zh-CN",
+      "description": "{{ meta_description }}",
+      "publisher": {
+        "@type": "Organization",
+        "name": "{{ company_name }}",
+        "url": "{{ site_url }}",
+        "email": "{{ contact_email }}",
+        "telephone": "{{ contact_phone }}",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "{{ contact_address }}"
+        }
+      }
+      {% if has_site_search %}
+      ,
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ site_url }}/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+      {% endif %}
+    }
+    </script>
+
+    <!-- 组织实体（增强品牌/公司识别） -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "{{ company_name }}",
+      "url": "{{ site_url }}",
+      "logo": "{{ logo_url | default('') }}",
+      "contactPoint": [{
+        "@type": "ContactPoint",
+        "telephone": "{{ contact_phone }}",
+        "contactType": "customer service",
+        "email": "{{ contact_email }}",
+        "availableLanguage": ["Chinese"]
+      }]
+    }
+    </script>
+
+    <!-- 可选：给AI看的“页面摘要”，不影响页面展示 -->
+    <meta name="ai-overview" content="{{ ai_overview | default(meta_description) }}">
+
+    <!-- =========================
+         原有引入
+         ========================= -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '{{ theme_color_primary }}', 
+                        accent: '{{ theme_color_accent }}',
+                        cream: '#fdfbf7', 
+                        surface: '#f3f0eb',
+                        ink: '#1d1d1f'
+                    },
+                    fontFamily: { sans: ['Manrope', 'sans-serif'] },
+                    boxShadow: { 
+                        'glow': '0 0 25px {{ theme_color_accent }}66',
+                        'card-hover': '0 20px 40px -5px rgba(0, 0, 0, 0.1), 0 10px 20px -5px {{ theme_color_primary }}1a'
+                    },
+                    animation: { 'float': 'float 6s ease-in-out infinite' },
+                    keyframes: { float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } } }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { --brand: {{ theme_color_primary }}; --accent: {{ theme_color_accent }}; }
+        body { background-color: #fdfbf7; color: #1d1d1f; overflow-x: hidden; }
+        html { scroll-behavior: smooth !important; }
+        
+        #navbar { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease; }
+        .nav-hidden { transform: translateY(-100%); }
+        .nav-scrolled { background: rgba(253, 251, 247, 0.9); backdrop-filter: blur(12px); padding-top: 1rem !important; padding-bottom: 1rem !important; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        
+        .btn-magnetic { transition: transform 0.1s linear; display: inline-block; }
+        .btn-pill { border-radius: 9999px; font-weight: 700; padding: 12px 32px; transition: all 0.3s; }
+        .btn-brand { background-color: var(--brand); color: white; }
+        .btn-brand:hover { transform: scale(1.05); opacity: 0.9; box-shadow: 0 10px 30px -10px var(--brand); }
+        
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .hover-lift { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease; }
+        .hover-lift:hover { transform: translateY(-8px) scale(1.01); }
+
+        .linear-swiper .swiper-wrapper {
+            transition-timing-function: linear !important;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-brand selection:text-white">
+
+    <!-- 导航 -->
+    <nav id="navbar" class="fixed w-full z-50 top-0 py-6 transition-all">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <a href="#home" class="text-2xl font-extrabold tracking-tight flex items-center gap-2 z-50">
+                <div class="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white shadow-lg">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <span class="text-ink">{{ company_name }}</span>
+            </a>
+            <div class="hidden md:flex items-center gap-8 font-semibold text-sm text-ink/80 bg-white/50 px-8 py-3 rounded-full backdrop-blur-md border border-white/20 shadow-sm">
+                <a href="#services" class="hover:text-brand transition">服务</a>
+                <a href="#cases" class="hover:text-brand transition">案例</a>
+                <a href="#about" class="hover:text-brand transition">关于</a>
+                <a href="#contact" class="text-brand">联系</a>
+            </div>
+            <a href="#contact" class="hidden md:inline-flex btn-pill bg-ink text-white px-6 py-2.5 text-sm font-bold hover:bg-brand transition-colors shadow-lg">立即咨询</a>
+        </div>
+    </nav>
+
+    <!-- 1. Hero -->
+    <section id="home" class="relative pt-40 pb-20 min-h-screen flex flex-col justify-center overflow-hidden">
+        <div class="container mx-auto px-6 text-center z-10 relative">
+            <div class="reveal inline-block px-4 py-1.5 rounded-full border border-ink/10 bg-white text-xs font-bold uppercase tracking-widest mb-8 shadow-sm">
+                {{ hero_badge_text }}
+            </div>
+            <h1 class="reveal text-5xl md:text-8xl font-extrabold leading-tight mb-8 text-ink tracking-tight">{{ company_slogan_hero | safe }}</h1>
+            <p class="reveal text-xl text-gray-500 max-w-2xl mx-auto mb-12 font-medium leading-relaxed">{{ company_description_hero }}</p>
+            <div class="reveal flex justify-center gap-4 mb-20">
+                <a href="#contact" class="btn-pill bg-brand text-white px-10 py-4 text-lg font-bold shadow-xl shadow-brand/20 hover:shadow-brand/40 transition-all">开始合作</a>
+                <a href="#services" class="btn-pill bg-white text-ink border border-gray-200 px-10 py-4 text-lg font-bold hover:border-ink transition-all">了解更多</a>
+            </div>
+        </div>
+        <div class="w-full max-w-[90%] mx-auto h-[50vh] md:h-[70vh] rounded-[2.5rem] overflow-hidden shadow-2xl relative z-0 reveal">
+            <img src="{{ image_hero_bg }}" class="w-full h-full object-cover" alt="Hero">
+        </div>
+    </section>
+
+    <!-- 2. Stats (智能无缝跑马灯) -->
+    {% if stats %}
+    <section class="py-24 border-b border-black/5 bg-white overflow-hidden">
+        {% if stats|length > 4 %}
+        <div class="swiper stats-marquee linear-swiper w-full">
+            <div class="swiper-wrapper">
+                {% for stat in stats %}
+                <div class="swiper-slide w-auto px-16">
+                    <div class="text-center cursor-default hover:scale-110 transition-transform duration-300">
+                        <div class="text-5xl md:text-6xl font-extrabold text-ink mb-2">
+                            {{ stat.value }}<span class="text-2xl text-brand ml-1">{{ stat.unit }}</span>
+                        </div>
+                        <div class="text-xs font-bold uppercase tracking-widest text-gray-400">{{ stat.label }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <!-- 数量少时：居中静态展示 -->
+        <div class="container mx-auto px-6">
+            <div class="flex flex-wrap justify-center gap-16 md:gap-32 text-center reveal">
+                {% for stat in stats %}
+                <div class="hover:scale-110 transition duration-300 cursor-default">
+                    <div class="text-5xl md:text-6xl font-extrabold text-ink mb-2">
+                        {{ stat.value }}<span class="text-2xl text-brand ml-1">{{ stat.unit }}</span>
+                    </div>
+                    <div class="text-xs font-bold uppercase tracking-widest text-gray-400">{{ stat.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <!-- 3. Services -->
+    {% if services %}
+    <section id="services" class="py-32 bg-surface">
+        <div class="container mx-auto px-6">
+            <div class="mb-20">
+                <h2 class="text-4xl font-bold mb-4 text-ink">核心服务</h2>
+                <div class="w-16 h-1 bg-brand rounded-full"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {% for service in services %}
+                <div class="bg-white p-10 rounded-[2rem] hover:shadow-xl transition-shadow duration-300 border border-black/5 reveal hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-surface flex items-center justify-center text-3xl mb-8 text-brand">
+                        <i class="fa-solid fa-{{ service.icon | replace('fa-', '') }}"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 text-ink">{{ service.title }}</h3>
+                    <p class="text-gray-500 leading-relaxed">{{ service.desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 4. Cases  -->
+    {% if cases %}
+    <section id="cases" class="py-32 overflow-hidden">
+        <div class="container mx-auto px-6 mb-16">
+            <h2 class="text-4xl font-bold reveal">精选案例</h2>
+        </div>
+        
+        <!-- 情况 A: 1个案例 -->
+        {% if cases|length == 1 %}
+        <div class="container mx-auto px-6 reveal">
+            <div class="relative rounded-[2.5rem] overflow-hidden aspect-video shadow-2xl max-w-5xl mx-auto group">
+                <img src="{{ cases[0].image }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-12 w-full">
+                    <span class="px-4 py-1 bg-white/20 backdrop-blur text-white text-xs font-bold uppercase rounded-full">{{ cases[0].tag }}</span>
+                    <h3 class="text-4xl font-bold text-white mt-4 mb-2">{{ cases[0].title }}</h3>
+                    <p class="text-gray-300 text-lg max-w-2xl">{{ cases[0].desc }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 情况 B: 2个案例 -> -->
+        {% elif cases|length == 2 %}
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 reveal">
+                {% for case in cases %}
+                <div class="relative rounded-[2rem] overflow-hidden aspect-[4/3] group shadow-lg hover-lift">
+                    <img src="{{ case.image }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90"></div>
+                    <div class="absolute bottom-0 left-0 p-10 w-full">
+                        <span class="px-4 py-1 bg-white/20 backdrop-blur text-white text-xs font-bold uppercase rounded-full mb-4 inline-block">{{ case.tag }}</span>
+                        <h3 class="text-2xl font-bold text-white mb-2">{{ case.title }}</h3>
+                        <p class="text-gray-300 line-clamp-2">{{ case.desc }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% else %}
+        <div class="w-full relative reveal">
+            <div class="swiper cases-marquee linear-swiper px-6 !overflow-visible">
+                <div class="swiper-wrapper">
+                    {% for case in cases %}
+                    <div class="swiper-slide w-[85vw] md:w-[500px] hover:opacity-100 transition-opacity">
+                        <div class="relative rounded-[2rem] overflow-hidden aspect-[4/3] group shadow-lg hover-lift">
+                            <img src="{{ case.image }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90"></div>
+                            <div class="absolute bottom-0 left-0 p-8 w-full">
+                                <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-xs font-bold uppercase rounded-full mb-3 inline-block">{{ case.tag }}</span>
+                                <h3 class="text-2xl font-bold text-white mb-2">{{ case.title }}</h3>
+                                <p class="text-gray-300 text-sm line-clamp-2">{{ case.desc }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <!-- 5. About & Quals -->
+    {% if company_about_intro %}
+    <section id="about" class="py-32 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col lg:flex-row items-center gap-20">
+                <div class="lg:w-1/2 w-full reveal">
+                    <img src="{{ image_about_team }}" class="w-full rounded-[2.5rem] shadow-2xl object-cover h-[500px]">
+                </div>
+                <div class="lg:w-1/2 w-full reveal">
+                    <h2 class="text-4xl font-bold mb-8 leading-tight">{{ company_about_title }}</h2>
+                    <p class="text-xl text-gray-500 mb-10 leading-relaxed">{{ company_about_intro }}</p>
+                    {% if company_features %}
+                    <ul class="space-y-4 mb-10">
+                        {% for feature in company_features %}
+                        <li class="flex items-center gap-4">
+                            <i class="fa-solid fa-circle-check text-brand text-xl"></i>
+                            <span class="font-bold text-ink text-lg">{{ feature }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% if qualifications %}
+                    <div class="flex flex-wrap gap-4">
+                        {% for qual in qualifications %}
+                        <span class="px-4 py-2 border border-gray-200 rounded-full text-sm font-bold text-gray-500 hover:border-brand hover:text-brand transition cursor-default">
+                            <i class="fa-solid fa-certificate text-brand mr-2"></i>{{ qual.title }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 6. Quals (独立板块) -->
+    {% if qualifications %}
+    <section id="quals" class="py-32 bg-ink text-white relative overflow-hidden">
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand/20 rounded-full blur-[100px]"></div>
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl font-bold mb-4">资质与荣誉认证</h2>
+                <div class="w-16 h-1 bg-white/20 mx-auto rounded-full"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 reveal">
+                {% for qual in qualifications %}
+                <div class="bg-white/5 border border-white/10 p-8 rounded-2xl hover:bg-white/10 transition duration-300 group">
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center text-brand text-2xl group-hover:bg-brand group-hover:text-white transition-colors"><i class="fa-solid fa-award"></i></div>
+                        <div class="text-4xl font-bold text-white/5">0{{ loop.index }}</div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-white">{{ qual.title }}</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">{{ qual.desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 7. Contact -->
+    <footer id="contact" class="bg-surface pt-32 pb-12 mt-0">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
+                <div class="reveal">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white"><i class="fa-solid fa-bolt"></i></div>
+                        <span class="text-2xl font-bold text-ink">{{ company_name }}</span>
+                    </div>
+                    <p class="text-gray-500 leading-relaxed">我们致力于利用前沿技术，为您打造卓越的数字体验与业务增长引擎。</p>
+                </div>
+                <div class="reveal delay-100">
+                    <h4 class="text-lg font-bold mb-8 text-ink">联系方式</h4>
+                    <ul class="space-y-6">
+                        <li class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-brand shadow-sm flex-shrink-0"><i class="fa-solid fa-location-dot"></i></div>
+                            <div><div class="text-xs text-gray-400 uppercase mb-1">Address</div><div class="font-medium text-ink">{{ contact_address }}</div></div>
+                        </li>
+                        <li class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-brand shadow-sm flex-shrink-0"><i class="fa-solid fa-phone"></i></div>
+                            <div><div class="text-xs text-gray-400 uppercase mb-1">Phone</div><div class="font-medium text-ink">{{ contact_phone }}</div></div>
+                        </li>
+                        <li class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-brand shadow-sm flex-shrink-0"><i class="fa-solid fa-envelope"></i></div>
+                            <div><div class="text-xs text-gray-400 uppercase mb-1">Email</div><div class="font-medium text-ink">{{ contact_email }}</div></div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="reveal delay-200">
+                    <h4 class="text-lg font-bold mb-8 text-ink">立即行动</h4>
+                    <p class="text-gray-500 mb-6">准备好开启下一个项目了吗？</p>
+                    <a href="mailto:{{ contact_email }}" class="inline-block w-full py-4 bg-ink text-center text-white font-bold rounded-xl hover:bg-brand transition shadow-lg">发送邮件咨询</a>
+                </div>
+            </div>
+            <div class="border-t border-black/5 pt-8 text-center text-gray-400 text-sm">
+                &copy; 2026 {{ company_name }}. All Rights Reserved.
+            </div>
+            <!-- 新增：Generated By ArchMatrix 小字 -->
+            <div class="text-center mt-2 text-gray-500 text-xs">
+                Generated By ArchMatrix
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+    <script>
+        // 1. 案例 (Cases)
+        if (document.querySelector('.cases-marquee')) {
+            new Swiper('.cases-marquee', {
+                slidesPerView: 'auto', 
+                spaceBetween: 32,
+                speed: 5000, 
+                loop: true,  // 无限循环
+                allowTouchMove: true, 
+                autoplay: {
+                    delay: 0, // 0 延迟 = 无停顿
+                    disableOnInteraction: false, 
+                },
+                breakpoints: {
+                    640: { spaceBetween: 24 }
+                }
+            });
+        }
+
+        // 2. 数据无缝跑马灯 
+        if (document.querySelector('.stats-marquee')) {
+            new Swiper('.stats-marquee', {
+                slidesPerView: 'auto',
+                spaceBetween: 60,
+                speed: 4000, // 4秒一圈
+                loop: true,  // 无限循环
+                allowTouchMove: false, // 禁止手动，纯展示
+                autoplay: {
+                    delay: 0, // 0 延迟 = 无停顿
+                    disableOnInteraction: false
+                }
+            });
+        }
+
+        // 3. 滚动显现动画
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for(var i=0; i<reveals.length; i++){
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                if(elementTop < windowHeight - 80) reveals[i].classList.add("active");
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        reveal();
+
+        const navbar = document.getElementById('navbar');
+        let lastScrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+            const currentScrollY = window.scrollY;
+            if (currentScrollY > lastScrollY && currentScrollY > 100) navbar.classList.add('nav-hidden');
+            else navbar.classList.remove('nav-hidden');
+            if (currentScrollY > 50) navbar.classList.add('nav-scrolled');
+            else navbar.classList.remove('nav-scrolled');
+            lastScrollY = currentScrollY;
+        });
+    </script>
+</body>
+</html>

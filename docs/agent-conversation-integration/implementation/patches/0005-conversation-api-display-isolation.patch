@@ -1,0 +1,141 @@
+diff --git a/backend/api/conversation.py b/backend/api/conversation.py
+--- a/backend/api/conversation.py
++++ b/backend/api/conversation.py
+@@ -54,6 +54,7 @@
+ @router.get("/sessions/{session_id}")
+ async def get_session_detail(
+     session_id: str,
++    include_slots: bool = Query(False, description="是否返回原始 slots（管理/调试用，默认不返回）"),
+     db: Session = Depends(get_db),
+     current_user: User = Depends(get_current_active_user),
+ ):
+@@ -74,17 +75,31 @@
+         .order_by(ConversationMessage.created_at.asc(), ConversationMessage.id.asc())
+         .all()
+     )
++    # execution_plan：从 slots 现算（复用 orchestrator 业务解析，missing_slots 真实）。
++    # 展示层只暴露派生字段，不暴露 account_ids / project_id 等内部 ID。
++    try:
++        execution_plan = get_conversation_orchestrator().derive_execution_plan(
++            db, current_user, session
++        )
++    except Exception:
++        execution_plan = None
++
++    session_payload = {
++        "id": session.id,
++        "title": session.title,
++        "status": session.status,
++        "current_intent": session.current_intent,
++        "execution_plan": execution_plan,
++        "created_at": session.created_at.isoformat() if session.created_at else None,
++        "updated_at": session.updated_at.isoformat() if session.updated_at else None,
++    }
++    if include_slots:
++        session_payload["slots"] = session.slots or {}
++
+     return {
+         "success": True,
+         "data": {
+-            "session": {
+-                "id": session.id,
+-                "status": session.status,
+-                "current_intent": session.current_intent,
+-                "slots": session.slots or {},
+-                "created_at": session.created_at.isoformat() if session.created_at else None,
+-                "updated_at": session.updated_at.isoformat() if session.updated_at else None,
+-            },
++            "session": session_payload,
+             "messages": [
+                 {
+                     "id": message.id,
+@@ -107,32 +122,51 @@
+     db: Session = Depends(get_db),
+     current_user: User = Depends(get_current_active_user),
+ ):
+-    """列出当前用户的 Agent 会话（按最近更新倒序），用于前端恢复历史会话。"""
++    """列出当前用户的 Agent 会话（按最近更新倒序），用于前端恢复历史会话。
++
++    展示契约：默认排除 archived；只返回展示字段（title / 状态 / 最后消息预览），
++    不返回原始 slots（隔离记忆层）。
++    """
+     query = (
+         db.query(ConversationSession)
+         .filter(ConversationSession.system_user_id == current_user.id)
+         .order_by(ConversationSession.updated_at.desc())
+     )
++    # 默认排除归档会话；显式传 status=archived 时才返回归档项
+     if status:
+         query = query.filter(ConversationSession.status == status)
++    else:
++        query = query.filter(ConversationSession.status != "archived")
+     total = query.count()
+     sessions = query.offset(offset).limit(limit).all()
+-    return ApiResponse(
+-        data={
+-            "total": total,
+-            "items": [
+-                {
+-                    "id": s.id,
+-                    "status": s.status,
+-                    "current_intent": s.current_intent,
+-                    "slots": s.slots or {},
+-                    "created_at": s.created_at.isoformat() if s.created_at else None,
+-                    "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+-                }
+-                for s in sessions
+-            ],
+-        }
+-    )
++
++    items = []
++    for s in sessions:
++        # 最后一条消息预览（同会话最新一条 conversation_messages）
++        last_msg = (
++            db.query(ConversationMessage)
++            .filter(ConversationMessage.conversation_id == s.id)
++            .order_by(ConversationMessage.created_at.desc(), ConversationMessage.id.desc())
++            .first()
++        )
++        if last_msg and last_msg.content:
++            _raw = last_msg.content
++            last_text = (_raw[:60] + "…") if len(_raw) > 60 else _raw
++        else:
++            last_text = None
++        items.append(
++            {
++                "id": s.id,
++                "title": s.title,
++                "status": s.status,
++                "current_intent": s.current_intent,
++                "last_message": last_text,
++                "last_message_role": last_msg.role if last_msg else None,
++                "updated_at": s.updated_at.isoformat() if s.updated_at else None,
++            }
++        )
++
++    return ApiResponse(data={"total": total, "items": items})
+ 
+ 
+ def _get_owned_session(db: Session, session_id: str, current_user: User) -> ConversationSession:
+@@ -214,3 +248,20 @@
+             "task_id": execution.task_id,
+         }
+     )
++
++
++@router.post("/sessions/{session_id}/archive", response_model=ApiResponse)
++async def archive_session(
++    session_id: str,
++    db: Session = Depends(get_db),
++    current_user: User = Depends(get_current_active_user),
++):
++    """归档会话：仅将 status 置为 archived，不删除任何数据。
++
++    归档后会话不再出现在默认列表（仍可通过 status=archived 或直接进入会话 ID 查看）。
++    不动 slots / messages，agent 内部记忆不受影响（展示与记忆隔离）。
++    """
++    session = _get_owned_session(db, session_id, current_user)
++    memory = get_agent_memory()
++    memory.update_session_status(db, session, "archived")
++    return ApiResponse(data={"id": session.id, "status": "archived"})

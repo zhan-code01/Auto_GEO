@@ -1,0 +1,13 @@
+{
+  "api_base": "https://admin.example.com/api",
+  "method": "sftp",
+  "public_base_url": "https://www.example.com",
+  "sftp_host": "1.2.3.4",
+  "sftp_port": 22,
+  "sftp_user": "www",
+  "sftp_path": "/var/www/html",
+  "configure_nginx": true,
+  "server_name": "www.example.com",
+  "nginx_conf_path": "/etc/nginx/conf.d/autogeo-sites.conf",
+  "nginx_reload_command": "nginx -t && nginx -s reload"
+}

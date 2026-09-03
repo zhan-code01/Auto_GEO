@@ -1,0 +1,172 @@
+# ==================== Claude 配置 ====================
+.claude/
+CLAUDE.md
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# ==================== Python 虚拟环境 ====================
+venv/
+env/
+ENV/
+.venv
+
+# ==================== 数据库文件 ====================
+*.db
+*.sqlite
+*.sqlite3
+backend/database/*.db
+backend/database/*.sqlite
+
+# ==================== Cookies/会话数据 ====================
+.cookies/
+*.cookies
+browser_context/
+user_data/
+
+# ==================== Playwright storage_state ====================
+*_state.json
+*storage_state*.json
+*_login.json
+*_auth.json
+juejin_auth.json
+auth/
+auth/state.json
+state.json
+
+# ==================== Node.js / 前端 ====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+dist-electron/
+*.tsbuildinfo
+
+# ==================== 编辑器 / IDE ====================
+.vscode/
+.idea/
+.workbuddy/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
+
+# ==================== 测试脚本和截图 ====================
+test/
+decode*.py
+decode*.js
+kill_processes.py
+*_demo.py
+*_test.py
+cookie_*.png
+debug_*.png
+test_*.png
+inspection_*.png
+inspection_*.html
+inspection_*.txt
+
+# ==================== 日志文件 ====================
+logs/
+*.log
+
+# ==================== Playwright ====================
+playwright-report/
+test-results/
+playwright/.cache/
+.playwright-mcp/
+/backend/debug/
+
+# ==================== 环境变量 / 配置 ====================
+.env
+.env.local
+.env.*.local
+*.env
+
+# ==================== 打包输出 ====================
+out/
+release/
+*.exe
+*.dmg
+*.pkg
+
+# ==================== 临时脚本文件 ====================
+scripts/*.js
+scripts/*.py
+!scripts/site_builder_publish.py
+*.bat
+scripts/mock_n8n_server.py
+scripts/generate_data.py
+
+# 忽略 IDE 配置目录 .trae/（整个目录及其下所有文件）
+.trae/
+
+# 忽略 backend/database/ 目录下的 .db-shm 和 .db-wal 后缀的数据库临时文件
+backend/database/*.db-shm
+backend/database/*.db-wal
+
+# ==================== 生成的静态站点 ====================
+backend/static/sites/
+
+# ==================== 生成的文档和图片 ====================
+AutoGEO产品操作手册*
+images/
+
+# ==================== 数据库备份与临时目录（防敏感数据入库） ====================
+# SQL 备份可能包含真实用户数据（bcrypt 哈希、加密会话、PII），禁止提交
+*.sql
+backups/
+# 本地第三方服务配置可能包含 API Key
+backend/integrations/ragflow/config.json
+# 用户上传内容由运行时生成，不属于源代码
+backend/static/uploads/
+# 本地分发包，源码已在仓库中维护
+Auto_GEOmaster.zip
+# 临时脚本目录（其中可能有硬编码 API Key，禁止提交）
+tmp/
+# 各环境变量补充文件（如 .env.backend，包含 JWT 密钥）
+*.env.*
+
+# ==================== 知乎持久化浏览器 Profile ====================
+.zhihu_profiles/
+# ==================== zhihu-publish skill 运行产物 ====================
+.claude/skills/zhihu-publish/scripts/accounts/
+.claude/skills/zhihu-publish/scripts/imgs/
+.claude/skills/zhihu-publish/scripts/shots/
+.claude/skills/zhihu-publish/scripts/last_publish_result.json
+# ==================== baijiahao-publish skill 运行产物 ====================
+.claude/skills/baijiahao-publish/scripts/accounts/
+.claude/skills/baijiahao-publish/scripts/imgs/
+.claude/skills/baijiahao-publish/scripts/shots/
+.claude/skills/baijiahao-publish/scripts/last_publish_result.json
+# ==================== douyin-publish skill 运行产物 ====================
+.claude/skills/douyin-publish/scripts/accounts/
+.claude/skills/douyin-publish/scripts/imgs/
+.claude/skills/douyin-publish/scripts/shots/
+.claude/skills/douyin-publish/scripts/cache/
+.claude/skills/douyin-publish/scripts/last_publish_result.json

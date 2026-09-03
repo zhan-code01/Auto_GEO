@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "AutoGEO Cookie Sync",
+  "version": "1.0",
+  "description": "同步AI平台登录状态到AutoGEO后端",
+  "permissions": [
+    "cookies",
+    "activeTab",
+    "storage",
+    "alarms",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.doubao.com/*",
+    "*://*.bytedance.com/*",
+    "*://*.deepseek.com/*",
+    "*://*.qianwen.com/*",
+    "*://*.aliyun.com/*",
+    "*://*.tongyi.aliyun.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.doubao.com/*",
+        "*://*.deepseek.com/*",
+        "*://*.qianwen.com/*",
+        "*://*.aliyun.com/*",
+        "*://*.tongyi.aliyun.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AutoGEO Cookie Sync"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

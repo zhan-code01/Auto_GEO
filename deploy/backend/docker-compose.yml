@@ -1,0 +1,122 @@
+# AutoGeo 后端生产环境部署配置（极简版）
+# 版本: 3.3.1
+# 说明: 只部署后端服务，使用服务器Nginx做反向代理
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-crpi-lwz264sedmauvivo.cn-guangzhou.personal.cr.aliyuncs.com/opencaio/auto_geo_backend:latest}
+    container_name: autogeo_backend
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: '2G'
+        reservations:
+          cpus: '0.5'
+          memory: '512M'
+    env_file:
+      - .env.backend
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # 数据库连接串：请在 .env.backend 中显式配置 DATABASE_URL（密码特殊字符需 URL 编码）
+      - DATABASE_URL=${DATABASE_URL:-postgresql://n8n:CHANGE_ME@n8n_postgres:5432/autogeo}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-30}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-3600}
+      - HOST=0.0.0.0
+      - PORT=8001
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_API_URL=${DEEPSEEK_API_URL:-https://api.deepseek.com/v1}
+      - VOLCENGINE_ARK_API_KEY=${VOLCENGINE_ARK_API_KEY:-}
+      - VOLCENGINE_ARK_BASE_URL=${VOLCENGINE_ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      - VOLCENGINE_ARK_DEEPSEEK_ENDPOINT=${VOLCENGINE_ARK_DEEPSEEK_ENDPOINT:-deepseek-r1}
+      - VOLCENGINE_ARK_DOUBAO_ENDPOINT=${VOLCENGINE_ARK_DOUBAO_ENDPOINT:-doubao-seed-1.6}
+      - GEO_EVALUATION_API_PLATFORMS=${GEO_EVALUATION_API_PLATFORMS:-doubao,deepseek}
+      - AUTOGEO_CONVERSATION_USE_LLM=${AUTOGEO_CONVERSATION_USE_LLM:-true}
+      - AUTOGEO_CONVERSATION_LLM_PROVIDER=${AUTOGEO_CONVERSATION_LLM_PROVIDER:-deepseek}
+      - AUTOGEO_CONVERSATION_LLM_API_KEY=${AUTOGEO_CONVERSATION_LLM_API_KEY:-}
+      - AUTOGEO_CONVERSATION_LLM_BASE_URL=${AUTOGEO_CONVERSATION_LLM_BASE_URL:-https://api.deepseek.com/v1}
+      - AUTOGEO_CONVERSATION_LLM_MODEL=${AUTOGEO_CONVERSATION_LLM_MODEL:-deepseek-v4-flash}
+      - RAGFLOW_API_KEY=${RAGFLOW_API_KEY:-}
+      - RAGFLOW_BASE_URL=${RAGFLOW_BASE_URL:-}
+      - RAGFLOW_DATASET_ID=${RAGFLOW_DATASET_ID:-}
+      - RAGFLOW_DATASET_NAME=${RAGFLOW_DATASET_NAME:-reference_articles_kb}
+      - RAGFLOW_EMBEDDING_MODEL=${RAGFLOW_EMBEDDING_MODEL:-text-embedding-v4@Tongyi-Qianwen}
+      - RAGFLOW_DUPLICATE_THRESHOLD=${RAGFLOW_DUPLICATE_THRESHOLD:-0.85}
+      - RAGFLOW_TOP_K=${RAGFLOW_TOP_K:-50}
+      - RAGFLOW_SIMILARITY_THRESHOLD=${RAGFLOW_SIMILARITY_THRESHOLD:-0.7}
+      - RAGFLOW_SYNC_STRATEGY=${RAGFLOW_SYNC_STRATEGY:-local_to_ragflow}
+      - ADSPOWER_API_URL=${ADSPOWER_API_URL:-http://local.adspower.net:50325}
+      - ADSPOWER_ENABLED=${ADSPOWER_ENABLED:-false}
+      - FEISHU_APP_ID=${FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET:-}
+      - FEISHU_VERIFICATION_TOKEN=${FEISHU_VERIFICATION_TOKEN:-}
+      - FEISHU_ENCRYPT_KEY=${FEISHU_ENCRYPT_KEY:-}
+      - FEISHU_BOT_NAME=${FEISHU_BOT_NAME:-AutoGeo助手}
+      - AUTOGEO_AGENT_TOKEN=${AUTOGEO_AGENT_TOKEN:-}
+      - PUBLISH_APPROVAL_ENABLED=${PUBLISH_APPROVAL_ENABLED:-true}
+      - PUBLISH_APPROVAL_CP_BEFORE_WRITE=${PUBLISH_APPROVAL_CP_BEFORE_WRITE:-true}
+      - PUBLISH_APPROVAL_CP_BEFORE_FILL_BODY=${PUBLISH_APPROVAL_CP_BEFORE_FILL_BODY:-true}
+      - PUBLISH_APPROVAL_CP_BEFORE_SUBMIT=${PUBLISH_APPROVAL_CP_BEFORE_SUBMIT:-true}
+      - PUBLISH_APPROVAL_CHECK_QUOTA=${PUBLISH_APPROVAL_CHECK_QUOTA:-true}
+      - PUBLISH_APPROVAL_CHECK_PLATFORM=${PUBLISH_APPROVAL_CHECK_PLATFORM:-true}
+      - PUBLISH_APPROVAL_CHECK_TIME_WINDOW=${PUBLISH_APPROVAL_CHECK_TIME_WINDOW:-false}
+      - PUBLISH_APPROVAL_CHECK_IP=${PUBLISH_APPROVAL_CHECK_IP:-false}
+      - PUBLISH_APPROVAL_TOKEN_TTL=${PUBLISH_APPROVAL_TOKEN_TTL:-300}
+      - PUBLISH_APPROVAL_BYPASS_USERS=${PUBLISH_APPROVAL_BYPASS_USERS:-}
+      - PUBLISH_APPROVAL_AUTO_APPROVE_DEVICES=${PUBLISH_APPROVAL_AUTO_APPROVE_DEVICES:-}
+      - AUTOGEO_AGENT_V2_ENABLED=${AUTOGEO_AGENT_V2_ENABLED:-false}
+      - AUTOGEO_AGENT_V2_BYPASS_USERS=${AUTOGEO_AGENT_V2_BYPASS_USERS:-}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-local}
+      - HEADLESS_MODE=${HEADLESS_MODE:-false}
+      - LOCAL_BROWSER_CDP_PORT=${LOCAL_BROWSER_CDP_PORT:-9222}
+      - LOCAL_BROWSER_URL=${LOCAL_BROWSER_URL:-}
+      - FORCE_LOCAL_BROWSER=${FORCE_LOCAL_BROWSER:-false}
+      - AUTH_BROWSER_WINDOW_MODE=${AUTH_BROWSER_WINDOW_MODE:-normal}
+      - BACKEND_PUBLIC_BASE_URL=${BACKEND_PUBLIC_BASE_URL:-}
+      - AUTO_GEO_ENCRYPTION_KEY=${AUTO_GEO_ENCRYPTION_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FILE_LEVEL=${LOG_FILE_LEVEL:-DEBUG}
+      - LOG_ERROR_LEVEL=${LOG_ERROR_LEVEL:-WARNING}
+      - RUN_DB_MIGRATIONS=${RUN_DB_MIGRATIONS:-true}
+      - ENVIRONMENT=production
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+      - ./backups:/app/backups
+      - playwright_cache:/ms-playwright
+    ports:
+      - "127.0.0.1:8001:8001"
+    networks:
+      - n8n_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "local"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+networks:
+  n8n_network:
+    external: true
+    name: n8n_network
+
+volumes:
+  backend_data:
+    name: autogeo_backend_data
+  backend_logs:
+    name: autogeo_backend_logs
+  playwright_cache:
+    name: autogeo_playwright_cache

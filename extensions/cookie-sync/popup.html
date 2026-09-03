@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoGEO Cookie Sync</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #333; }
+    .header { background: linear-gradient(135deg, #0066FF, #4D6BFE); color: #fff; padding: 16px 20px; text-align: center; }
+    .header h1 { font-size: 16px; font-weight: 600; }
+    .header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+    .content { padding: 16px 20px; }
+
+    /* 绑定状态区 */
+    .bind-section { margin-bottom: 14px; }
+    .bind-card {
+      border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .bind-card.unbound { border-color: #ffc107; background: #fffbf0; }
+    .bind-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .bind-status-dot.bound { background: #28a745; }
+    .bind-status-dot.unbound { background: #ffc107; }
+    .bind-info { flex: 1; min-width: 0; }
+    .bind-info .title { font-size: 13px; font-weight: 500; }
+    .bind-info .sub { font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 绑定码输入区 */
+    .pair-code-section { display: none; margin-bottom: 14px; }
+    .pair-code-section.show { display: block; }
+    .pair-code-section label { font-size: 12px; color: #666; display: block; margin-bottom: 6px; }
+    .pair-code-input { display: flex; gap: 8px; }
+    .pair-code-input input {
+      flex: 1; padding: 8px 10px; border: 1px solid #e0e0e0;
+      border-radius: 6px; font-size: 16px; letter-spacing: 4px; font-weight: 600;
+      text-transform: uppercase; text-align: center;
+    }
+    .pair-code-input input:focus { outline: none; border-color: #0066FF; }
+    .pair-code-input button { padding: 8px 16px; background: #0066FF; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .pair-code-input button:hover { background: #0052cc; }
+    .pair-code-input button:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* 平台卡片 */
+    .platform-card {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px;
+      margin-bottom: 10px; transition: border-color 0.2s;
+    }
+    .platform-card:hover { border-color: #0066FF; }
+    .platform-info { display: flex; align-items: center; gap: 10px; }
+    .platform-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
+    .platform-icon.doubao { background: #0066FF; }
+    .platform-icon.deepseek { background: #4D6BFE; }
+    .platform-icon.qianwen { background: #FF6A00; }
+    .platform-name { font-size: 14px; font-weight: 500; }
+    .platform-status { font-size: 11px; color: #999; }
+
+    .sync-btn {
+      padding: 6px 14px; border: none; border-radius: 4px;
+      font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.2s;
+    }
+    .sync-btn.ready { background: #0066FF; color: #fff; }
+    .sync-btn.ready:hover { background: #0052cc; }
+    .sync-btn.syncing { background: #ffc107; color: #333; cursor: wait; }
+    .sync-btn.done { background: #28a745; color: #fff; }
+    .sync-btn.error { background: #dc3545; color: #fff; }
+    .sync-btn.disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
+
+    /* 设置区 */
+    .settings { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
+    .settings label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .settings input { width: 100%; padding: 6px 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 12px; }
+    .settings input:focus { outline: none; border-color: #0066FF; }
+
+    /* 消息提示 */
+    .result-msg { text-align: center; font-size: 12px; padding: 8px; margin-top: 8px; border-radius: 4px; display: none; }
+    .result-msg.success { display: block; background: #d4edda; color: #155724; }
+    .result-msg.error { display: block; background: #f8d7da; color: #721c24; }
+    .result-msg.warn { display: block; background: #fff3cd; color: #856404; }
+
+    /* 解绑按钮 */
+    .unbind-btn { font-size: 11px; color: #dc3545; cursor: pointer; text-decoration: underline; margin-left: auto; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>AutoGEO Cookie 同步</h1>
+    <p>将AI平台登录状态同步到 AutoGEO</p>
+  </div>
+
+  <div class="content">
+    <!-- 绑定状态 -->
+    <div class="bind-section">
+      <div class="bind-card unbound" id="bindCard">
+        <div class="bind-status-dot unbound" id="bindDot"></div>
+        <div class="bind-info">
+          <div class="title" id="bindTitle">未绑定 AutoGEO 账号</div>
+          <div class="sub" id="bindSub">请输入绑定码完成配置</div>
+        </div>
+        <span class="unbind-btn" id="unbindBtn" style="display:none">解绑</span>
+      </div>
+    </div>
+
+    <!-- 绑定码输入 -->
+    <div class="pair-code-section show" id="pairCodeSection">
+      <label>输入 AutoGEO 页面显示的绑定码</label>
+      <div class="pair-code-input">
+        <input type="text" id="pairCodeInput" maxlength="8" placeholder="ABC123" autocomplete="off" />
+        <button id="bindBtn">绑定</button>
+      </div>
+    </div>
+
+    <!-- 平台同步 -->
+    <div class="platform-card" id="card-doubao">
+      <div class="platform-info">
+        <div class="platform-icon doubao">豆</div>
+        <div>
+          <div class="platform-name">豆包</div>
+          <div class="platform-status" id="status-doubao">doubao.com</div>
+        </div>
+      </div>
+      <button class="sync-btn ready" data-platform="doubao" id="btn-doubao">同步</button>
+    </div>
+
+    <div class="platform-card" id="card-deepseek">
+      <div class="platform-info">
+        <div class="platform-icon deepseek">D</div>
+        <div>
+          <div class="platform-name">DeepSeek</div>
+          <div class="platform-status" id="status-deepseek">chat.deepseek.com</div>
+        </div>
+      </div>
+      <button class="sync-btn ready" data-platform="deepseek" id="btn-deepseek">同步</button>
+    </div>
+
+    <div class="platform-card" id="card-qianwen">
+      <div class="platform-info">
+        <div class="platform-icon qianwen">千</div>
+        <div>
+          <div class="platform-name">通义千问</div>
+          <div class="platform-status" id="status-qianwen">qianwen.com</div>
+        </div>
+      </div>
+      <button class="sync-btn ready" data-platform="qianwen" id="btn-qianwen">同步</button>
+    </div>
+
+    <div id="result" class="result-msg"></div>
+  </div>
+
+  <div class="settings">
+    <label for="backendUrl">后端地址</label>
+    <input type="text" id="backendUrl" placeholder="https://your-autogeo-domain.com" value="">
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

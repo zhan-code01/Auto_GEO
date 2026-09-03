@@ -1,0 +1,308 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'backend/requirements.txt'
+      - 'backend/Dockerfile'
+      - 'deploy/docker-compose.backend.yml'
+      - 'deploy/deploy.sh'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: '跳过测试'
+        required: true
+        default: 'false'
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.12'
+  ALIYUN_REGISTRY: crpi-lwz264sedmauvivo.cn-guangzhou.personal.cr.aliyuncs.com
+  ALIYUN_IMAGE: crpi-lwz264sedmauvivo.cn-guangzhou.personal.cr.aliyuncs.com/opencaio/auto_geo_backend
+
+jobs:
+  # ============================================
+  # 代码质量检查
+  # ============================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          pip install -r requirements.txt
+          pip install "ruff>=0.8.0" mypy types-redis
+
+      - name: Run Ruff
+        working-directory: ./backend
+        run: |
+          ruff check .
+          ruff format --check .
+
+  # ============================================
+  # 单元测试
+  # ============================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    if: ${{ github.event_name == 'push' || github.event.inputs.skip_tests != 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Run tests
+        working-directory: ./backend
+        run: pytest tests/unit -v
+
+  # ============================================
+  # 构建并推送镜像
+  # ============================================
+  build:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: [lint]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ALIYUN_REGISTRY }}
+          username: ${{ secrets.ALIYUN_ACR_USERNAME }}
+          password: ${{ secrets.ALIYUN_ACR_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ALIYUN_IMAGE }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.event.created_at }}
+            VCS_REF=${{ github.sha }}
+
+  # ============================================
+  # 部署到服务器
+  # ============================================
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: false
+          timeout: 300s
+          script: |
+            set -e
+            echo "🚀 [Backend] 开始部署..."
+
+            # 项目目录
+            PROJECT_DIR="$HOME/Auto_GEO"
+            DEPLOY_DIR="$PROJECT_DIR/deploy"
+
+            # 确保目录存在（如果不存在则创建父目录）
+            mkdir -p "$(dirname "$PROJECT_DIR")"
+
+            # 如果目录不存在，初始化项目
+            if [ ! -d "$PROJECT_DIR/.git" ]; then
+              echo "📦 项目不存在，克隆仓库..."
+              # 添加GitHub到known_hosts
+              mkdir -p ~/.ssh
+              ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+              # 尝试SSH克隆
+              git clone git@github.com:aAAaqwq/Auto_GEO.git "$PROJECT_DIR" || {
+                echo "⚠️ SSH克隆失败，使用HTTPS..."
+                git clone https://github.com/aAAaqwq/Auto_GEO.git "$PROJECT_DIR"
+              }
+            fi
+
+            cd "$PROJECT_DIR"
+
+            # 拉取最新代码
+            echo "📥 拉取最新代码..."
+            git fetch origin
+            git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+
+            cd "$DEPLOY_DIR"
+
+            # 确保backups目录存在
+            mkdir -p backups
+
+            # ============================================
+            # 清理旧容器和镜像
+            # ============================================
+            echo "🧹 清理旧容器和镜像..."
+            echo "   - 停止并移除旧容器..."
+            docker-compose -f backend/docker-compose.yml down || true
+            echo "   - 删除旧的后端镜像..."
+            docker rmi $(docker images -q 'auto_geo_backend*' 2>/dev/null) 2>/dev/null || true
+            docker rmi $(docker images -q 'autogeo-backend*' 2>/dev/null) 2>/dev/null || true
+            docker rmi $(docker images -q 'crpi*auto_geo_backend*' 2>/dev/null) 2>/dev/null || true
+            echo "   - 清理未使用的Docker资源..."
+            docker system prune -f --volumes || true
+            echo "✅ 清理完成"
+
+            # 确保nginx配置目录存在
+            mkdir -p nginx/conf.d nginx/ssl nginx/html
+            if [ -f "$PROJECT_DIR/nginx/nginx.conf" ]; then
+              cp -f "$PROJECT_DIR/nginx/nginx.conf" nginx/nginx.conf
+            fi
+            if [ -d "$PROJECT_DIR/nginx/conf.d" ]; then
+              cp -f "$PROJECT_DIR/nginx/conf.d/*.conf" nginx/conf.d/ 2>/dev/null || true
+            fi
+
+            # 登录阿里云ACR
+            echo "🔐 登录阿里云ACR..."
+            docker login ${{ env.ALIYUN_REGISTRY }} \
+              -u "${{ secrets.ALIYUN_ACR_USERNAME }}" \
+              -p "${{ secrets.ALIYUN_ACR_PASSWORD }}" 2>/dev/null || {
+              echo "⚠️ ACR 登录失败，尝试使用本地镜像..."
+            }
+
+            # 从.env.backend读取环境变量（如果存在）
+            # 注意：.env文件不会被读取，所有配置应放在.env.backend中
+
+            # 确保 .env.backend 存在
+            if [ ! -f "$DEPLOY_DIR/.env.backend" ]; then
+              echo "📝 创建 .env.backend..."
+              cp "$DEPLOY_DIR/.env.example" "$DEPLOY_DIR/.env.backend" 2>/dev/null || true
+            fi
+
+            if [ -f "$DEPLOY_DIR/.env.backend" ]; then
+              echo "📝 加载.env.backend中的环境变量..."
+              set -a
+              source "$DEPLOY_DIR/.env.backend"
+              set +a
+            else
+              echo "⚠️ .env.backend不存在，使用默认值..."
+            fi
+
+            # 确保 JWT_SECRET_KEY 存在（从 GitHub Secrets）
+            if ! grep -q "^JWT_SECRET_KEY=" "$DEPLOY_DIR/.env.backend" 2>/dev/null; then
+              echo "🔑 添加 JWT_SECRET_KEY 到 .env.backend"
+              echo "" >> "$DEPLOY_DIR/.env.backend"
+              echo "# ==================== JWT认证配置 ====================" >> "$DEPLOY_DIR/.env.backend"
+              echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> "$DEPLOY_DIR/.env.backend"
+            fi
+
+            # 重新加载（确保刚写入的值被读取）
+            set -a
+            source "$DEPLOY_DIR/.env.backend"
+            set +a
+
+            echo "📦 JWT_SECRET_KEY: ${JWT_SECRET_KEY:+已设置}"
+
+            # 设置默认的镜像地址
+            export BACKEND_IMAGE="${{ env.ALIYUN_IMAGE }}:latest"
+            export DB_USER="${DB_USER:-autogeo}"
+            export DB_NAME="${DB_NAME:-autogeo}"
+            export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}"
+            export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+            export DATABASE_URL="postgresql://n8n:opencaio%40321@n8n_postgres:5432/autogeo"
+            export JWT_SECRET_KEY="${JWT_SECRET_KEY}"
+
+            echo "📦 环境变量已设置:"
+            echo "   - BACKEND_IMAGE: $BACKEND_IMAGE"
+            echo "   - DB_USER: $DB_USER"
+            echo "   - DB_PASSWORD: [已设置]"
+
+            # 拉取最新镜像
+            echo "📦 拉取最新镜像..."
+            docker-compose -f backend/docker-compose.yml pull backend || {
+              echo "⚠️ 拉取镜像失败，使用本地镜像"
+            }
+
+            # 重启服务
+            echo "🔄 重启后端服务..."
+            docker-compose -f backend/docker-compose.yml up -d
+
+            # 等待服务启动
+            echo "⏳ 等待服务启动..."
+            sleep 15
+
+            # 健康检查
+            echo "🏥 健康检查..."
+            if curl -sf http://localhost:8001/api/health > /dev/null 2>&1; then
+              echo "✅ [Backend] 部署成功！服务运行正常"
+            else
+              echo "⚠️ [Backend] 健康检查失败，查看日志:"
+              docker-compose -f backend/docker-compose.yml logs --tail=50 backend
+              exit 1
+            fi
+
+            echo ""
+            echo "========================================"
+            echo "✅ 后端部署完成"
+            echo "========================================"
+            echo "API地址: http://${{ secrets.SERVER_HOST }}/api"
+            echo "文档地址: http://${{ secrets.SERVER_HOST }}/docs"
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "### 🎉 后端部署成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 项目 | 值 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| 镜像 | ${{ env.ALIYUN_IMAGE }}/backend:latest |" >> $GITHUB_STEP_SUMMARY
+          echo "| 服务器 | ${{ secrets.SERVER_HOST }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 部署目录 | ~/Auto_GEO/deploy |" >> $GITHUB_STEP_SUMMARY
+          echo "| API地址 | http://${{ secrets.SERVER_HOST }}/api |" >> $GITHUB_STEP_SUMMARY

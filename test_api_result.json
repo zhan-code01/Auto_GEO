@@ -1,0 +1,17 @@
+{
+  "content": "It looks like you've typed a series of question marks. I'm here to help—do you have a question you'd like to ask? Feel free to let me know what you're curious about!",
+  "usage": {
+    "prompt_tokens": 7,
+    "completion_tokens": 159,
+    "total_tokens": 166,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 117
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 7
+  },
+  "model": "deepseek-v4-flash"
+}

@@ -1,0 +1,32 @@
+diff --git a/backend/services/agent/schemas.py b/backend/services/agent/schemas.py
+--- a/backend/services/agent/schemas.py
++++ b/backend/services/agent/schemas.py
+@@ -53,3 +53,28 @@
+     params: Dict[str, Any] = Field(default_factory=dict)
+     context: Dict[str, Any] = Field(default_factory=dict)
+     execution_plan: Optional[Dict[str, Any]] = None
++
++
++class SessionListItem(BaseModel):
++    """历史会话列表展示项（不含 slots，仅展示派生数据）。"""
++
++    id: str
++    title: Optional[str] = None
++    status: str
++    current_intent: Optional[str] = None
++    last_message: Optional[str] = None
++    last_message_role: Optional[str] = None
++    updated_at: Optional[str] = None
++
++
++class SessionDetail(BaseModel):
++    """会话详情展示契约。slots 仅在 include_slots=True（管理 / 调试）时填充。"""
++
++    id: str
++    title: Optional[str] = None
++    status: str
++    current_intent: Optional[str] = None
++    execution_plan: Optional[Dict[str, Any]] = None
++    slots: Optional[Dict[str, Any]] = None
++    created_at: Optional[str] = None
++    updated_at: Optional[str] = None

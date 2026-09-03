@@ -1,0 +1,5 @@
+# Client-side publish runner dependencies
+# These are the minimal Python packages needed by local_client_publish_runner.py
+loguru==0.7.3
+playwright==1.49.0
+playwright-stealth>=1.0.6

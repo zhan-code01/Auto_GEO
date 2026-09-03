@@ -1,0 +1,94 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+      - 'nginx/**'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: '部署到服务器'
+        required: true
+        default: 'true'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================
+  # 部署到服务器
+  # ============================================
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Create production env
+        working-directory: ./frontend
+        run: |
+          cat > .env.production << 'EOF'
+          VITE_API_BASE_URL=http://${{ secrets.SERVER_HOST }}/api
+          VITE_WS_URL=ws://${{ secrets.SERVER_HOST }}/ws
+          VITE_STATIC_URL=http://${{ secrets.SERVER_HOST }}/static
+          VITE_ENABLE_MOCK=false
+          VITE_APP_TITLE=AutoGeo
+          EOF
+
+      - name: Build for production
+        working-directory: ./frontend
+        run: npm run build:renderer
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          source: "frontend/out/renderer/*"
+          target: "/var/www/html"
+          strip_components: 2
+          rm: true
+
+      - name: Reload Nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 [Frontend] 部署完成，重载 Nginx..."
+            /www/server/nginx/sbin/nginx -s reload 2>/dev/null || true
+            echo "✅ 前端部署成功"
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "### 🎨 前端部署成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 项目 | 值 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| 服务器 | ${{ secrets.SERVER_HOST }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 部署目录 | /var/www/html/renderer |" >> $GITHUB_STEP_SUMMARY
+          echo "| 访问地址 | http://${{ secrets.SERVER_HOST }} |" >> $GITHUB_STEP_SUMMARY

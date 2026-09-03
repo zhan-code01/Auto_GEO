@@ -1,0 +1,26 @@
+diff --git a/backend/scripts/fix_database.py b/backend/scripts/fix_database.py
+--- a/backend/scripts/fix_database.py
++++ b/backend/scripts/fix_database.py
+@@ -370,6 +370,22 @@
+                 logger.warning(f"Failed to create auto_publish_tasks.triggered_by_user_id index: {e}")
+                 conn.rollback()
+ 
++        # === conversation_sessions 表：会话标题列（历史会话列表展示用） ===
++        cursor.execute("PRAGMA table_info(conversation_sessions)")
++        conv_existing = [col[1] for col in cursor.fetchall()]
++        for conv_col_name, conv_col_def in [("title", "VARCHAR(120)")]:
++            if conv_col_name not in conv_existing:
++                logger.info(f"Adding missing conversation_sessions column: {conv_col_name}...")
++                try:
++                    cursor.execute(
++                        f"ALTER TABLE conversation_sessions ADD COLUMN {conv_col_name} {conv_col_def}"
++                    )
++                    conn.commit()
++                    logger.success(f"✓ conversation_sessions.{conv_col_name} 列添加成功")
++                except Exception as e:
++                    logger.error(f"Failed to add conversation_sessions.{conv_col_name}: {e}")
++                    conn.rollback()
++
+         logger.success("数据库表结构检查和修复完成")
+ 
+     except Exception as e:

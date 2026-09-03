@@ -1,0 +1,57 @@
+diff --git a/backend/services/agent/orchestrator.py b/backend/services/agent/orchestrator.py
+--- a/backend/services/agent/orchestrator.py
++++ b/backend/services/agent/orchestrator.py
+@@ -6,7 +6,7 @@
+ 
+ from sqlalchemy.orm import Session
+ 
+-from backend.database.models import User
++from backend.database.models import ConversationSession, User
+ from backend.services.agent.intent_recognizer import get_intent_recognizer
+ from backend.services.agent.memory import get_agent_memory
+ from backend.services.agent.schemas import AgentMessageRequest, AgentMessageResult
+@@ -47,6 +47,13 @@
+             pass
+ 
+         memory.add_message(db, session.id, "user", request.message, {"trace_id": trace_id})
++
++        # 会话标题：首条用户消息截断生成，供历史列表展示（规则版，零 LLM 成本）。
++        # 仅在会话尚无标题时写入，后续不覆盖，避免多轮对话把标题刷成最后一条。
++        if not session.title:
++            _title_raw = (request.message or "").strip().replace("\n", " ")
++            session.title = (_title_raw[:24] + "…") if len(_title_raw) > 24 else (_title_raw or "新对话")
++            db.commit()
+ 
+         recent_messages = memory.get_context_for_llm(db, session.id, max_messages=8)
+         old_slots = dict(session.slots or {})
+@@ -137,6 +144,30 @@
+             article_id=getattr(execution, "article_id", None) if execution else None,
+             plan=plan,
+         )
++
++    def derive_execution_plan(
++        self,
++        db: Session,
++        current_user: User,
++        session: ConversationSession,
++    ) -> Optional[Dict[str, Any]]:
++        """
++        基于已持久化的 session 现算“展示用”执行计划（execution_plan）。
++
++        复用 _resolve_business_slots / _missing_slots_and_questions 这两套既有
++        业务解析逻辑，因此 missing_slots 是真实查库算出来的（而非 TaskPlanner
++        的静态默认值），展示给前端的“是否可执行 / 缺什么”才准确。
++
++        纯展示、无副作用：只在局部 slots 拷贝上计算，不写回 session.slots，
++        因此适合在 GET 详情接口（只读）中调用。
++        """
++        try:
++            slots = self._resolve_business_slots(db, current_user, dict(session.slots or {}))
++            missing, _ = self._missing_slots_and_questions(db, current_user, slots)
++            intent = slots.get("intent") or session.current_intent or "unknown"
++            return get_task_planner().build_plan(intent, slots, missing).dict()
++        except Exception:
++            return None
+ 
+     async def handle_external_message(
+         self,

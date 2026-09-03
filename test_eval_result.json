@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "answer": "您好，您输入的内容看起来像是乱码或格式问题，我无法理解具体的问题。请您重新输入清晰、完整的问题，我会尽力为您解答。如果与“GEO”相关（例如地理数据库、基因表达数据库等），也请明确说明，谢谢！",
+  "keyword_found": true,
+  "company_found": false,
+  "keyword_count": 1,
+  "company_count": 0,
+  "confidence": 0.6,
+  "company_matched": "",
+  "citations": [],
+  "citation_count": 0,
+  "error_msg": null
+}

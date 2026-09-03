@@ -1,0 +1,82 @@
+# ========================================
+# AutoGeo Backend - Development Dependencies
+# Maintainer: 小a
+# Version: v2.8.0
+# Updated: 2026-05-13
+# ========================================
+#
+# 老王备注：
+# 这是开发环境的完整依赖，直接 pip install 即可
+# 安装命令：pip install -r requirements.txt
+# 安装后记得：playwright install chromium
+#
+
+# ==================== Web框架 ====================
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart>=0.0.27
+# ==================== 数据库 ====================
+sqlalchemy==2.0.39
+psycopg2-binary==2.9.10  # PostgreSQL 驱动（SQLAlchemy 用）
+psycopg[binary]>=3.2,<4  # LangGraph PostgresSaver 用（psycopg3）
+alembic==1.14.0           # 数据库迁移工具
+
+# ==================== 部署相关 ====================
+paramiko==3.5.0
+boto3==1.35.0
+
+# ==================== 浏览器自动化 ====================
+playwright==1.49.0
+
+# ==================== 加密 ====================
+cryptography>=44.0.1
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+
+# ==================== 日志 ====================
+loguru==0.7.3
+
+# ==================== 定时任务 ====================
+APScheduler==3.11.0
+
+# ==================== 数据验证 ====================
+pydantic==2.10.0
+email-validator>=2.2.0
+
+# ==================== Agent 框架 ====================
+langgraph==0.2.39
+langchain-core==0.3.24
+langchain-openai==0.2.10
+langgraph-checkpoint-postgres==2.0.1
+
+# ==================== HTTP客户端 ====================
+httpx==0.27.2
+requests>=2.31.0  # ragflow_client 等运行时直接依赖(避免靠 boto3 传递安装)
+Pillow>=10.0.0  # 图片处理（note_utils 等模块依赖）
+playwright-stealth>=1.0.6  # 浏览器反检测（stealth_engine）
+pytz>=2024.1  # 时区处理（scheduler_service）
+PyMuPDF>=1.24.0  # PDF 处理（document_extractor，import fitz）
+ragflow-sdk>=0.17.0  # RAGFlow 知识库集成
+
+# ==================== WebSocket ====================
+websockets==13.1
+
+# ==================== 配置管理 ====================
+python-dotenv==1.0.1
+
+# ==================== 工具库 ====================
+aiofiles==24.1.0
+DataRecorder==3.6.2
+DownloadKit==2.0.7
+jinja2==3.1.5  # 模板引擎，用于智能建站功能
+markdown2>=2.5.0  # Markdown→HTML 转换，文章正文统一为 HTML（编辑器/发布均需 HTML）
+openpyxl==3.1.5  # Excel 解析（后台智能体 Excel 批量文章生成）
+
+# ==================== 开发工具 ====================
+# 代码格式化
+ruff==0.8.0
+# 测试框架
+pypdf>=4.3.1  # PDF text extraction for knowledge-base uploads
+pytest==8.3.5
+pytest-asyncio==0.25.0
+pytest-cov==6.0.0

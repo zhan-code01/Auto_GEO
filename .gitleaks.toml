@@ -1,0 +1,76 @@
+# Gitleaks配置文件 - AutoGeo项目密钥泄露检测
+# 备注（2026-02-25）：配置检测Python代码中的常见密钥泄露模式
+
+title = "Gitleaks配置"
+
+# 扩展配置
+[extend]
+useDefault = true  # 使用Gitleaks默认规则
+
+# 自定义规则
+[[rules]]
+description = "Python代码中的硬编码API密钥"
+id = "python-hardcoded-api-key"
+regex = '''(?:api_key|apikey|api-key|secret|token|password|pwd)\\s*=\\s*['"](?![a-zA-Z]{1,10}['"])[a-zA-Z0-9+/=_]{20,}['"]'''
+keywords = ["api_key", "apikey", "secret", "token", "password"]
+entropy = 3.5
+
+[[rules]]
+description = "OpenAI API密钥"
+id = "openai-api-key"
+regex = '''sk-[a-zA-Z0-9]{48}'''
+keywords = ["sk-"]
+
+[[rules]]
+description = "GitHub Token"
+id = "github-token"
+regex = '''gh[pousr]_[a-zA-Z0-9]{36,255}'''
+keywords = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"]
+
+[[rules]]
+description = "AWS Access Key"
+id = "aws-access-key"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+keywords = ["AKIA", "A3T"]
+
+[[rules]]
+description = "AWS Secret Key"
+id = "aws-secret-key"
+regex = '''[\\w/+]{40}'''
+entropy = 3.5
+
+[[rules]]
+description = "数据库连接字符串"
+id = "database-connection-string"
+regex = '''(?i)mysql://[^\\s]+|postgres://[^\\s]+|mongodb://[^\\s]+|redis://[^\\s]+'''
+keywords = ["mysql://", "postgres://", "mongodb://", "redis://"]
+
+[[rules]]
+description = "私有IP地址（内网地址不应出现在代码中）"
+id = "private-ip"
+regex = '''(?:(?:10|172\\.(?:1[6-9]|2[0-9]|3[01])|192\\.168)\\..*)'''
+entropy = 0
+
+# 允许列表（排除误报）
+[allowlist]
+description = "允许列表"
+paths = [
+  '''\.git$''',
+  '''node_modules''',
+  '''__pycache__''',
+  '''\.pyc$''',
+  '''venv''',
+  '''.env\.example''',
+  '''tests/''',  # 测试文件可能包含示例密钥
+  '''docs/'''
+]
+
+# 允许的提交信息（跳过某些提交）
+[[allowlist.commits]]
+message = '''^chore.*update.*gitleaks'''
+message = '''^test.*example.*key'''
+
+# 允许的文件（针对特定文件）
+[[allowlist.files]]
+path = '''.env\.example'''
+path = '''config\.example\.(json|yaml|toml)'''

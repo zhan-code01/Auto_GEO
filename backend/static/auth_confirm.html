@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoGeo - 授权确认</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .platform-info {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .platform-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .task-id {
+            font-size: 12px;
+            color: #999;
+            font-family: monospace;
+        }
+
+        .steps {
+            text-align: left;
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .steps h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .steps ol {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .steps li {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        .steps li strong {
+            color: #333;
+        }
+
+        .btn {
+            background: #ff4d4f;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #ff7875;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 77, 79, 0.4);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn.success {
+            background: #52c41a;
+        }
+
+        .btn.error {
+            background: #ff4d4f;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+        }
+
+        .status.error {
+            background: #fff2f0;
+            color: #ff4d4f;
+            border: 1px solid #ffccc7;
+        }
+
+        .status.loading {
+            background: #e6f7ff;
+            color: #1890ff;
+            border: 1px solid #91d5ff;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .icon-check {
+            display: none;
+        }
+
+        .btn.success .icon-check {
+            display: block;
+        }
+
+        .btn.success .spinner {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>AutoGeo 授权确认</h1>
+        <p class="subtitle">智能多平台文章发布助手</p>
+
+        <div class="platform-info">
+            <div class="platform-name" id="platformName">加载中...</div>
+            <div class="task-id" id="taskId">Task ID: ---</div>
+        </div>
+
+        <div class="steps">
+            <h3>📋 授权步骤</h3>
+            <ol>
+                <li>在<strong>另一个标签页</strong>中完成平台登录</li>
+                <li>确保看到已登录状态（如用户名、头像等）</li>
+                <li>返回本页面，点击下方按钮确认授权</li>
+            </ol>
+        </div>
+
+        <button class="btn" id="confirmBtn" onclick="onConfirmButtonClick()">
+            <span class="spinner" id="spinner" style="display:none;"></span>
+            <span class="icon-check" id="iconCheck">✓</span>
+            <span id="btnText">完成授权</span>
+        </button>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        const API_BASE = new URLSearchParams(window.location.search).get('api_base')
+            || (window.location.origin && window.location.origin !== 'null' ? window.location.origin : '');
+        let taskId = null;
+        let platformName = '';
+
+        // 从URL获取参数
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                task_id: params.get('task_id'),
+                platform: params.get('platform')
+            };
+        }
+
+        // 平台名称映射
+        const PLATFORM_NAMES = {
+            'zhihu': '知乎',
+            'baijiahao': '百家号',
+            'sohu': '搜狐号',
+            'toutiao': '头条号',
+            'wenku': '百度文库',
+            'penguin': '企鹅号',
+            'weixin': '微信公众号',
+            'wangyi': '网易号',
+            'zijie': '字节号',
+            'xiaohongshu': '小红书',
+            'bilibili': 'B站专栏',
+            '36kr': '36氪',
+            'huxiu': '虎嗅',
+            'woshipm': '人人都是产品经理',
+            'douyin': '抖音',
+            'kuaishou': '快手',
+            'video_account': '视频号',
+            'sohu_video': '搜狐视频',
+            'weibo': '新浪微博',
+            'haokan': '好看视频',
+            'xigua': '西瓜视频',
+            'jianshu': '简书号',
+            'iqiyi': '爱奇艺',
+            'dayu': '大鱼号',
+            'acfun': 'AcFun',
+            'tencent_video': '腾讯视频',
+            'yidian': '一点号',
+            'pipixia': '皮皮虾',
+            'meipai': '美拍',
+            'douban': '豆瓣',
+            'kuai_chuan': '快传号',
+            'dafeng': '大风号',
+            'xueqiu': '雪球号',
+            'yiche': '易车号',
+            'chejia': '车家号',
+            'duoduo': '多多视频',
+            'weishi': '腾讯微视',
+            'mango': '芒果TV',
+            'ximalaya': '喜马拉雅',
+            'meituan': '美团',
+            'alipay': '支付宝',
+            'douyin_company': '抖音企业号',
+            'douyin_company_lead': '抖音企业号（线索版）',
+            'custom': '自定义'
+        };
+
+        // 初始化页面
+        function initPage() {
+            const params = getUrlParams();
+            taskId = params.task_id;
+            const platform = params.platform;
+
+            if (!taskId || !platform) {
+                showError('缺少必要参数，请重新开始授权流程');
+                document.getElementById('confirmBtn').disabled = true;
+                return;
+            }
+
+            platformName = PLATFORM_NAMES[platform] || platform;
+            document.getElementById('platformName').textContent = platformName;
+            document.getElementById('taskId').textContent = `Task ID: ${taskId}`;
+        }
+
+        // 确认授权 - 调用 Playwright 暴露的函数（绕过CORS！）
+        async function onConfirmButtonClick() {
+            const btn = document.getElementById('confirmBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const status = document.getElementById('status');
+
+            console.log('[AutoGeo] 开始授权确认, taskId:', taskId);
+
+            // 禁用按钮，显示加载状态
+            btn.disabled = true;
+            btnText.textContent = '保存中...';
+            spinner.style.display = 'block';
+            showStatus('正在保存授权信息...', 'loading');
+
+            try {
+                // 检查暴露的函数是否存在
+                if (typeof window.confirmAuth !== 'function') {
+                    throw new Error('授权功能未就绪，请刷新页面重试');
+                }
+
+                console.log('[AutoGeo] 调用暴露的 confirmAuth 函数...');
+
+                // 调用 Playwright 暴露的函数（返回JSON字符串）
+                const result = await window.confirmAuth(taskId);
+                console.log('[AutoGeo] 原始响应:', result);
+
+                // 检查返回值
+                if (result === undefined) {
+                    throw new Error('授权函数返回undefined，请检查后端服务是否运行');
+                }
+
+                // 解析JSON字符串
+                const data = JSON.parse(result);
+                console.log('[AutoGeo] 解析后的数据:', data);
+
+                if (data.success) {
+                    btn.classList.add('success');
+                    btnText.textContent = '授权成功!';
+                    spinner.style.display = 'none';
+                    showStatus('授权信息已保存！账号ID: ' + (data.data?.account_id || '未知'), 'success');
+
+                    // 3秒后自动关闭
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
+                } else {
+                    throw new Error(data.message || '授权失败');
+                }
+            } catch (error) {
+                console.error('[AutoGeo] 授权错误:', error);
+                console.error('[AutoGeo] 错误详情:', error.message, error.stack);
+                btn.disabled = false;
+                btnText.textContent = '重试';
+                spinner.style.display = 'none';
+                showError('错误: ' + error.message + ' (请检查浏览器控制台)');
+            }
+        }
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status show ${type}`;
+        }
+
+        // 显示错误
+        function showError(message) {
+            showStatus(message, 'error');
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

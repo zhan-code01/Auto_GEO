@@ -1,0 +1,132 @@
+services:
+  # ==================== PostgreSQL 数据库 ====================
+  postgres:
+    image: postgres:15-alpine
+    container_name: autogeo_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-autogeo}
+      POSTGRES_USER: ${POSTGRES_USER:-autogeo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - autogeo_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autogeo} -d ${POSTGRES_DB:-autogeo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ==================== 后端服务 ====================
+  backend:
+    image: ${BACKEND_IMAGE:-autogeo/backend:local}
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-local}
+        VERSION: ${APP_VERSION:-local}
+        PLAYWRIGHT_DOWNLOAD_HOST: ${PLAYWRIGHT_DOWNLOAD_HOST:-}
+    container_name: autogeo_backend
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      HOST: 0.0.0.0
+      PORT: 8001
+      RELOAD: ${BACKEND_RELOAD:-false}
+      TZ: Asia/Shanghai
+      DATABASE_URL: ${DATABASE_URL:-postgresql://autogeo:${POSTGRES_PASSWORD}@postgres:5432/autogeo}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-3600}
+      RUN_DB_MIGRATIONS: ${RUN_DB_MIGRATIONS:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://127.0.0.1:8086}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      HEADLESS_MODE: ${HEADLESS_MODE:-false}
+      VNC_PASSWORD: ${VNC_PASSWORD:-}
+      DISPLAY_NUMBER: ${DISPLAY_NUMBER:-99}
+      SCREEN_RESOLUTION: ${SCREEN_RESOLUTION:-1280x800x24}
+      NOVNC_PORT: ${NOVNC_PORT:-6080}
+      # 方案A：服务器远程授权（noVNC）。Docker+DISPLAY 已自动判 remote，这里显式声明更明确。
+      AUTH_BROWSER_VIEW: ${AUTH_BROWSER_VIEW:-remote}
+      AUTH_BROWSER_WINDOW_MODE: ${AUTH_BROWSER_WINDOW_MODE:-normal}
+      # 默认值含 &，必须用双引号包裹避免 YAML 锚点解析错误。
+      NOVNC_PUBLIC_URL: "${NOVNC_PUBLIC_URL:-/novnc/vnc.html?resize=scale&autoconnect=1&reconnect=1&show_dot=0&path=novnc/websockify}"
+    volumes:
+      - ../../backend:/app/backend   # Git 部署：宿主机代码挂载，改 .py 只需 restart
+      - backend_database:/app/database
+      - backend_cookies:/app/.cookies
+      - backend_logs:/app/logs
+      - backend_uploads:/app/backend/static/uploads
+      - backend_sites:/app/backend/static/sites
+    ports:
+      - "${BACKEND_HTTP_BIND:-127.0.0.1:8001}:8001"
+      - "${NOVNC_HTTP_BIND:-127.0.0.1:6080}:6080"
+    networks:
+      - autogeo_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    shm_size: 1gb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ==================== 前端服务 ====================
+  frontend:
+    image: ${FRONTEND_IMAGE:-autogeo/frontend:local}
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-local}
+        VERSION: ${APP_VERSION:-local}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_WS_URL: ${VITE_WS_URL:-/ws}
+        VITE_STATIC_URL: ${VITE_STATIC_URL:-/static}
+        VITE_ENABLE_MOCK: ${VITE_ENABLE_MOCK:-false}
+        VITE_APP_TITLE: ${VITE_APP_TITLE:-AutoGeo}
+    container_name: autogeo_frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_HTTP_BIND:-127.0.0.1:8086}:80"
+    networks:
+      - autogeo_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  autogeo_network:
+    name: autogeo_network
+
+volumes:
+  postgres_data:
+    name: autogeo_postgres_data
+  backend_database:
+    name: autogeo_backend_database
+  backend_cookies:
+    name: autogeo_backend_cookies
+  backend_logs:
+    name: autogeo_backend_logs
+  backend_uploads:
+    name: autogeo_backend_uploads
+  backend_sites:
+    name: autogeo_backend_sites

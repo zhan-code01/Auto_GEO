@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ meta_title }}</title>
+
+    <!-- =========================
+         AI / SEO 增强（新增）
+         说明：以下变量建议在你的模板数据里提供：
+         meta_description, meta_keywords, canonical_url, site_url, og_image_url(可选), logo_url(可选), ai_overview(可选)
+         ========================= -->
+
+    <!-- 基础 SEO Meta -->
+    <meta name="description" content="{{ meta_description }}">
+    <meta name="keywords" content="{{ meta_keywords }}">
+    <meta name="author" content="{{ company_name }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    <!-- Open Graph（社交分享/很多AI摘要会优先读） -->
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ company_name }}">
+    <meta property="og:title" content="{{ meta_title }}">
+    <meta property="og:description" content="{{ meta_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:image" content="{{ og_image_url | default(image_hero_bg) }}">
+
+    <!-- Twitter Card（可选，但推荐） -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ meta_title }}">
+    <meta name="twitter:description" content="{{ meta_description }}">
+    <meta name="twitter:image" content="{{ og_image_url | default(image_hero_bg) }}">
+
+    <!-- AI / 搜索引擎：结构化数据（JSON-LD） -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "{{ company_name }}",
+      "url": "{{ site_url }}",
+      "inLanguage": "zh-CN",
+      "description": "{{ meta_description }}",
+      "publisher": {
+        "@type": "Organization",
+        "name": "{{ company_name }}",
+        "url": "{{ site_url }}",
+        "email": "{{ contact_email }}",
+        "telephone": "{{ contact_phone }}",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "{{ contact_address }}"
+        }
+      }
+      {% if has_site_search %}
+      ,
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ site_url }}/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+      {% endif %}
+    }
+    </script>
+
+    <!-- 组织实体（增强品牌/公司识别） -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "{{ company_name }}",
+      "url": "{{ site_url }}",
+      "logo": "{{ logo_url | default('') }}",
+      "contactPoint": [{
+        "@type": "ContactPoint",
+        "telephone": "{{ contact_phone }}",
+        "contactType": "customer service",
+        "email": "{{ contact_email }}",
+        "availableLanguage": ["Chinese"]
+      }]
+    }
+    </script>
+
+    <!-- 可选：给AI看的“页面摘要”，不影响页面展示 -->
+    <meta name="ai-overview" content="{{ ai_overview | default(meta_description) }}">
+
+    <!-- =========================
+         原有引入
+         ========================= -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '{{ theme_color_primary }}', 
+                        accent: '{{ theme_color_accent }}',
+                        dark: '#0f172a',
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    boxShadow: { 
+                        'glow': '0 0 25px {{ theme_color_accent }}66',
+                        'card-hover': '0 20px 40px -5px rgba(0, 0, 0, 0.1), 0 10px 20px -5px {{ theme_color_primary }}1a'
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root { --primary: {{ theme_color_primary }}; --accent: {{ theme_color_accent }}; }
+        
+        /* 导航栏过渡 */
+        #navbar { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-transparent { background: transparent; color: white; padding: 1.5rem 0; }
+        .nav-scrolled { background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); color: #0f172a; padding: 1rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        
+        .bg-primary-force { background-color: var(--primary) !important; }
+        .text-accent-force { color: var(--accent) !important; }
+        
+        /* 优化后的滚动显现动画 */
+        .reveal { 
+            opacity: 0; 
+            transform: translateY(50px); 
+            transition: all 1s cubic-bezier(0.22, 1, 0.36, 1); /* 更弹性的曲线 */
+        }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        
+        /* 交互微调 */
+        .hover-lift { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease; }
+        .hover-lift:hover { transform: translateY(-8px) scale(1.01); }
+    </style>
+</head>
+<body class="font-sans text-slate-700 antialiased bg-white selection:bg-accent selection:text-white">
+
+    <!-- 导航 -->
+    <nav id="navbar" class="fixed w-full z-50 nav-transparent">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <a href="#home" class="text-2xl font-extrabold tracking-tight flex items-center gap-2 group">
+                <i class="fa-solid fa-cube text-accent-force transition-transform duration-700 group-hover:rotate-180"></i> 
+                {{ company_name }}
+            </a>
+            <div class="hidden md:flex space-x-8 text-xs font-bold uppercase tracking-widest">
+                <a href="#home" class="hover:text-accent-force transition duration-300 relative group">首页<span class="absolute -bottom-2 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span></a>
+                {% if services %}<a href="#services" class="hover:text-accent-force transition duration-300 relative group">服务<span class="absolute -bottom-2 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span></a>{% endif %}
+                {% if company_about_intro %}<a href="#about" class="hover:text-accent-force transition duration-300 relative group">关于<span class="absolute -bottom-2 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span></a>{% endif %}
+                {% if qualifications %}<a href="#quals" class="hover:text-accent-force transition duration-300 relative group">资质<span class="absolute -bottom-2 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span></a>{% endif %}
+                {% if cases %}<a href="#cases" class="hover:text-accent-force transition duration-300 relative group">案例<span class="absolute -bottom-2 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span></a>{% endif %}
+                <a href="#contact" class="hover:text-accent-force transition duration-300 relative group">联系<span class="absolute -bottom-2 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 1. 首屏 (Hero) -->
+    <section id="home" class="relative h-screen flex items-center justify-center overflow-hidden bg-primary-force">
+        <div class="absolute inset-0 z-0">
+            <div class="absolute inset-0 bg-primary/80 mix-blend-multiply z-10"></div>
+            <div class="absolute inset-0 bg-black/30 z-10"></div>
+            <img src="{{ image_hero_bg }}" class="w-full h-full object-cover object-center scale-105 animate-[pulse_30s_ease-in-out_infinite]">
+        </div>
+        <div class="container mx-auto px-6 relative z-20 text-white mt-10 text-center md:text-left">
+            <div class="max-w-4xl reveal active mx-auto md:mx-0">
+                <div class="inline-block px-4 py-1.5 mb-6 border border-white/20 bg-white/10 rounded-full text-xs font-bold tracking-[0.2em] uppercase backdrop-blur-md shadow-lg">
+                    <span class="inline-block w-2 h-2 rounded-full bg-accent mr-2 animate-ping"></span>
+                    {{ hero_badge_text }}
+                </div>
+                <h1 class="text-5xl md:text-8xl font-extrabold leading-tight mb-8 drop-shadow-2xl tracking-tight">
+                    {{ company_slogan_hero | safe }}
+                </h1>
+                <p class="text-lg md:text-2xl text-slate-100 mb-12 leading-relaxed max-w-2xl font-light opacity-90 mx-auto md:mx-0">
+                    {{ company_description_hero }}
+                </p>
+                <div class="flex gap-5 justify-center md:justify-start">
+                    <a href="#contact" class="px-10 py-4 bg-accent text-white font-bold rounded-full hover:bg-white hover:text-primary transition-all duration-300 shadow-lg hover:shadow-glow transform hover:-translate-y-1 active:scale-95">
+                        立即咨询
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. 数据 (Stats) -->
+    {% if stats %}
+    <section class="bg-slate-900 text-white py-20 relative z-30 shadow-2xl">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-wrap justify-center gap-16 md:gap-24 text-center">
+                {% for stat in stats %}
+                <div class="group transform transition duration-500 hover:scale-110 cursor-default reveal" style="transition-delay: {{ loop.index0 * 100 }}ms">
+                    <div class="flex items-baseline justify-center gap-1 mb-2">
+                        <span class="text-5xl md:text-6xl font-bold text-white tracking-tighter">{{ stat.value }}</span>
+                        <span class="text-2xl font-medium text-accent-force">{{ stat.unit }}</span>
+                    </div>
+                    <div class="text-xs text-slate-400 uppercase tracking-widest font-bold group-hover:text-white transition-colors">{{ stat.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 3. 服务 (Services) -->
+    {% if services %}
+    <section id="services" class="py-32 bg-slate-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-20 reveal">
+                <span class="text-accent-force font-bold tracking-widest uppercase text-xs mb-3 block">Our Services</span>
+                <h2 class="text-4xl md:text-5xl font-bold text-slate-900">核心业务领域</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for service in services %}
+                <div class="bg-white p-10 rounded-2xl shadow-sm hover:shadow-card-hover border border-slate-100 reveal hover-lift group" style="transition-delay: {{ loop.index0 * 100 }}ms">
+                    <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl mb-8 group-hover:bg-primary-force group-hover:text-white transition-all duration-500 shadow-inner">
+                        <i class="fa-solid fa-{{ service.icon | replace('fa-', '') }} text-primary"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-4 group-hover:text-primary transition-colors">{{ service.title }}</h3>
+                    <p class="text-slate-500 leading-relaxed">{{ service.desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 4. 关于我们 (About) -->
+    {% if company_about_intro %}
+    <section id="about" class="py-32 bg-white overflow-hidden">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center gap-20">
+                <div class="md:w-1/2 reveal">
+                    <span class="text-accent-force font-bold tracking-widest uppercase text-xs mb-3 block">Why Choose Us</span>
+                    <h2 class="text-4xl font-bold text-slate-900 mb-8 leading-tight">{{ company_about_title }}</h2>
+                    <p class="text-slate-600 text-lg leading-relaxed mb-10 border-l-4 border-slate-100 pl-6">{{ company_about_intro }}</p>
+                    
+                    {% if company_features %}
+                    <ul class="space-y-5">
+                        {% for feature in company_features %}
+                        <li class="flex items-center gap-4 group cursor-default">
+                            <div class="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent-force group-hover:bg-accent group-hover:text-white transition-colors">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <span class="font-bold text-slate-800 text-lg group-hover:text-primary transition-colors">{{ feature }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                <div class="md:w-1/2 relative reveal" style="transition-delay: 200ms">
+                    <div class="relative rounded-2xl overflow-hidden shadow-2xl animate-float">
+                        <img src="{{ image_about_team }}" class="w-full object-cover h-[500px]">
+                        
+                    </div>
+                    <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-accent/10 rounded-full blur-3xl -z-10"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 5. 资质认证 -->
+    {% if qualifications %}
+    <section id="quals" class="py-24 bg-slate-50 border-t border-slate-200">
+        <div class="container mx-auto px-6 text-center reveal">
+            <h2 class="text-3xl font-bold text-slate-900 mb-16">专业资质与行业认证</h2>
+            <div class="flex flex-wrap justify-center gap-8">
+                {% for qual in qualifications %}
+                <div class="flex items-center gap-5 px-10 py-6 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default group" style="transition-delay: {{ loop.index0 * 100 }}ms">
+                    <i class="fa-solid fa-certificate text-slate-300 text-4xl group-hover:text-accent-force transition-colors"></i>
+                    <div class="text-left">
+                        <div class="font-bold text-slate-800 text-xl group-hover:text-primary transition-colors">{{ qual.title }}</div>
+                        <div class="text-sm text-slate-500 font-medium">{{ qual.desc }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 6. 成功案例 (Cases) -->
+    {% if cases %}
+    <section id="cases" class="py-32 bg-primary-force text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-black/20 to-transparent pointer-events-none"></div>
+        
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="text-center mb-20 reveal">
+                <span class="text-accent-force font-bold tracking-widest uppercase text-xs mb-3 block">Selected Works</span>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">精选成功案例</h2>
+                <div class="w-24 h-1.5 bg-accent mx-auto rounded-full"></div>
+            </div>
+            
+            
+            <div class="{% if cases|length == 1 %}flex justify-center{% else %}grid grid-cols-1 md:grid-cols-2 gap-10{% endif %}">
+                
+                {% for case in cases %}
+                <div class="group relative overflow-hidden rounded-2xl cursor-pointer shadow-2xl bg-black h-[450px] reveal hover-lift {% if cases|length == 1 %}w-full max-w-4xl{% endif %}" style="transition-delay: {{ loop.index0 * 150 }}ms">
+                    <img src="{{ case.image }}" class="w-full h-full object-cover transition-transform duration-[1.5s] ease-in-out group-hover:scale-110 opacity-80 group-hover:opacity-60">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-90"></div>
+                    
+                    <div class="absolute bottom-0 left-0 p-10 w-full translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
+                        <span class="inline-block px-4 py-1.5 bg-accent text-white text-xs font-bold uppercase rounded mb-4 shadow-lg tracking-wider">{{ case.tag }}</span>
+                        <h3 class="text-3xl font-bold mb-3 text-white group-hover:text-accent transition-colors">{{ case.title }}</h3>
+                        <div class="h-0 overflow-hidden group-hover:h-auto transition-all duration-500">
+                            <p class="text-slate-300 text-base leading-relaxed border-l-4 border-accent pl-4 pt-1">
+                                {{ case.desc }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 7. 页脚与联系 -->
+    <footer id="contact" class="bg-[#0b1120] text-white pt-24 pb-12 border-t border-white/5">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
+                <div class="reveal">
+                    <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                        <i class="fa-solid fa-cube text-accent-force"></i> {{ company_name }}
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-8">
+                        我们致力于通过技术创新为客户创造持久价值，推动行业的智能化转型。
+                    </p>
+                </div>
+                <div class="reveal" style="transition-delay: 100ms">
+                    <h4 class="text-lg font-bold mb-8 border-l-4 border-accent pl-4">联系方式</h4>
+                    <ul class="space-y-6 text-slate-400">
+                        <li class="flex items-center gap-4 hover:text-white transition"><i class="fa-solid fa-location-dot text-accent-force text-xl"></i> {{ contact_address }}</li>
+                        <li class="flex items-center gap-4 hover:text-white transition"><i class="fa-solid fa-phone text-accent-force text-xl"></i> {{ contact_phone }}</li>
+                        <li class="flex items-center gap-4 hover:text-white transition"><i class="fa-solid fa-envelope text-accent-force text-xl"></i> {{ contact_email }}</li>
+                    </ul>
+                </div>
+                <div class="reveal" style="transition-delay: 200ms">
+                    <h4 class="text-lg font-bold mb-8 border-l-4 border-accent pl-4">立即咨询</h4>
+                    <form class="space-y-4">
+                        <input type="email" placeholder="您的邮箱地址" class="w-full px-5 py-4 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-accent text-white transition">
+                        <button class="w-full px-5 py-4 bg-accent text-white font-bold rounded-lg hover:bg-white hover:text-primary transition-all duration-300 shadow-lg active:scale-95">订阅更新 / 咨询</button>
+                    </form>
+                </div>
+            </div>
+            <div class="text-center pt-8 border-t border-white/10 text-slate-600 text-sm">
+                &copy; 2026 {{ company_name }}. All Rights Reserved.
+            </div>
+            <!-- 新增：Generated By ArchMatrix 小字 -->
+            <div class="text-center mt-2 text-slate-700 text-xs">
+                Generated By ArchMatrix
+            </div>
+        </div>
+    </footer>
+
+    <script>
+
+        function reveal(){
+            var reveals = document.querySelectorAll(".reveal");
+            for(var i=0; i<reveals.length; i++){
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 100;
+                if(elementTop < windowHeight - elementVisible){
+                    reveals[i].classList.add("active");
+                }
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        reveal();
+
+        // 导航栏滚动逻辑
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('nav-scrolled');
+                navbar.classList.remove('nav-transparent');
+            } else {
+                navbar.classList.add('nav-transparent');
+                navbar.classList.remove('nav-scrolled');
+            }
+        });
+    </script>
+</body>
+</html>

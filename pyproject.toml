@@ -1,0 +1,35 @@
+[tool.ruff]
+# 备注：Ruff配置，用于代码质量检查
+# 这些规则是根据实际情况调整的
+
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# 只检查最基本的错误和未使用导入
+select = ["F"]
+
+ignore = [
+    # 裸except - 捕获所有异常并安全处理
+    "E722",
+
+    # 星号导入 - __init__.py中需要使用 `from backend.config import *`
+    "F403",
+    "F405",
+
+    # 未使用导入 - 某些导入是为了类型注解或未来使用
+    "F401",
+
+    # 未使用变量 - 可能是调试用途或未来功能预留
+    "F841",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# API模块的__init__.py需要星号导出
+"__init__.py" = ["F403", "F405"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

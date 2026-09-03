@@ -1,0 +1,45 @@
+# ============================================================
+# AutoGeo Local Development PostgreSQL
+#
+# 用法:
+#   1. 启动本地 PostgreSQL:
+#      docker compose -f docker-compose.local.yml up -d postgres
+#
+#   2. 初始化数据库 schema:
+#      cd backend
+#      alembic upgrade head
+#      python -m backend.scripts.check_postgres_schema
+#
+#   3. 启动后端:
+#      python -m backend.main
+#
+#   4. 停止:
+#      docker compose -f docker-compose.local.yml down
+#
+#   5. 清除数据:
+#      docker compose -f docker-compose.local.yml down -v
+# ============================================================
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: autogeo_local_postgres
+    environment:
+      POSTGRES_DB: autogeo
+      POSTGRES_USER: autogeo
+      POSTGRES_PASSWORD: autogeo_dev_password
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - autogeo_local_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autogeo -d autogeo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  autogeo_local_postgres_data:

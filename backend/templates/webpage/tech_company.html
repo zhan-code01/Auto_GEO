@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ meta_title or company_name or '企业官网' }}</title>
+{% if meta_description %}<meta name="description" content="{{ meta_description }}">{% endif %}
+{% if meta_keywords %}<meta name="keywords" content="{{ meta_keywords }}">{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ company_name or '' }}">
+<meta property="og:title" content="{{ meta_title or company_name or '' }}">
+{% if meta_description %}<meta property="og:description" content="{{ meta_description }}">{% endif %}
+<link rel="canonical" href="{{ canonical_url or '' }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "{{ company_name or '' }}",
+  "description": "{{ description or meta_description or '' }}",
+  "url": "{{ site_url or '' }}"
+  {% if contact and contact.phone %}, "telephone": "{{ contact.phone }}"{% endif %}
+  {% if contact and contact.email %}, "email": "{{ contact.email }}"{% endif %}
+  {% if contact and contact.address %}, "address": { "@type": "PostalAddress", "streetAddress": "{{ contact.address }}" }{% endif %}
+}
+</script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e27;--bg2:#111634;--card:rgba(255,255,255,.05);--card-hover:rgba(255,255,255,.08);--border:rgba(255,255,255,.1);--text:#e2e8f0;--text-dim:#94a3b8;--grad:linear-gradient(135deg,#6366f1,#8b5cf6);--grad-text:linear-gradient(135deg,#818cf8,#c4b5fd)}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+section{padding:100px 20px;position:relative}
+.container{max-width:1200px;margin:0 auto}
+.section-tag{display:inline-block;font-size:13px;color:#a5b4fc;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-weight:500}
+.section-title{font-size:36px;font-weight:700;margin-bottom:16px;color:#fff}
+.section-title .grad{background:var(--grad-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.section-sub{font-size:16px;color:var(--text-dim);max-width:600px;margin:0 auto 50px;text-align:center}
+
+/* Nav */
+nav{position:fixed;top:0;width:100%;z-index:100;padding:16px 40px;display:flex;justify-content:space-between;align-items:center;transition:all .3s}
+nav.scrolled{background:rgba(10,14,39,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:12px 40px}
+.nav-logo{font-size:20px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.nav-logo i{color:#818cf8}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:14px;transition:color .3s}
+.nav-links a:hover{color:#fff}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding-top:80px;
+  background:radial-gradient(ellipse at 50% 0%,rgba(99,102,241,.15) 0%,transparent 50%),radial-gradient(ellipse at 80% 50%,rgba(139,92,246,.1) 0%,transparent 50%),var(--bg)}
+.hero-badge{display:inline-block;padding:6px 18px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:50px;font-size:13px;color:#a5b4fc;margin-bottom:24px;animation:fadeUp .8s ease}
+.hero h1{font-size:56px;font-weight:900;line-height:1.2;margin-bottom:20px;color:#fff;animation:fadeUp .8s .1s ease backwards}
+.hero h1 .grad{background:var(--grad-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:18px;color:var(--text-dim);max-width:600px;margin:0 auto 36px;animation:fadeUp .8s .2s ease backwards}
+.hero-cta{display:flex;gap:16px;justify-content:center;animation:fadeUp .8s .3s ease backwards}
+.btn{padding:14px 32px;border-radius:10px;font-size:15px;font-weight:500;text-decoration:none;transition:all .3s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 20px rgba(99,102,241,.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 30px rgba(99,102,241,.4)}
+.btn-outline{border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:var(--card);border-color:rgba(255,255,255,.2)}
+
+/* Stats */
+.stats-section{background:var(--bg2)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;transition:all .3s}
+.stat-card:hover{background:var(--card-hover);border-color:rgba(99,102,241,.3)}
+.stat-value{font-size:42px;font-weight:900;background:var(--grad-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-unit{font-size:20px;font-weight:700;color:#818cf8}
+.stat-label{font-size:14px;color:var(--text-dim);margin-top:8px}
+
+/* Services */
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.service-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px;transition:all .3s;position:relative;overflow:hidden}
+.service-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:var(--grad);transform:scaleX(0);transition:transform .3s}
+.service-card:hover{background:var(--card-hover);transform:translateY(-4px);border-color:rgba(99,102,241,.3);box-shadow:0 10px 40px rgba(99,102,241,.1)}
+.service-card:hover::before{transform:scaleX(1)}
+.service-icon{width:56px;height:56px;border-radius:14px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.service-icon i{font-size:24px;color:#818cf8}
+.service-card h3{font-size:18px;font-weight:600;color:#fff;margin-bottom:10px}
+.service-card p{font-size:14px;color:var(--text-dim);line-height:1.7}
+
+/* Advantages */
+.adv-section{background:var(--bg2)}
+.adv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.adv-item{display:flex;align-items:flex-start;gap:16px;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:12px;transition:all .3s}
+.adv-item:hover{background:var(--card-hover)}
+.adv-icon{width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.adv-icon i{color:#818cf8;font-size:18px}
+.adv-item p{font-size:15px;color:var(--text);line-height:1.6}
+
+/* Cases */
+.cases-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px}
+.case-card{border-radius:16px;overflow:hidden;background:var(--card);border:1px solid var(--border);transition:all .3s}
+.case-card:hover{transform:translateY(-4px);border-color:rgba(99,102,241,.3)}
+.case-img{width:100%;height:200px;object-fit:cover;background:var(--bg2);display:flex;align-items:center;justify-content:center}
+.case-img i{font-size:40px;color:var(--text-dim)}
+.case-body{padding:24px}
+.case-tag{display:inline-block;font-size:12px;color:#a5b4fc;background:rgba(99,102,241,.1);padding:3px 10px;border-radius:20px;margin-bottom:10px}
+.case-body h4{font-size:16px;color:#fff;margin-bottom:8px}
+.case-body p{font-size:14px;color:var(--text-dim)}
+
+/* Qualifications */
+.qual-section{background:var(--bg2)}
+.qual-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.qual-card{padding:24px;border-radius:12px;background:var(--card);border:1px solid var(--border);text-align:center;transition:all .3s}
+.qual-card:hover{border-color:rgba(99,102,241,.3)}
+.qual-card i{font-size:32px;color:#818cf8;margin-bottom:12px}
+.qual-card h4{font-size:15px;color:#fff;margin-bottom:6px}
+.qual-card p{font-size:13px;color:var(--text-dim)}
+
+/* About */
+.about-section{text-align:center}
+.about-content{max-width:700px;margin:0 auto}
+.about-content h2{font-size:36px;font-weight:700;color:#fff;margin-bottom:20px}
+.about-content p{font-size:16px;color:var(--text-dim);line-height:1.9}
+
+/* Contact */
+.contact-section{background:var(--bg2)}
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}
+.contact-item{display:flex;align-items:center;gap:16px;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:12px}
+.contact-item i{width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;color:#818cf8;font-size:20px}
+.contact-item .label{font-size:12px;color:var(--text-dim)}
+.contact-item .value{font-size:15px;color:#fff;margin-top:2px}
+
+/* Footer */
+footer{padding:40px 20px;text-align:center;border-top:1px solid var(--border);background:var(--bg)}
+footer p{font-size:13px;color:var(--text-dim)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:768px){
+  .hero h1{font-size:32px}
+  .hero p{font-size:15px}
+  .section-title{font-size:26px}
+  nav{padding:12px 16px}
+  .nav-links{display:none}
+  section{padding:60px 16px}
+  .stat-value{font-size:32px}
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="nav-logo"><i class="fas fa-bolt"></i> {{ company_short or company_name or '' }}</div>
+  <div class="nav-links">
+    {% if services %}<a href="#services">服务</a>{% endif %}
+    {% if cases %}<a href="#cases">案例</a>{% endif %}
+    {% if about_intro %}<a href="#about">关于</a>{% endif %}
+    <a href="#contact">联系</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div>
+    {% if industry %}<div class="hero-badge">{{ industry }}</div>{% endif %}
+    <h1>{{ slogan or company_name or '欢迎访问' }}{% if company_name and slogan %}<br><span class="grad">{{ company_name }}</span>{% endif %}</h1>
+    {% if description %}<p>{{ description }}</p>{% endif %}
+    <div class="hero-cta">
+      {% if services %}<a href="#services" class="btn btn-primary"><i class="fas fa-arrow-right"></i> 了解服务</a>{% endif %}
+      <a href="#contact" class="btn btn-outline"><i class="fas fa-phone"></i> 联系我们</a>
+    </div>
+  </div>
+</section>
+
+{% if stats %}
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      {% for stat in stats %}
+      <div class="stat-card">
+        <div class="stat-value">{{ stat.value or '0' }}<span class="stat-unit">{{ stat.unit or '' }}</span></div>
+        <div class="stat-label">{{ stat.label or '' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if services %}
+<section id="services">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:50px">
+      <div class="section-tag">SERVICES</div>
+      <h2 class="section-title">我们的<span class="grad">服务</span></h2>
+    </div>
+    <div class="services-grid">
+      {% for service in services %}
+      <div class="service-card">
+        <div class="service-icon"><i class="fas {{ service.icon or 'fa-star' }}"></i></div>
+        <h3>{{ service.title or '' }}</h3>
+        <p>{{ service.desc or '' }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if advantages %}
+<section class="adv-section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:50px">
+      <div class="section-tag">ADVANTAGES</div>
+      <h2 class="section-title">核心<span class="grad">优势</span></h2>
+    </div>
+    <div class="adv-grid">
+      {% for adv in advantages %}
+      <div class="adv-item">
+        <div class="adv-icon"><i class="fas fa-check"></i></div>
+        <p>{{ adv }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if cases %}
+<section id="cases">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:50px">
+      <div class="section-tag">CASES</div>
+      <h2 class="section-title">成功<span class="grad">案例</span></h2>
+    </div>
+    <div class="cases-grid">
+      {% for case in cases %}
+      <div class="case-card">
+        {% if case.image %}
+        <img class="case-img" src="{{ case.image }}" alt="{{ case.title or '' }}" style="object-fit:cover">
+        {% else %}
+        <div class="case-img"><i class="fas fa-image"></i></div>
+        {% endif %}
+        <div class="case-body">
+          {% if case.tag %}<span class="case-tag">{{ case.tag }}</span>{% endif %}
+          <h4>{{ case.title or '' }}</h4>
+          <p>{{ case.desc or '' }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if qualifications %}
+<section class="qual-section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:50px">
+      <div class="section-tag">QUALIFICATIONS</div>
+      <h2 class="section-title">资质<span class="grad">认证</span></h2>
+    </div>
+    <div class="qual-grid">
+      {% for qual in qualifications %}
+      <div class="qual-card">
+        <i class="fas fa-award"></i>
+        <h4>{{ qual.title or '' }}</h4>
+        <p>{{ qual.desc or '' }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if about_intro %}
+<section id="about" class="about-section">
+  <div class="container">
+    <div class="about-content">
+      <h2>{{ about_title or '关于我们' }}</h2>
+      <p>{{ about_intro }}</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section id="contact" class="contact-section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:50px">
+      <div class="section-tag">CONTACT</div>
+      <h2 class="section-title">联系<span class="grad">我们</span></h2>
+    </div>
+    <div class="contact-grid">
+      {% if contact and contact.phone %}
+      <div class="contact-item">
+        <i class="fas fa-phone-alt"></i>
+        <div><div class="label">电话</div><div class="value">{{ contact.phone }}</div></div>
+      </div>
+      {% endif %}
+      {% if contact and contact.email %}
+      <div class="contact-item">
+        <i class="fas fa-envelope"></i>
+        <div><div class="label">邮箱</div><div class="value">{{ contact.email }}</div></div>
+      </div>
+      {% endif %}
+      {% if contact and contact.address %}
+      <div class="contact-item">
+        <i class="fas fa-map-marker-alt"></i>
+        <div><div class="label">地址</div><div class="value">{{ contact.address }}</div></div>
+      </div>
+      {% endif %}
+      {% if contact and contact.work_time %}
+      <div class="contact-item">
+        <i class="fas fa-clock"></i>
+        <div><div class="label">工作时间</div><div class="value">{{ contact.work_time }}</div></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>&copy; {{ company_name or '' }} {{ industry or '' }}{% if ai_overview %} · {{ ai_overview }}{% endif %}</p>
+</footer>
+
+<script>
+window.addEventListener('scroll',function(){var n=document.getElementById('nav');if(window.scrollY>50)n.classList.add('scrolled');else n.classList.remove('scrolled')});
+</script>
+</body>
+</html>

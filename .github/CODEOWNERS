@@ -1,0 +1,55 @@
+# Code Owners 配置
+# 用于 PR 审批和责任划分
+
+# ============================================
+# 全局默认审批人
+# ============================================
+* @Architecture-Matrix
+
+# ============================================
+# 前端相关
+# ============================================
+frontend/ @Architecture-Matrix
+
+# ============================================
+# 后端相关
+# ============================================
+backend/ @Architecture-Matrix
+
+# API 路由
+backend/api/ @Architecture-Matrix
+
+# 数据库模型
+backend/database/ @Architecture-Matrix
+
+# 业务服务
+backend/services/ @Architecture-Matrix
+
+# ============================================
+# CI/CD 配置 (需要更严格的审批)
+# ============================================
+.github/workflows/ @Architecture-Matrix
+
+# Docker 配置
+**/Dockerfile* @Architecture-Matrix
+docker-compose*.yml @Architecture-Matrix
+
+# ============================================
+# 基础设施配置
+# ============================================
+nginx/ @Architecture-Matrix
+
+# ============================================
+# 文档
+# ============================================
+docs/ @Architecture-Matrix
+*.md @Architecture-Matrix
+
+# ============================================
+# 构建配置
+# ============================================
+frontend/package.json @Architecture-Matrix
+frontend/vite.config.* @Architecture-Matrix
+frontend/tsconfig.json @Architecture-Matrix
+backend/requirements.txt @Architecture-Matrix
+backend/pyproject.toml @Architecture-Matrix

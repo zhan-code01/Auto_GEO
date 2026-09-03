@@ -1,0 +1,618 @@
+/**
+ * AutoGeo — Atelier Lumière Design System
+ * A warm, editorial light theme. Ivory paper surfaces, a confident ochre-amber
+ * primary paired with a deep teal secondary, serif display + humanist body type.
+ * Every page inherits this system; component-specific overrides use :deep().
+ */
+
+/* ================================================================
+   CSS Custom Properties — Single Source of Truth
+   ================================================================ */
+:root {
+  color-scheme: light;
+
+  /* ---- Surfaces (warm ivory paper → crisp white cards) ---- */
+  --surface-root: #f4efe5;
+  --surface-base: #fbf8f2;
+  --surface-raised: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-field: #f2ebde;
+  --surface-hover: rgba(74, 53, 24, 0.045);
+
+  /* ---- Borders (warm, just-visible on ivory) ---- */
+  --border-thin: rgba(74, 53, 24, 0.09);
+  --border-soft: rgba(74, 53, 24, 0.14);
+  --border-hover: rgba(74, 53, 24, 0.24);
+  --border-accent: rgba(196, 116, 28, 0.45);
+
+  /* ---- Accent / Brand (rich ochre-amber primary + deep teal secondary) ---- */
+  --accent: #c4741c;
+  --accent-ink: #2c1906;
+  --accent-soft: rgba(196, 116, 28, 0.12);
+  --accent-glow: rgba(196, 116, 28, 0.30);
+  --accent-hover: #d6882e;
+  --accent-blue: #1f7a92;
+  --accent-amber: #d6882e;
+  --accent-coral: #d65a48;
+  --accent-lime: #4f9443;
+
+  /* ---- Semantic ---- */
+  --success: #3f8a52;
+  --success-soft: rgba(63, 138, 82, 0.13);
+  --warning: #c4741c;
+  --warning-soft: rgba(196, 116, 28, 0.13);
+  --danger: #d24a3c;
+  --danger-soft: rgba(210, 74, 60, 0.11);
+  --info: #1f7a92;
+  --info-soft: rgba(31, 122, 146, 0.12);
+
+  /* ---- Text (warm espresso on ivory — high contrast) ---- */
+  --text-head: #211a10;
+  --text-body: #43392a;
+  --text-muted: #8a7d68;
+  --text-disabled: #b8ad99;
+
+  /* ---- Radii ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* ---- Shadows (warm, soft on light) ---- */
+  --shadow-sm: 0 1px 2px rgba(74, 53, 24, 0.05), 0 1px 3px rgba(74, 53, 24, 0.03);
+  --shadow-md: 0 6px 18px rgba(74, 53, 24, 0.08), 0 2px 6px rgba(74, 53, 24, 0.04);
+  --shadow-lg: 0 18px 44px rgba(74, 53, 24, 0.12), 0 6px 16px rgba(74, 53, 24, 0.06);
+  --shadow-glow: 0 8px 26px var(--accent-glow);
+
+  /* ---- Typography ---- */
+  --font-display: 'STZhongsong', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --font-body: 'LXGW WenKai Screen', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+
+  /* ---- Transitions ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+
+  /* ---- Backward compat aliases ---- */
+  --bg-primary: var(--surface-base);
+  --bg-secondary: var(--surface-raised);
+  --bg-tertiary: var(--surface-field);
+  --bg-hover: var(--surface-hover);
+  --primary: var(--accent);
+  --text-primary: var(--text-head);
+  --text-secondary: var(--text-muted);
+  --border: var(--border-soft);
+}
+
+/* ================================================================
+   Reset & Base
+   ================================================================ */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 18% 6%, rgba(196, 116, 28, 0.08), transparent 36%),
+    radial-gradient(ellipse at 84% 4%, rgba(31, 122, 146, 0.06), transparent 32%),
+    linear-gradient(180deg, rgba(255, 253, 247, 0.55), transparent 50%),
+    var(--surface-root);
+  color: var(--text-body);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.5), transparent 240px),
+    var(--surface-base);
+  color: var(--text-body);
+}
+
+/* Links */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--accent-hover);
+  }
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-head);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ================================================================
+   Scrollbar — Global
+   ================================================================ */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(74, 53, 24, 0.16);
+  border-radius: 4px;
+  transition: background var(--duration-fast);
+
+  &:hover {
+    background: rgba(74, 53, 24, 0.28);
+  }
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 53, 24, 0.16) transparent;
+}
+
+/* ================================================================
+   Element Plus — Refined Light Overrides
+   ================================================================ */
+
+/* --- Buttons --- */
+.el-button {
+  --el-button-bg-color: var(--surface-raised);
+  --el-button-border-color: var(--border-soft);
+  --el-button-text-color: var(--text-body);
+  --el-button-hover-bg-color: var(--surface-field);
+  --el-button-hover-border-color: var(--border-hover);
+  --el-button-hover-text-color: var(--text-head);
+  --el-button-active-bg-color: var(--accent-soft);
+  --el-button-active-border-color: var(--accent);
+  --el-button-active-text-color: var(--accent);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--accent);
+  --el-button-border-color: var(--accent);
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: var(--accent-hover);
+  --el-button-hover-border-color: var(--accent-hover);
+  --el-button-hover-text-color: #fff;
+  background:
+    linear-gradient(135deg, #e0941f, var(--accent) 56%, #9c560e) !important;
+  border-color: rgba(196, 116, 28, 0.55) !important;
+  box-shadow: 0 8px 20px rgba(196, 116, 28, 0.20);
+  font-weight: 600;
+
+  &:not(:disabled):hover {
+    box-shadow: 0 12px 28px rgba(196, 116, 28, 0.32);
+    transform: translateY(-1px);
+  }
+
+  &.is-plain {
+    color: #fff !important;
+    --el-button-text-color: #fff !important;
+    --el-button-hover-text-color: #fff !important;
+    --el-button-bg-color: var(--accent) !important;
+    --el-button-border-color: var(--accent) !important;
+    --el-button-hover-bg-color: var(--accent-hover) !important;
+    --el-button-hover-border-color: var(--accent-hover) !important;
+    --el-color-primary: #fff !important;
+  }
+}
+
+.el-button--success {
+  --el-button-bg-color: var(--success);
+  --el-button-border-color: var(--success);
+  --el-button-text-color: #fff;
+}
+
+.el-button--warning {
+  --el-button-bg-color: var(--warning);
+  --el-button-border-color: var(--warning);
+  --el-button-text-color: #fff;
+}
+
+.el-button--danger {
+  --el-button-bg-color: var(--danger);
+  --el-button-border-color: var(--danger);
+  --el-button-text-color: #fff;
+}
+
+/* --- Inputs --- */
+.el-input__wrapper {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-soft) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  transition: all var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--border-hover) !important;
+  }
+
+  &.is-focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-soft) !important;
+  }
+}
+
+.el-input__inner {
+  color: var(--text-body) !important;
+
+  &::placeholder {
+    color: var(--text-disabled) !important;
+  }
+}
+
+/* --- Select --- */
+.el-select__wrapper {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+.el-select-dropdown {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-thin) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.el-select-dropdown__item {
+  color: var(--text-muted) !important;
+  transition: all 0.1s ease;
+
+  &:hover {
+    background: var(--accent-soft) !important;
+    color: var(--text-body) !important;
+  }
+
+  &.selected {
+    color: var(--accent) !important;
+    font-weight: 600;
+  }
+}
+
+/* --- Dialog --- */
+.el-dialog {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-thin) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+
+  .el-dialog__header {
+    padding: 24px 28px 0 !important;
+    border-bottom: none !important;
+
+    .el-dialog__title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-head);
+    }
+
+    .el-dialog__headerbtn .el-dialog__close {
+      color: var(--text-muted);
+      &:hover { color: var(--text-head); }
+    }
+  }
+
+  .el-dialog__body {
+    padding: 20px 28px 28px !important;
+    color: var(--text-body);
+  }
+
+  .el-dialog__footer {
+    padding: 0 28px 24px !important;
+    border-top: none !important;
+  }
+}
+
+/* --- Table --- */
+.el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: transparent;
+  --el-table-row-hover-bg-color: rgba(196, 116, 28, 0.05);
+  --el-table-border-color: transparent;
+  --el-table-text-color: var(--text-body);
+  --el-table-header-text-color: var(--text-muted);
+
+  .el-table__header-wrapper th {
+    background: rgba(74, 53, 24, 0.035) !important;
+    border-bottom: 1px solid var(--border-soft) !important;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 14px 0;
+  }
+
+  .el-table__body-wrapper td {
+    border-bottom: 1px solid var(--border-thin);
+    padding: 13px 0;
+    color: var(--text-body);
+  }
+
+  .el-table__row:hover td {
+    background: rgba(196, 116, 28, 0.05) !important;
+  }
+}
+
+/* --- Tags --- */
+.el-tag {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: none;
+}
+
+/* --- Pagination --- */
+.el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: var(--text-muted);
+  --el-pagination-hover-color: var(--accent);
+
+  .btn-prev, .btn-next {
+    background: transparent !important;
+  }
+
+  .el-pager li {
+    background: transparent !important;
+    color: var(--text-muted);
+
+    &:hover { color: var(--accent); }
+
+    &.active {
+      background: var(--accent-soft) !important;
+      color: var(--accent);
+    }
+  }
+}
+
+/* --- Radio / Checkbox --- */
+.el-radio {
+  --el-radio-text-color: var(--text-body);
+  --el-radio-input-bg-color: var(--surface-raised);
+  --el-radio-input-border-color: var(--border-soft);
+}
+
+.el-checkbox {
+  --el-checkbox-bg-color: var(--surface-raised);
+  --el-checkbox-border-color: var(--border-soft);
+  --el-checkbox-checked-bg-color: var(--accent);
+  --el-checkbox-checked-border-color: var(--accent);
+  --el-checkbox-text-color: var(--text-body);
+}
+
+/* --- Progress --- */
+.el-progress-bar__outer {
+  background: rgba(74, 53, 24, 0.09) !important;
+}
+
+/* --- Loading --- */
+.el-loading-mask {
+  background: rgba(244, 239, 229, 0.72);
+  backdrop-filter: blur(2px);
+}
+
+.el-loading-spinner .circular circle {
+  stroke: var(--accent);
+}
+
+/* --- Drawer --- */
+.el-drawer {
+  background: var(--surface-raised) !important;
+  border-left: 1px solid var(--border-thin) !important;
+
+  .el-drawer__header {
+    color: var(--text-head);
+    margin-bottom: 0;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-thin);
+  }
+
+  .el-drawer__body {
+    padding: 20px 24px;
+  }
+}
+
+/* --- Divider --- */
+.el-divider {
+  border-color: var(--border-thin);
+}
+
+/* --- Form --- */
+.el-form-item__label {
+  color: var(--text-muted) !important;
+  font-weight: 500;
+}
+
+/* --- Date Picker --- */
+.el-picker-panel {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-soft) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.el-date-table td.available:hover {
+  color: var(--accent);
+}
+
+.el-date-table td.current:not(.disabled) .el-date-table-cell__text {
+  background: var(--accent);
+}
+
+/* --- Dropdown --- */
+.el-dropdown-menu {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-thin) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+
+  .el-dropdown-menu__item {
+    color: var(--text-muted);
+
+    &:hover {
+      background: var(--accent-soft) !important;
+      color: var(--text-head) !important;
+    }
+  }
+}
+
+/* --- Popconfirm --- */
+.el-popconfirm {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-thin) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* --- Radio button group --- */
+.el-radio-group {
+  .el-radio-button__inner {
+    background: var(--surface-raised);
+    border-color: var(--border-soft);
+    color: var(--text-muted);
+
+    &:hover {
+      color: var(--accent);
+    }
+  }
+
+  .el-radio-button.is-active .el-radio-button__inner {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: none;
+  }
+}
+
+/* --- Notification / Message --- */
+.el-message {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-thin) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.el-notification {
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border-thin) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* --- Tabs --- */
+.el-tabs__header {
+  border-bottom-color: var(--border-thin);
+}
+
+.el-tabs__item {
+  color: var(--text-muted);
+
+  &:hover {
+    color: var(--accent);
+  }
+
+  &.is-active {
+    color: var(--accent);
+  }
+}
+
+.el-tabs__active-bar {
+  background: var(--accent);
+}
+
+/* --- Switch --- */
+.el-switch__label {
+  color: var(--text-body);
+}
+
+/* --- Empty --- */
+.el-empty__description {
+  color: var(--text-muted);
+}
+
+/* ================================================================
+   Utility Classes
+   ================================================================ */
+.text-head    { color: var(--text-head) !important; }
+.text-body    { color: var(--text-body) !important; }
+.text-muted   { color: var(--text-muted) !important; }
+.text-accent  { color: var(--accent) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-danger  { color: var(--danger) !important; }
+
+.font-display { font-family: var(--font-display); }
+.font-mono    { font-family: var(--font-mono); }
+
+/* ================================================================
+   Common Section Card
+   ================================================================ */
+.surface-card {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.6), transparent),
+    var(--surface-raised);
+  border: 1px solid var(--border-thin);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--border-soft);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* ================================================================
+   Page-level animation
+   ================================================================ */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
