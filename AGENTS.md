@@ -11,6 +11,38 @@ AutoGeo 是一个前后端一体的自动化平台项目：
 - `extensions/cookie-sync/`：浏览器 Cookie 同步插件。
 - `docs/`：架构、部署、功能方案和实施文档。
 
+## 当前开发主线（2026-09 起）
+
+本阶段（2026 Q4）全部开发遵循方案 **`docs/AutoGEO优化方案_2026-09.md`**（已入库版本化）。
+接手任一优化项前先通读该方案对应小节——**不要仅凭仓库现状自行扩大改动面**。
+
+- **执行主线顺序不可颠倒**：引用证据链修复（P0）→ 指标可信度/份额口径（P0）→ 平台接入/权威信源（P1）→ 效果承诺与 Agent 行动层（P2）。
+  "第 0 周口径冻结"（问题集/判卷 prompt 版本/指标定义/平台门槛）是后续一切对比的基准，改动即破坏同口径。
+- **方案已点名的既有实现位置**（涉及即先读对应小节）：
+  - 平台硬编码：`backend/services/geo_evaluation_run_service.py`（`AI_EVALUATION_PLATFORMS`，现 3 平台）→ 注册表化方向。
+  - 引用证据链断裂：`backend/workers/geo_evaluation_worker.py`（`citations` 固定 `[]`）——引用须在 Electron 执行器内抽取，后端只承接状态区分/关联/脱敏。
+  - Agent 工具**双清单**：`backend/services/agent_v2/nodes/agent_node.py` 的 `_TASK_TYPE_TOOLS` 与 `backend/services/agent_v2/tools/` 的注册表须同步改，**漏一处会静默失效**；新增执行类工具须注册为需 `confirm`，不得开放 Agent 自主发布。
+  - **口径版本化**：判卷 prompt（`geo_response_judge_service.py`）与份额指标（`geo_evaluation_analytics_service.py`）任何改动以新版本号生效，旧版本数据按版本号分组对比，禁止静默改口径。
+- 竞品/来源分析相关前置调研与差距核查报告在工作区 `Geo/` 目录（仓库外），作为背景资料，不入库。
+
+## 工程红线（跨所有优化项，来自方案 §〇.5）
+
+1. **灰度与回滚**：新能力一律走"配置开关 + 白名单"。
+   环境变量优先级：`AUTOGEO_AGENT_V2_BYPASS_USER_IDS`（白名单）> `AUTOGEO_AGENT_V2_ENABLED`（全局）；
+   平台启用集 `GEO_EVALUATION_PLATFORMS_ENABLED`（CSV）。运行时以轻量配置表为准，环境变量仅作初始默认。
+   指标以自然日为粒度汇总；单平台风控连续 2 次超阈值、成功率连续 2 次过低即自动停用并飞书告警，无需重启服务。
+2. **数据迁移**：新表/新列一律 alembic 迁移、**先库后码**；存量行回填默认值（如 `placement_type='organic'`）；每个迁移提供可执行 downgrade，发布前在本地验证 up/down 可逆。
+3. **安全红线**：服务商 API Key 仅经环境变量管理，不入代码仓库、不写日志；生产强制 PostgreSQL（`alembic upgrade head`）。
+4. **测试要求**：每项优化至少 单元（服务层）/集成（API 端到端）/回归（发布链路不受影响）三层用例；后端 `ruff + pytest`、前端 `type-check + lint` 纳入 CI（沿用现有 GitHub Actions）。
+5. **质量闸门（达标才上线，不强行推进）**：引用证据不可观测 → 不发布 QCR 类对外指标；Judge 校准不达标 → 来源/引用类指标仅展示趋势、不做对外承诺；平台无法稳定采集 → 降级人工采样（Manual）。
+
+## 数据契约要点（易踩坑）
+
+- 测评记录字段语义**不可混用**：`measurement_type`（baseline/recheck/experiment，对比实验语义）、`round_no`（同一 run 内轮次）、`replicate_no`（独立重复）、`retry_count`（失败重试）；`phase` 保留为执行侧阶段标记，两者共存，映射写入数据契约。
+- 引用三态须在报表区分：平台无引用能力=`null`；抓取成功但零条=`[]`；抓取异常=`unavailable`。
+- 平台覆盖数 ≠ 注册了执行器：须**同时**满足回答成功率、引用可观测率、解析准确率、人工复核一致性四项门槛才计入。
+- `answer_share`（总和=100%）与 `mention_rate`（可 >100%）语义不同，勿沿用旧的单值 `share`（口径错误，只读保留、停止更新）。
+
 ## 构建、测试与本地开发命令
 
 常用命令如下：
