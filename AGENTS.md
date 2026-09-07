@@ -23,7 +23,7 @@ AutoGeo 是一个前后端一体的自动化平台项目：
   - 引用证据链断裂：`backend/workers/geo_evaluation_worker.py`（`citations` 固定 `[]`）——引用须在 Electron 执行器内抽取，后端只承接状态区分/关联/脱敏。
   - Agent 工具**双清单**：`backend/services/agent_v2/nodes/agent_node.py` 的 `_TASK_TYPE_TOOLS` 与 `backend/services/agent_v2/tools/` 的注册表须同步改，**漏一处会静默失效**；新增执行类工具须注册为需 `confirm`，不得开放 Agent 自主发布。
   - **口径版本化**：判卷 prompt（`geo_response_judge_service.py`）与份额指标（`geo_evaluation_analytics_service.py`）任何改动以新版本号生效，旧版本数据按版本号分组对比，禁止静默改口径。
-- 竞品/来源分析相关前置调研与差距核查报告在工作区 `Geo/` 目录（仓库外），作为背景资料，不入库。
+- 竞品/来源分析相关前置调研与差距核查报告在工作区 `research/` 目录（仓库外的同级 `../research/`，由原 `Geo/` 改名而来），作为背景资料，不入库。
 
 ## 工程红线（跨所有优化项，来自方案 §〇.5）
 
