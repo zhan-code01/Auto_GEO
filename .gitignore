@@ -55,7 +55,6 @@ user_data/
 *_login.json
 *_auth.json
 juejin_auth.json
-auth/
 auth/state.json
 state.json
 
@@ -137,7 +136,7 @@ backend/static/sites/
 
 # ==================== 生成的文档和图片 ====================
 AutoGEO产品操作手册*
-images/
+/images/
 
 # ==================== 数据库备份与临时目录（防敏感数据入库） ====================
 # SQL 备份可能包含真实用户数据（bcrypt 哈希、加密会话、PII），禁止提交
