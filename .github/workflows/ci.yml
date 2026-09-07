@@ -70,9 +70,10 @@ jobs:
         working-directory: ./backend
         run: mypy api/ services/ --ignore-missing-imports
 
+      # 后端 pytest 在仓库根 tests/(conftest 把仓库根加入 path, 测试 import 为 backend.*),
+      # 须在仓库根运行; 覆盖率打 backend 包并输出到 backend/coverage.xml 供上传步骤使用。
       - name: Run tests
-        working-directory: ./backend
-        run: pytest tests/unit -v --cov=api --cov=services --cov-report=xml
+        run: pytest tests/unit -v --cov=backend --cov-report=xml:backend/coverage.xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
