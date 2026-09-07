@@ -132,9 +132,7 @@ class GeoEvaluationLLMPromptGenerator:
                     target_count=target_count,
                     competitors=competitors,
                     project_terms=project_terms,
-                    candidates=[
-                        item for item in fallback_candidates if item.get("question_type") == question_type
-                    ],
+                    candidates=[item for item in fallback_candidates if item.get("question_type") == question_type],
                     existing=accepted,
                     allowed_regions=allowed_regions or [],
                     blocked_regions=blocked_regions or [],

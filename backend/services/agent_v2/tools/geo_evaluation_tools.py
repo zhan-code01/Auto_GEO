@@ -16,6 +16,7 @@
 工具签名统一：async def fn(slots: dict, user_id: int) -> ToolOutcome
 参数由 LLM 通过 Tool Calling 机制基于 tool_schemas.py 的 Pydantic schema 生成。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -54,10 +55,10 @@ def _extract_metrics(block: dict[str, Any] | None) -> dict[str, Any]:
     block = block or {}
     return {
         # PRD §8.3.6 四指标对齐实际服务返回字段
-        "keyword_hit_rate": block.get("coverage_rate") or 0,    # 覆盖率 = 关键词命中率
+        "keyword_hit_rate": block.get("coverage_rate") or 0,  # 覆盖率 = 关键词命中率
         "company_hit_rate": block.get("visibility_score") or 0,  # 可见度总分 = 公司综合提及率
-        "avg_confidence": block.get("ranking_score") or 0,      # 排名得分 = 平均置信度
-        "platform_count": block.get("valid_count") or 0,        # 有效样本数 = 覆盖平台数
+        "avg_confidence": block.get("ranking_score") or 0,  # 排名得分 = 平均置信度
+        "platform_count": block.get("valid_count") or 0,  # 有效样本数 = 覆盖平台数
         # 同时保留原字段供前端展示对比
         "coverage_rate": block.get("coverage_rate") or 0,
         "ranking_score": block.get("ranking_score") or 0,
@@ -105,11 +106,7 @@ async def create_baseline_tool(slots: dict[str, Any], user_id: int) -> ToolOutco
         from backend.database.models import Client
         from backend.middleware.user_isolation import scoped_query
 
-        owned_client = (
-            scoped_query(db, Client, fake_user)
-            .filter(Client.id == int(client_id))
-            .first()
-        )
+        owned_client = scoped_query(db, Client, fake_user).filter(Client.id == int(client_id)).first()
         if not owned_client:
             return ToolOutcome.failure(
                 reply=f"客户 {client_id} 不存在或无权限访问",
@@ -129,8 +126,7 @@ async def create_baseline_tool(slots: dict[str, Any], user_id: int) -> ToolOutco
 
         if not result.get("success"):
             logger.warning(
-                f"[create_baseline] 创建失败: client={client_id} platform={ai_platform} "
-                f"msg={result.get('message')}"
+                f"[create_baseline] 创建失败: client={client_id} platform={ai_platform} msg={result.get('message')}"
             )
             # 账号选择缺失 → 引导用户选择账号
             if result.get("requires_account_selection"):
@@ -145,9 +141,7 @@ async def create_baseline_tool(slots: dict[str, Any], user_id: int) -> ToolOutco
             )
 
         run_id = result.get("run_id")
-        logger.info(
-            f"[create_baseline] client={client_id} platform={ai_platform} run_id={run_id}"
-        )
+        logger.info(f"[create_baseline] client={client_id} platform={ai_platform} run_id={run_id}")
 
         return ToolOutcome.running(
             data={
@@ -160,11 +154,13 @@ async def create_baseline_tool(slots: dict[str, Any], user_id: int) -> ToolOutco
                 f"系统将使用项目中的用户问题去该平台提问，分析 AI 回答中的收录情况。\n"
                 f"任务已提交（任务ID: {run_id}），完成后可通过 get_diagnosis 查看 4 个核心指标。"
             ),
-            async_task_refs=[{
-                "task_type": "baseline_run",
-                "task_id": run_id,
-                "query_tool": "get_diagnosis",
-            }],
+            async_task_refs=[
+                {
+                    "task_type": "baseline_run",
+                    "task_id": run_id,
+                    "query_tool": "get_diagnosis",
+                }
+            ],
         )
     except Exception as e:
         logger.error(f"[create_baseline] 失败: {e}", exc_info=True)
@@ -212,11 +208,7 @@ async def run_recheck_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome:
         from backend.database.models import Client
         from backend.middleware.user_isolation import scoped_query
 
-        owned_client = (
-            scoped_query(db, Client, fake_user)
-            .filter(Client.id == int(client_id))
-            .first()
-        )
+        owned_client = scoped_query(db, Client, fake_user).filter(Client.id == int(client_id)).first()
         if not owned_client:
             return ToolOutcome.failure(
                 reply=f"客户 {client_id} 不存在或无权限访问",
@@ -236,8 +228,7 @@ async def run_recheck_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome:
 
         if not result.get("success"):
             logger.warning(
-                f"[run_recheck] 复测失败: client={client_id} platform={ai_platform} "
-                f"msg={result.get('message')}"
+                f"[run_recheck] 复测失败: client={client_id} platform={ai_platform} msg={result.get('message')}"
             )
             if result.get("requires_account_selection"):
                 return ToolOutcome.need_clarification(
@@ -251,9 +242,7 @@ async def run_recheck_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome:
             )
 
         run_id = result.get("run_id")
-        logger.info(
-            f"[run_recheck] client={client_id} platform={ai_platform} run_id={run_id}"
-        )
+        logger.info(f"[run_recheck] client={client_id} platform={ai_platform} run_id={run_id}")
 
         return ToolOutcome.running(
             data={
@@ -266,11 +255,13 @@ async def run_recheck_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome:
                 f"系统将使用项目中的用户问题去该平台提问，与基线对比，评估 GEO 优化效果。\n"
                 f"任务已提交（任务ID: {run_id}），完成后可通过 get_diagnosis 查看 4 个核心指标的变化。"
             ),
-            async_task_refs=[{
-                "task_type": "recheck_run",
-                "task_id": run_id,
-                "query_tool": "get_diagnosis",
-            }],
+            async_task_refs=[
+                {
+                    "task_type": "recheck_run",
+                    "task_id": run_id,
+                    "query_tool": "get_diagnosis",
+                }
+            ],
         )
     except Exception as e:
         logger.error(f"[run_recheck] 失败: {e}", exc_info=True)
@@ -310,11 +301,7 @@ async def get_diagnosis_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         from backend.database.models import Client
         from backend.middleware.user_isolation import scoped_query
 
-        owned_client = (
-            scoped_query(db, Client, fake_user)
-            .filter(Client.id == int(client_id))
-            .first()
-        )
+        owned_client = scoped_query(db, Client, fake_user).filter(Client.id == int(client_id)).first()
         if not owned_client:
             return ToolOutcome.failure(
                 reply=f"客户 {client_id} 不存在或无权限访问",
@@ -330,7 +317,9 @@ async def get_diagnosis_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
 
         # 服务返回错误（如公司不存在）
         if not diagnosis or diagnosis.get("error"):
-            logger.warning(f"[get_diagnosis] 查询异常: client={client_id} err={diagnosis.get('error') if diagnosis else 'empty'}")
+            logger.warning(
+                f"[get_diagnosis] 查询异常: client={client_id} err={diagnosis.get('error') if diagnosis else 'empty'}"
+            )
             return ToolOutcome.failure(
                 reply=f"客户 {client_id} 不存在或查询失败",
                 error_type="not_found",

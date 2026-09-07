@@ -616,7 +616,9 @@ async def batch_publish_geo_articles(
     # 2. 检查账号状态和文章状态
     disabled_accounts = [a.account_name for a in accounts if a.status != 1]
     # 支持 draft、published、completed 或 scheduled 状态的文章
-    invalid_articles = [a.title for a in geo_articles if a.publish_status not in ["draft", "published", "completed", "scheduled"]]
+    invalid_articles = [
+        a.title for a in geo_articles if a.publish_status not in ["draft", "published", "completed", "scheduled"]
+    ]
 
     if disabled_accounts:
         raise HTTPException(status_code=400, detail=f"以下账号未授权或已禁用: {', '.join(disabled_accounts)}")

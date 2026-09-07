@@ -5,6 +5,7 @@
 - 来源优先级：session_slots > user_facts > preferences
 - 依赖失效图：company_name 变 → client_id/project_id 失效；project_id 变 → question_ids/article_ids 失效
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -12,18 +13,18 @@ from typing import Any
 
 # 依赖失效图：某个槽位变化时，哪些依赖槽位需要失效
 DEPENDENCY_INVALIDATION: dict[str, list[str]] = {
-    "company_name": ["client_id", "project_id"],                  # 公司名变 → 客户ID、项目ID失效
-    "client_id":    ["project_id"],                               # 客户变 → 项目失效
-    "project_id":   ["question_ids", "article_ids", "keyword_ids"],  # 项目变 → 问题/文章失效
-    "question_ids": ["article_ids"],                              # 问题变 → 文章失效
-    "platforms":    ["account_ids"],                              # 平台变 → 账号失效
-    "category_id":  ["document_ids"],                             # 分类变 → 文档失效
+    "company_name": ["client_id", "project_id"],  # 公司名变 → 客户ID、项目ID失效
+    "client_id": ["project_id"],  # 客户变 → 项目失效
+    "project_id": ["question_ids", "article_ids", "keyword_ids"],  # 项目变 → 问题/文章失效
+    "question_ids": ["article_ids"],  # 问题变 → 文章失效
+    "platforms": ["account_ids"],  # 平台变 → 账号失效
+    "category_id": ["document_ids"],  # 分类变 → 文档失效
 }
 
 
-def merge_slots(session_slots: dict[str, Any],
-                user_facts: dict[str, Any],
-                preferences: dict[str, Any]) -> dict[str, Any]:
+def merge_slots(
+    session_slots: dict[str, Any], user_facts: dict[str, Any], preferences: dict[str, Any]
+) -> dict[str, Any]:
     """三层合并：session > facts > preferences。
 
     返回 effective_slots。None 值不覆盖。

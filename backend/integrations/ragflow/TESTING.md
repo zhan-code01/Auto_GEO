@@ -92,11 +92,7 @@ python test_connection.py
 from ragflow_integration import GeoRAGFlowIntegration
 
 # 配置RAGFlow连接参数
-config = {
-    'base_url': 'http://your-ragflow-host:port',
-    'api_key': 'your_api_key',
-    'dataset_id': 'your_dataset_id'
-}
+config = {"base_url": "http://your-ragflow-host:port", "api_key": "your_api_key", "dataset_id": "your_dataset_id"}
 
 # 创建集成实例
 geo_integration = GeoRAGFlowIntegration(config)
@@ -104,9 +100,9 @@ geo_integration = GeoRAGFlowIntegration(config)
 # 查询地理空间知识
 results = geo_integration.query_geospatial_knowledge("您的查询内容")
 
-if results['success']:
+if results["success"]:
     print("查询成功，找到以下结果:")
-    for result in results['results']:
+    for result in results["results"]:
         print(f"- {result['content'][:100]}...")
 else:
     print(f"查询失败: {results['error']}")

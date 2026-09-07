@@ -314,9 +314,7 @@ async def create_baseline(
                 .all()
             ]
             if old_ids:
-                db.query(IndexCheckRecord).filter(IndexCheckRecord.id.in_(old_ids)).delete(
-                    synchronize_session=False
-                )
+                db.query(IndexCheckRecord).filter(IndexCheckRecord.id.in_(old_ids)).delete(synchronize_session=False)
                 db.commit()
                 logger.info(f"基线重建：已清除项目 {project_id} 的 {len(old_ids)} 条旧 baseline 记录")
         except Exception as clean_err:
@@ -442,9 +440,7 @@ async def get_records(
             query = query.filter(IndexCheckRecord.check_phase == check_phase)
 
         total = query.count()
-        records = (
-            query.order_by(IndexCheckRecord.check_time.desc()).offset(skip).limit(limit).all()
-        )
+        records = query.order_by(IndexCheckRecord.check_time.desc()).offset(skip).limit(limit).all()
 
         result = []
         for record in records:

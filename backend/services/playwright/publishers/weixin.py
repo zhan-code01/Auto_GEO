@@ -661,7 +661,7 @@ class WeixinPublisher(BasePublisher):
         for selector in [
             'textarea[placeholder*="请输入正文"]',
             'textarea[placeholder*="正文"]',
-            '#desc',
+            "#desc",
         ]:
             try:
                 editor = page.locator(selector).first
@@ -878,9 +878,7 @@ class WeixinPublisher(BasePublisher):
                         await self._save_debug_snapshot(page, "scan_qrcode")
                         # 给用户 120 秒扫码
                         try:
-                            await page.wait_for_selector(
-                                qr_selector, state="hidden", timeout=120000
-                            )
+                            await page.wait_for_selector(qr_selector, state="hidden", timeout=120000)
                             logger.info("[微信] 扫码验证完成，继续发布")
                             return None
                         except Exception:
@@ -909,9 +907,7 @@ class WeixinPublisher(BasePublisher):
                 if await page.locator(sel.CAPTCHA_INDICATOR).count() > 0:
                     logger.warning("🚧 [微信] 触发验证码，请在 60 秒内手动完成")
                     try:
-                        await page.wait_for_selector(
-                            sel.CAPTCHA_INDICATOR, state="hidden", timeout=60000
-                        )
+                        await page.wait_for_selector(sel.CAPTCHA_INDICATOR, state="hidden", timeout=60000)
                         return None
                     except Exception:
                         return await self._manual_fail(
@@ -1031,7 +1027,19 @@ class WeixinPublisher(BasePublisher):
         msg = (msg or "").lower()
         return any(
             key in msg
-            for key in ("登录", "登陆", "login", "passport", "验证码", "验证", "captcha", "扫码", "二维码", "风控", "安全")
+            for key in (
+                "登录",
+                "登陆",
+                "login",
+                "passport",
+                "验证码",
+                "验证",
+                "captcha",
+                "扫码",
+                "二维码",
+                "风控",
+                "安全",
+            )
         )
 
 

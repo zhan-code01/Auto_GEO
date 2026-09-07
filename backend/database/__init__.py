@@ -35,9 +35,7 @@ def create_database_engine():
         pool_pre_ping=True,
         echo=False,
     )
-    logger.info(
-        f"PostgreSQL pool configured: size={DB_POOL_SIZE}, overflow={DB_MAX_OVERFLOW}"
-    )
+    logger.info(f"PostgreSQL pool configured: size={DB_POOL_SIZE}, overflow={DB_MAX_OVERFLOW}")
     return engine
 
 
@@ -72,18 +70,14 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db():
     """PostgreSQL schema is managed by Alembic, not create_all()."""
-    raise RuntimeError(
-        "init_db() is disabled. Run `alembic upgrade head` to manage PostgreSQL schema."
-    )
+    raise RuntimeError("init_db() is disabled. Run `alembic upgrade head` to manage PostgreSQL schema.")
 
 
 def get_engine_info() -> dict:
     """Return database engine information for health checks."""
     info = {
         "type": DB_TYPE,
-        "url": DATABASE_URL.replace("://", "://***@").replace("//", "//***@")
-        if "@" in DATABASE_URL
-        else DATABASE_URL,
+        "url": DATABASE_URL.replace("://", "://***@").replace("//", "//***@") if "@" in DATABASE_URL else DATABASE_URL,
     }
 
     try:

@@ -92,9 +92,7 @@ def extract_fingerprint(storage_state: Optional[Dict[str, Any]]) -> Optional[Dic
     return None
 
 
-def get_user_agent_from_fingerprint(
-    fingerprint: Optional[Dict[str, Any]], default_ua: str
-) -> str:
+def get_user_agent_from_fingerprint(fingerprint: Optional[Dict[str, Any]], default_ua: str) -> str:
     """从指纹中提取 User-Agent，若不存在则返回默认值"""
     if fingerprint:
         ua = fingerprint.get("user_agent")
@@ -103,9 +101,7 @@ def get_user_agent_from_fingerprint(
     return default_ua
 
 
-def get_viewport_from_fingerprint(
-    fingerprint: Optional[Dict[str, Any]]
-) -> Optional[Dict[str, int]]:
+def get_viewport_from_fingerprint(fingerprint: Optional[Dict[str, Any]]) -> Optional[Dict[str, int]]:
     """从指纹中提取 viewport 尺寸"""
     if fingerprint:
         vp = fingerprint.get("viewport")

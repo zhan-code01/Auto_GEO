@@ -13,6 +13,7 @@
 - file_names 不为空 → 返回 ok，回复"已收到 N 个文件，正在处理"
 - 后续文件入库可调用 KnowledgeIngestionService / GeoKnowledgeService
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -59,8 +60,7 @@ async def upload_documents_tool(slots: dict[str, Any], user_id: int) -> ToolOutc
     try:
         # 记录用户意图（文件实际入库由后续流程处理，可选用 KnowledgeIngestionService）
         logger.info(
-            f"[upload_documents] user={fake_user.id} client={client_id} "
-            f"收到 {len(file_names)} 个文件: {file_names}"
+            f"[upload_documents] user={fake_user.id} client={client_id} 收到 {len(file_names)} 个文件: {file_names}"
         )
 
         return ToolOutcome.success(
@@ -70,10 +70,12 @@ async def upload_documents_tool(slots: dict[str, Any], user_id: int) -> ToolOutc
                 "count": len(file_names),
             },
             reply="文件已上传成功！这些资料已关联到客户资料库，后续生成问题时会参考这些知识库内容，让问题更贴合公司业务。",
-            facts_patch=[{
-                "default_client_id": client_id,
-                "pending_files": file_names,
-            }],
+            facts_patch=[
+                {
+                    "default_client_id": client_id,
+                    "pending_files": file_names,
+                }
+            ],
         )
     except Exception as e:
         logger.error(f"[upload_documents] 失败: {e}", exc_info=True)

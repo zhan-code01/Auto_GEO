@@ -154,9 +154,7 @@ def build_new_site(
     try:
         result = generator.generate_site(proj.site_id, req.config, req.template_id)
     except HTTPException:
-        logger.error(
-            f"[SiteBuilder] 站点构建失败: name={req.name} site_id={proj.site_id} user={current_user.username}"
-        )
+        logger.error(f"[SiteBuilder] 站点构建失败: name={req.name} site_id={proj.site_id} user={current_user.username}")
         raise
     proj.config_data = req.config
     proj.preview_url = result["preview_url"]
@@ -181,9 +179,7 @@ def deploy_site(
         # 按 site_id 校验归属：普通用户只能发布自己 build 的站点；admin 放行
         proj = db.query(SiteProject).filter(SiteProject.site_id == req.site_id).first()
         if not proj:
-            logger.warning(
-                f"[SiteBuilder] 部署被拒绝：站点不存在 site_id={req.site_id} user={current_user.username}"
-            )
+            logger.warning(f"[SiteBuilder] 部署被拒绝：站点不存在 site_id={req.site_id} user={current_user.username}")
             raise DeployError(
                 code="SITE_NOT_FOUND",
                 message="站点不存在或已失效。",
@@ -226,9 +222,7 @@ def deploy_site(
                 public_base_url=req.public_base_url,
             )
         else:
-            logger.warning(
-                f"[SiteBuilder] 部署被拒绝：不支持的发布方式 method={req.method} site_id={req.site_id}"
-            )
+            logger.warning(f"[SiteBuilder] 部署被拒绝：不支持的发布方式 method={req.method} site_id={req.site_id}")
             raise DeployError(
                 code="UNKNOWN_DEPLOY_METHOD",
                 message=f"不支持的发布方式：{req.method}",
@@ -263,6 +257,7 @@ def deploy_site(
 
 class AIGenerateRequest(BaseModel):
     """AI 一键生成网页请求。"""
+
     client_id: int
     template_id: str = "visual"
     extra_instructions: str = ""
@@ -270,6 +265,7 @@ class AIGenerateRequest(BaseModel):
 
 class AIRegenerateRequest(BaseModel):
     """用已有结构化数据重新渲染（换模板/微调字段）。不调 AI，纯渲染。"""
+
     site_id: str
     structured_data: dict
     template_id: str = "visual"
@@ -291,9 +287,7 @@ async def ai_generate_site(
     # 1. 查客户
     client = db.query(Client).filter(Client.id == req.client_id).first()
     if not client:
-        logger.warning(
-            f"[SiteBuilder] AI生成被拒绝：客户不存在 client_id={req.client_id} user={current_user.username}"
-        )
+        logger.warning(f"[SiteBuilder] AI生成被拒绝：客户不存在 client_id={req.client_id} user={current_user.username}")
         raise HTTPException(status_code=404, detail="客户不存在")
     require_owner(client, current_user, name="客户")
 
@@ -340,9 +334,7 @@ async def ai_generate_site(
             site_id=site_id,
         )
     except RuntimeError as e:
-        logger.error(
-            f"[SiteBuilder] AI生成网页失败: client_id={req.client_id} site_id={site_id} error={e}"
-        )
+        logger.error(f"[SiteBuilder] AI生成网页失败: client_id={req.client_id} site_id={site_id} error={e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     # 4. 写入/更新 SiteProject 记录

@@ -130,10 +130,10 @@ class KuaishouPublisher(BasePublisher):
         for selector in [
             'div[role="tab"]:has-text("图文")',
             'button:has-text("上传图片")',
-            'text=上传图片',
+            "text=上传图片",
             'input[type="file"][accept*="image"]',
             'input[type="file"]',
-            'text=描述',
+            "text=描述",
         ]:
             try:
                 locator = page.locator(selector).first

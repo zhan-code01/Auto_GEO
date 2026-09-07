@@ -7,6 +7,7 @@
 工具签名统一：async def fn(slots: dict, user_id: int) -> ToolOutcome
 参数由 LLM 通过 Tool Calling 机制基于 tool_schemas.py 的 Pydantic schema 生成。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -65,7 +66,7 @@ async def bind_platform_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         )
         task_id = result.get("task_id")
         logger.info(f"[bind_platform] 发起授权 platform={platform} task_id={task_id} user={user_id}")
-        
+
         # 轮询逻辑已在 playwright_mgr.create_auth_task 中启动（_poll_login_status）
         # 这里只需要返回任务信息给前端
 
@@ -73,11 +74,13 @@ async def bind_platform_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
             reply=f"正在为【{platform}】发起登录授权，请在弹出的浏览器窗口中完成登录。登录成功后浏览器会自动关闭。",
             data={"task_id": task_id, "platform": platform},
             facts_patch=[{"common_platforms": [platform]}],
-            async_task_refs=[{
-                "task_type": "auth",
-                "task_id": task_id,
-                "platform": platform,
-            }],
+            async_task_refs=[
+                {
+                    "task_type": "auth",
+                    "task_id": task_id,
+                    "platform": platform,
+                }
+            ],
         )
     except Exception as e:
         logger.error(f"[bind_platform] 失败: {e}", exc_info=True)
@@ -130,6 +133,7 @@ async def list_bindings_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         )
         # 过滤掉 AI 平台账号（仅展示发布平台）
         from backend.services.agent_v2.platforms import is_ai_platform
+
         rows = [r for r in rows if not is_ai_platform(r.platform)]
         # 按平台筛选
         if platform:
@@ -184,21 +188,23 @@ async def list_bindings_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
             platform_name = get_platform_name(r.platform) or r.platform
             account_name = r.account_name or r.username or "未命名"
 
-            items.append({
-                "id": r.id,
-                "platform": r.platform,
-                "platform_name": platform_name,
-                "account_name": account_name,
-                "is_authorized": base_auth,
-                "session_valid": session_valid,
-                "needs_reauth": needs_reauth,
-                "invalid_reason": invalid_reason,
-                "status": r.status,
-                "session_location": session_location,
-                # 注意：不再把 last_auth_time（授权时间）放进给 LLM 的数据，
-                # 避免模型自行按"距今天数"推断过期。改用 last_check_time（最近真实验证时间）。
-                "last_check_time": r.last_check_time.isoformat() if r.last_check_time else None,
-            })
+            items.append(
+                {
+                    "id": r.id,
+                    "platform": r.platform,
+                    "platform_name": platform_name,
+                    "account_name": account_name,
+                    "is_authorized": base_auth,
+                    "session_valid": session_valid,
+                    "needs_reauth": needs_reauth,
+                    "invalid_reason": invalid_reason,
+                    "status": r.status,
+                    "session_location": session_location,
+                    # 注意：不再把 last_auth_time（授权时间）放进给 LLM 的数据，
+                    # 避免模型自行按"距今天数"推断过期。改用 last_check_time（最近真实验证时间）。
+                    "last_check_time": r.last_check_time.isoformat() if r.last_check_time else None,
+                }
+            )
 
             # 给用户看的总结文本（避免出现 id 等内部字段）
             status_icon = "✅" if session_valid else "⚠️"
@@ -226,16 +232,18 @@ async def list_bindings_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         return ToolOutcome.success(
             data={"items": items, "total": total, "valid_count": valid_count, "invalid_count": invalid_count},
             reply=reply_text,
-            actions=[make_action(
-                "show_binding_list",
-                "查看绑定列表",
-                {
-                    "items": items,
-                    "total": total,
-                    "valid_count": valid_count,
-                    "invalid_count": invalid_count,
-                },
-            )],
+            actions=[
+                make_action(
+                    "show_binding_list",
+                    "查看绑定列表",
+                    {
+                        "items": items,
+                        "total": total,
+                        "valid_count": valid_count,
+                        "invalid_count": invalid_count,
+                    },
+                )
+            ],
         )
     except Exception as e:
         logger.error(f"[list_bindings] 失败: {e}", exc_info=True)

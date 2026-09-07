@@ -14,6 +14,7 @@
 - knowledge_parse_done
 - pending_action_trigger
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -47,19 +48,30 @@ async def notify_user(user_id: int, event_type: str, data: dict) -> bool:
 #  具体事件通知函数
 # ============================================================
 
+
 async def notify_question_batch_completed(
-    user_id: int, batch_id: int, question_count: int, questions: list[dict] | None = None,
+    user_id: int,
+    batch_id: int,
+    question_count: int,
+    questions: list[dict] | None = None,
 ) -> bool:
     """问题批次生成完成。"""
-    return await notify_user(user_id, "question_batch_completed", {
-        "batch_id": batch_id,
-        "question_count": question_count,
-        "questions": questions or [],
-    })
+    return await notify_user(
+        user_id,
+        "question_batch_completed",
+        {
+            "batch_id": batch_id,
+            "question_count": question_count,
+            "questions": questions or [],
+        },
+    )
 
 
 async def notify_article_batch_completed(
-    user_id: int, batch_id: int, success_count: int, failed_count: int,
+    user_id: int,
+    batch_id: int,
+    success_count: int,
+    failed_count: int,
     article_ids: list[int] | None = None,
 ) -> bool:
     """文章批次生成完成。
@@ -68,74 +80,116 @@ async def notify_article_batch_completed(
     LLM 自主决策实现工具链式调用（list_articles → publish_article），
     不再需要 session_slots.pending_actions。
     """
-    return await notify_user(user_id, "article_batch_completed", {
-        "batch_id": batch_id,
-        "success_count": success_count,
-        "failed_count": failed_count,
-        "article_ids": article_ids or [],
-    })
+    return await notify_user(
+        user_id,
+        "article_batch_completed",
+        {
+            "batch_id": batch_id,
+            "success_count": success_count,
+            "failed_count": failed_count,
+            "article_ids": article_ids or [],
+        },
+    )
 
 
 async def notify_article_job_failed(
-    user_id: int, job_id: int, article_id: int, error_msg: str,
+    user_id: int,
+    job_id: int,
+    article_id: int,
+    error_msg: str,
 ) -> bool:
     """单篇文章生成失败。"""
-    return await notify_user(user_id, "article_job_failed", {
-        "job_id": job_id,
-        "article_id": article_id,
-        "error_msg": error_msg,
-    })
+    return await notify_user(
+        user_id,
+        "article_job_failed",
+        {
+            "job_id": job_id,
+            "article_id": article_id,
+            "error_msg": error_msg,
+        },
+    )
 
 
 async def notify_publish_task_progress(
-    user_id: int, task_id: int, completed: int, failed: int, total: int,
+    user_id: int,
+    task_id: int,
+    completed: int,
+    failed: int,
+    total: int,
 ) -> bool:
     """发布任务进度更新。"""
-    return await notify_user(user_id, "publish_task_progress", {
-        "task_id": task_id,
-        "completed": completed,
-        "failed": failed,
-        "total": total,
-    })
+    return await notify_user(
+        user_id,
+        "publish_task_progress",
+        {
+            "task_id": task_id,
+            "completed": completed,
+            "failed": failed,
+            "total": total,
+        },
+    )
 
 
 async def notify_publish_task_completed(
-    user_id: int, task_id: int, success_count: int, failed_count: int,
+    user_id: int,
+    task_id: int,
+    success_count: int,
+    failed_count: int,
 ) -> bool:
     """发布任务完成。"""
-    return await notify_user(user_id, "publish_task_completed", {
-        "task_id": task_id,
-        "success_count": success_count,
-        "failed_count": failed_count,
-    })
+    return await notify_user(
+        user_id,
+        "publish_task_completed",
+        {
+            "task_id": task_id,
+            "success_count": success_count,
+            "failed_count": failed_count,
+        },
+    )
 
 
 async def notify_auth_complete(
-    user_id: int, task_id: int, platform: str, account_id: int, success: bool,
+    user_id: int,
+    task_id: int,
+    platform: str,
+    account_id: int,
+    success: bool,
 ) -> bool:
     """平台登录授权完成。"""
-    return await notify_user(user_id, "auth_complete", {
-        "task_id": task_id,
-        "platform": platform,
-        "account_id": account_id,
-        "success": success,
-    })
+    return await notify_user(
+        user_id,
+        "auth_complete",
+        {
+            "task_id": task_id,
+            "platform": platform,
+            "account_id": account_id,
+            "success": success,
+        },
+    )
 
 
 async def notify_knowledge_parse_done(
-    user_id: int, dataset_id: str, doc_id: str, is_ready: bool,
+    user_id: int,
+    dataset_id: str,
+    doc_id: str,
+    is_ready: bool,
 ) -> bool:
     """知识库文档解析完成。"""
-    return await notify_user(user_id, "knowledge_parse_done", {
-        "dataset_id": dataset_id,
-        "doc_id": doc_id,
-        "is_ready": is_ready,
-    })
+    return await notify_user(
+        user_id,
+        "knowledge_parse_done",
+        {
+            "dataset_id": dataset_id,
+            "doc_id": doc_id,
+            "is_ready": is_ready,
+        },
+    )
 
 
 # ============================================================
 #  pending_actions 触发（已废弃，保留空函数避免外部调用方报错）
 # ============================================================
+
 
 async def trigger_pending_actions(user_id: int, event_type: str, payload: dict) -> None:
     """已废弃：旧版 pending_actions 自动续跑机制。

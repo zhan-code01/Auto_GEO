@@ -135,9 +135,7 @@ async def get_task_location(task_type: str) -> Dict[str, Any]:
 
     reason = _get_location_reason(task_type, location.value)
 
-    logger.debug(
-        f"[Deployment] 任务位置决策: task_type={task_type} -> location={location.value}"
-    )
+    logger.debug(f"[Deployment] 任务位置决策: task_type={task_type} -> location={location.value}")
     return {"success": True, "task_type": task_type, "location": location.value, "reason": reason}
 
 

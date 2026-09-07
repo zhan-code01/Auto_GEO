@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 # PyInstaller 环境下 __file__ 指向临时目录，用 sys.executable 定位
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # exe 在 resources/backend/scripts/dist/ 中
     # sys.executable -> resources/backend/scripts/dist/geo_evaluation_worker_runner.exe
     # 向上 3 级到 resources/backend/（backend 包根目录）

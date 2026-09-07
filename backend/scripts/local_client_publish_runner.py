@@ -24,7 +24,7 @@ from playwright.async_api import async_playwright
 # 因为 backend.log_setup 需要 backend 包可导入。
 
 # PyInstaller 环境下 __file__ 指向临时目录，需要特殊处理
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # PyInstaller 打包后：exe 在 backend/scripts/dist/ 中
     # 向上三级到 resources/backend/（即 backend 包根目录）
     ROOT = Path(sys.executable).resolve().parent.parent.parent
@@ -60,7 +60,9 @@ def _to_namespace(value: Any) -> Any:
 def _find_chrome() -> str | None:
     candidates = [
         os.path.join(os.environ.get("PROGRAMFILES", r"C:\Program Files"), r"Google\Chrome\Application\chrome.exe"),
-        os.path.join(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"), r"Google\Chrome\Application\chrome.exe"),
+        os.path.join(
+            os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"), r"Google\Chrome\Application\chrome.exe"
+        ),
         os.path.join(os.environ.get("LOCALAPPDATA", ""), r"Google\Chrome\Application\chrome.exe"),
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
         "/usr/bin/google-chrome-stable",

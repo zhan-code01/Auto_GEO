@@ -32,9 +32,7 @@ from backend.services.project_access import user_visible_project_ids
 class AutoPublishTaskService:
     """创建、校验、启动自动发布任务的统一入口。"""
 
-    def list_user_project_ids(
-        self, db: Session, system_user_id: int, *, is_admin: bool = False
-    ) -> Set[int]:
+    def list_user_project_ids(self, db: Session, system_user_id: int, *, is_admin: bool = False) -> Set[int]:
         """返回当前用户可见的项目 ID 集合（基于 Project.user_id，admin 放行）。
 
         不再依赖只读空表 ProjectMember（否则成员记录为空时返回空集，使下游文章归属
@@ -104,9 +102,7 @@ class AutoPublishTaskService:
         )
         if len(accounts) != len(account_ids):
             missing = sorted(set(account_ids) - {a.id for a in accounts})
-            logger.warning(
-                f"[AutoPublish] 创建任务被拒绝：账号不可用 missing={missing} user_id={system_user_id}"
-            )
+            logger.warning(f"[AutoPublish] 创建任务被拒绝：账号不可用 missing={missing} user_id={system_user_id}")
             raise ValueError("部分发布账号不存在、未启用或不属于当前用户")
 
         # 4. 创建任务主记录

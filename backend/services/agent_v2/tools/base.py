@@ -13,6 +13,7 @@
 - 收录监控 3：create_baseline, run_recheck, get_diagnosis
 - 资料管理 1：upload_documents
 """
+
 from __future__ import annotations
 
 from typing import Any, Awaitable, Callable
@@ -121,9 +122,11 @@ def register_tool(name: str):
 
     handler 签名：async def fn(slots: dict[str, Any], user_id: int) -> ToolOutcome
     """
+
     def decorator(fn: Callable[..., Awaitable[ToolOutcome]]):
         _TOOL_REGISTRY[name] = fn
         return fn
+
     return decorator
 
 
@@ -139,17 +142,28 @@ def list_tools() -> list[str]:
 # 18 个合法工具名清单（严格对齐 PRD §8.4）
 VALID_TOOLS: set[str] = {
     # 客户管理
-    "create_client", "list_clients", "get_client_detail",
+    "create_client",
+    "list_clients",
+    "get_client_detail",
     # 项目管理
-    "create_project", "list_projects", "get_project_detail",
+    "create_project",
+    "list_projects",
+    "get_project_detail",
     # 智能文章
-    "generate_questions", "list_questions", "generate_articles", "list_articles",
+    "generate_questions",
+    "list_questions",
+    "generate_articles",
+    "list_articles",
     # 账户绑定
-    "bind_platform", "list_bindings",
+    "bind_platform",
+    "list_bindings",
     # 文章发布
-    "publish_article", "list_publish_records",
+    "publish_article",
+    "list_publish_records",
     # 收录监控
-    "create_baseline", "run_recheck", "get_diagnosis",
+    "create_baseline",
+    "run_recheck",
+    "get_diagnosis",
     # 资料管理
     "upload_documents",
 }

@@ -53,7 +53,10 @@ class CsdnPublisher(BasePublisher):
         if self._publish_history:
             minutes = (now - self._publish_history[-1]).total_seconds() / 60
             if minutes < self.MIN_INTERVAL_MINUTES:
-                return {"allowed": False, "reason": f"距上次发布仅{int(minutes)}分钟，需≥{self.MIN_INTERVAL_MINUTES}分钟"}
+                return {
+                    "allowed": False,
+                    "reason": f"距上次发布仅{int(minutes)}分钟，需≥{self.MIN_INTERVAL_MINUTES}分钟",
+                }
 
         return {"allowed": True, "reason": "频率检查通过"}
 
@@ -74,11 +77,11 @@ class CsdnPublisher(BasePublisher):
             tags = self._derive_tags(article, title, content)
 
             if len(title) > self.MAX_TITLE_LENGTH:
-                title = title[:self.MAX_TITLE_LENGTH]
+                title = title[: self.MAX_TITLE_LENGTH]
 
             if len(content) > self.MAX_CONTENT_LENGTH:
                 logger.warning(f"⚠️ [CSDN] 正文{len(content)}字，超过限制{self.MAX_CONTENT_LENGTH}字，将截断")
-                content = content[:self.MAX_CONTENT_LENGTH]
+                content = content[: self.MAX_CONTENT_LENGTH]
 
             stage = "navigate"
             publish_url = self.config.get("publish_url", "https://mp.csdn.net/mp_blog/creation/editor")
@@ -221,8 +224,10 @@ class CsdnPublisher(BasePublisher):
         # 5) CSDN 左侧"目录"侧边栏 — 点击收起
         try:
             collapse_btns = [
-                page.locator('[class*="collapse"]').filter(has=page.locator('text=目录')).first,
-                page.locator('div:has-text("目录")').locator('button, [class*="toggle"], [class*="arrow"], svg, i').first,
+                page.locator('[class*="collapse"]').filter(has=page.locator("text=目录")).first,
+                page.locator('div:has-text("目录")')
+                .locator('button, [class*="toggle"], [class*="arrow"], svg, i')
+                .first,
             ]
             for btn in collapse_btns:
                 try:
@@ -237,10 +242,14 @@ class CsdnPublisher(BasePublisher):
 
         # 6) 通用弹窗关闭
         close_selectors = [
-            'button:has-text("知道了")', 'button:has-text("关闭")',
-            'button:has-text("跳过")', 'button:has-text("确定")',
-            '.modal-close', '.ant-modal-close',
-            '.close-btn', '[class*="close"]',
+            'button:has-text("知道了")',
+            'button:has-text("关闭")',
+            'button:has-text("跳过")',
+            'button:has-text("确定")',
+            ".modal-close",
+            ".ant-modal-close",
+            ".close-btn",
+            '[class*="close"]',
             '[aria-label="Close"]',
         ]
         for _ in range(3):
@@ -447,7 +456,7 @@ class CsdnPublisher(BasePublisher):
             '[contenteditable="true"][placeholder*="标题"]',
             '[contenteditable="true"]:has-text("无标题")',
             'input[name*="title"]',
-            '#article-title',
+            "#article-title",
         ]
         for selector in title_selectors:
             try:
@@ -518,23 +527,20 @@ class CsdnPublisher(BasePublisher):
 
         # 1) CKEditor iframe（CSDN 当前编辑器）
         iframe_selectors = [
-            '#cke_1_contents iframe',
-            '#cke_2_contents iframe',
-            '#cke_0_contents iframe',
+            "#cke_1_contents iframe",
+            "#cke_2_contents iframe",
+            "#cke_0_contents iframe",
             'div[id*="cke_"] iframe',
         ]
         for sel in iframe_selectors:
             try:
                 iframe_locator = page.frame_locator(sel)
-                body = iframe_locator.locator('body')
+                body = iframe_locator.locator("body")
                 if await body.count() > 0:
                     await body.click()
-                    await body.evaluate(
-                        "(el, t) => { el.innerHTML = t.replace(/\\n/g, '<br>'); }",
-                        plain_content
-                    )
-                    await body.press('Enter')
-                    await body.press('Backspace')
+                    await body.evaluate("(el, t) => { el.innerHTML = t.replace(/\\n/g, '<br>'); }", plain_content)
+                    await body.press("Enter")
+                    await body.press("Backspace")
                     logger.info(f"✅ [CSDN] 正文已填充: {len(plain_content)} 字符 (CKEditor iframe)")
                     await asyncio.sleep(1)
                     if image_paths:
@@ -547,16 +553,16 @@ class CsdnPublisher(BasePublisher):
         # 2) 兜底 — 常规编辑区
         content_selectors = [
             '.cm-content[contenteditable="true"]',
-            '.CodeMirror textarea',
-            '.CodeMirror-code',
-            '.editor-view',
-            '.CodeMirror-scroll',
-            '.ql-editor',
-            '.ProseMirror',
-            '.markdown-body',
+            ".CodeMirror textarea",
+            ".CodeMirror-code",
+            ".editor-view",
+            ".CodeMirror-scroll",
+            ".ql-editor",
+            ".ProseMirror",
+            ".markdown-body",
             '[contenteditable="true"]',
             'textarea[name*="content"]',
-            '#content',
+            "#content",
         ]
         for selector in content_selectors:
             try:
@@ -587,11 +593,11 @@ class CsdnPublisher(BasePublisher):
     async def _fill_markdown_editor(self, page: Page, plain_content: str) -> bool:
         """填写 CSDN 新版 Markdown/CodeMirror 编辑器。"""
         selectors = [
-            '.CodeMirror',
-            '.CodeMirror-scroll',
-            '.cm-editor',
+            ".CodeMirror",
+            ".CodeMirror-scroll",
+            ".cm-editor",
             '.cm-content[contenteditable="true"]',
-            'textarea',
+            "textarea",
             '[contenteditable="true"]',
         ]
         for selector in selectors:
@@ -642,13 +648,13 @@ class CsdnPublisher(BasePublisher):
         """上传图片到CSDN"""
         try:
             for i, img_path in enumerate(image_paths[:50]):
-                logger.info(f"📷 [CSDN] 上传第 {i+1}/{len(image_paths)} 张图片...")
+                logger.info(f"📷 [CSDN] 上传第 {i + 1}/{len(image_paths)} 张图片...")
 
                 uploaded = False
                 try:
                     if await self._paste_image_via_clipboard(page, img_path):
                         uploaded = True
-                        logger.success(f"✅ [CSDN] 第 {i+1} 张图片已粘贴到正文编辑器")
+                        logger.success(f"✅ [CSDN] 第 {i + 1} 张图片已粘贴到正文编辑器")
                         await asyncio.sleep(2)
                 except Exception as e:
                     logger.debug(f"[CSDN] 正文粘贴图片失败: {e}")
@@ -673,7 +679,7 @@ class CsdnPublisher(BasePublisher):
                                 chooser = await chooser_info.value
                                 await chooser.set_files(img_path)
                                 uploaded = True
-                                logger.success(f"✅ [CSDN] 第 {i+1} 张图片已通过上传按钮上传")
+                                logger.success(f"✅ [CSDN] 第 {i + 1} 张图片已通过上传按钮上传")
                                 await asyncio.sleep(2)
                                 break
                         except PlaywrightTimeoutError:
@@ -683,7 +689,7 @@ class CsdnPublisher(BasePublisher):
                             continue
 
                 if not uploaded:
-                    logger.warning(f"⚠️ [CSDN] 第 {i+1} 张图片未能插入正文，跳过该图以避免上传弹层挡住发布按钮")
+                    logger.warning(f"⚠️ [CSDN] 第 {i + 1} 张图片未能插入正文，跳过该图以避免上传弹层挡住发布按钮")
 
         except Exception as e:
             logger.warning(f"⚠️ [CSDN] 图片上传流程异常: {e}")
@@ -719,9 +725,9 @@ class CsdnPublisher(BasePublisher):
             }"""
 
             iframe_selectors = [
-                '#cke_1_contents iframe',
-                '#cke_2_contents iframe',
-                '#cke_0_contents iframe',
+                "#cke_1_contents iframe",
+                "#cke_2_contents iframe",
+                "#cke_0_contents iframe",
                 'div[id*="cke_"] iframe',
             ]
             for selector in iframe_selectors:
@@ -735,7 +741,9 @@ class CsdnPublisher(BasePublisher):
                 except Exception:
                     continue
 
-            target = page.locator('.cm-content[contenteditable="true"], .CodeMirror-scroll, .editor-view, .ql-editor, [contenteditable="true"], textarea').first
+            target = page.locator(
+                '.cm-content[contenteditable="true"], .CodeMirror-scroll, .editor-view, .ql-editor, [contenteditable="true"], textarea'
+            ).first
             if await target.count() > 0:
                 await target.click()
                 return bool(await target.evaluate(script, {"b64": b64_data}))
@@ -784,8 +792,8 @@ class CsdnPublisher(BasePublisher):
             'button:has-text("发布文章")',
             'button:has-text("立即发布")',
             'button:has-text("发布")',
-            '.publish-btn',
-            '.btn-publish',
+            ".publish-btn",
+            ".btn-publish",
         ]
 
         for selector in publish_selectors:
@@ -878,7 +886,7 @@ class CsdnPublisher(BasePublisher):
         for i in range(60):  # 60次 × 2秒 = 120秒
             await self._close_unwanted_markdown_pages(page)
             current_url = page.url
-            logger.debug(f"[CSDN] 第{(i+1)*2}秒, URL: {current_url}")
+            logger.debug(f"[CSDN] 第{(i + 1) * 2}秒, URL: {current_url}")
             if self._is_publish_success_url(current_url):
                 logger.success(f"🎉 [CSDN] 检测到发布成功页: {current_url}")
                 return {"success": True, "platform_url": current_url}

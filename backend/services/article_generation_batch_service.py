@@ -64,9 +64,7 @@ class ArticleGenerationBatchService:
     # ---------- 归属 ----------
 
     def get_owned_batch(self, batch_id: int, user: User) -> ArticleGenerationBatch:
-        batch = (
-            self.db.query(ArticleGenerationBatch).filter(ArticleGenerationBatch.id == batch_id).first()
-        )
+        batch = self.db.query(ArticleGenerationBatch).filter(ArticleGenerationBatch.id == batch_id).first()
         if not batch:
             raise ValueError("生成批次不存在")
         require_owner(batch, user, name="文章生成批次")
@@ -91,11 +89,7 @@ class ArticleGenerationBatchService:
         - import_batch_id：Excel 导入批次内全部 processed 行的项目。
         """
         if project_id:
-            project = (
-                scoped_query(self.db, Project, user)
-                .filter(Project.id == project_id, Project.status == 1)
-                .first()
-            )
+            project = scoped_query(self.db, Project, user).filter(Project.id == project_id, Project.status == 1).first()
             if not project:
                 raise ValueError("项目不存在或无权访问")
             return [{"project_id": project.id, "article_count": article_count}]
@@ -218,9 +212,7 @@ class ArticleGenerationBatchService:
             elif batch.project_id:
                 plan = [{"project_id": batch.project_id, "article_count": per_project}]
             elif batch.project_ids:
-                plan = [
-                    {"project_id": int(pid), "article_count": per_project} for pid in batch.project_ids
-                ]
+                plan = [{"project_id": int(pid), "article_count": per_project} for pid in batch.project_ids]
             else:
                 plan = []
 
@@ -239,9 +231,7 @@ class ArticleGenerationBatchService:
                     # 幂等：同 key 已存在任意 job 即跳过创建（含 failed/pending 重置态），
                     # 避免重跑或 retry 时为同一搜索问题造重复 job。
                     existing = (
-                        self.db.query(ArticleGenerationJob)
-                        .filter(ArticleGenerationJob.idempotency_key == key)
-                        .first()
+                        self.db.query(ArticleGenerationJob).filter(ArticleGenerationJob.idempotency_key == key).first()
                     )
                     if existing:
                         continue
@@ -284,9 +274,7 @@ class ArticleGenerationBatchService:
             batch.note = (batch.note or "") + f"；批次执行异常：{exc}"
             self.db.commit()
 
-    def _plan_from_import(
-        self, import_batch_id: Optional[int], article_count: int = 5
-    ) -> List[Dict[str, Any]]:
+    def _plan_from_import(self, import_batch_id: Optional[int], article_count: int = 5) -> List[Dict[str, Any]]:
         """导入批次的项目列表 + 每项目篇数。
 
         每项目篇数统一取 ``article_count``（生成时设定，覆盖 Excel 列默认值），
@@ -436,9 +424,7 @@ class ArticleGenerationBatchService:
         job.completed_at = datetime.now()
         self.db.commit()
 
-    def _mark_failed(
-        self, job: ArticleGenerationJob, batch: ArticleGenerationBatch, error_msg: Optional[str]
-    ) -> None:
+    def _mark_failed(self, job: ArticleGenerationJob, batch: ArticleGenerationBatch, error_msg: Optional[str]) -> None:
         """把 job 置 failed（幂等：已终态则不动）。计数交给 recompute_batch_status。"""
         if job.status in JOB_TERMINAL_STATES:
             return
@@ -456,9 +442,7 @@ class ArticleGenerationBatchService:
         - 否则全 completed→completed、全 failed→failed、混合→partial_failed，置 completed_at。
         success_count / failed_count 始终从 job 真实状态重算（自愈、防漂移）。
         """
-        jobs = (
-            self.db.query(ArticleGenerationJob).filter(ArticleGenerationJob.batch_id == batch.id).all()
-        )
+        jobs = self.db.query(ArticleGenerationJob).filter(ArticleGenerationJob.batch_id == batch.id).all()
         if not jobs:
             batch.status = "failed"
             batch.success_count = 0
@@ -489,8 +473,7 @@ class ArticleGenerationBatchService:
             batch.completed_at = datetime.now()
         self.db.commit()
         logger.info(
-            f"[gen_batch] 批次 {batch.id} 状态汇总：{batch.status}，"
-            f"完成 {completed}，失败 {failed}，待回调 {waiting}"
+            f"[gen_batch] 批次 {batch.id} 状态汇总：{batch.status}，完成 {completed}，失败 {failed}，待回调 {waiting}"
         )
 
     # ---------- 失败重试 ----------
@@ -527,7 +510,6 @@ class ArticleGenerationBatchService:
             except RuntimeError:
                 logger.warning(f"[gen_batch] 批次 {batch.id} 重试：无事件循环，未自动派发")
         return {"reset_count": reset, "batch_id": batch.id, "status": batch.status}
-
 
     # ---------- 状态查询 ----------
 

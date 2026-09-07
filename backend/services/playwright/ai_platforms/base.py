@@ -209,7 +209,7 @@ class AIPlatformChecker(ABC):
                     await asyncio.sleep(3)
                     # 检查 URL 是否已跳转
                     cur_url = page.url.lower()
-                    if not any(x in cur_url for x in ['login', 'signin', 'sign_in', 'passport']):
+                    if not any(x in cur_url for x in ["login", "signin", "sign_in", "passport"]):
                         # URL 跳转了，检查输入框
                         for ind in logged_in_indicators:
                             try:
@@ -473,10 +473,14 @@ class AIPlatformChecker(ABC):
             try:
                 result = await answer_extractor(page, question)
                 candidate = (result.get("answer") or "").strip() if result.get("success") else ""
-                quality = self.validate_answer_quality(candidate, question) if candidate else {
-                    "valid": False,
-                    "reason": "empty candidate",
-                }
+                quality = (
+                    self.validate_answer_quality(candidate, question)
+                    if candidate
+                    else {
+                        "valid": False,
+                        "reason": "empty candidate",
+                    }
+                )
 
                 if candidate and quality.get("valid"):
                     if candidate == last_answer:
@@ -620,58 +624,109 @@ class AIPlatformChecker(ABC):
 
         # ── 2. 排除：纯 UI 按钮列表 ──
         ui_button_keywords = [
-            "快速", "新", "编程", "帮我写作", "图像生成", "音乐生成",
-            "翻译", "更多", "AI 创作", "深度思考", "联网搜索",
-            "PPT 生成", "文档处理", "网页摘要", "视频理解", "图片理解",
-            "录音笔", "下载", "APP", "手机版", "登录", "注册",
+            "快速",
+            "新",
+            "编程",
+            "帮我写作",
+            "图像生成",
+            "音乐生成",
+            "翻译",
+            "更多",
+            "AI 创作",
+            "深度思考",
+            "联网搜索",
+            "PPT 生成",
+            "文档处理",
+            "网页摘要",
+            "视频理解",
+            "图片理解",
+            "录音笔",
+            "下载",
+            "APP",
+            "手机版",
+            "登录",
+            "注册",
         ]
         lines = [l.strip() for l in cleaned.split("\n") if l.strip()]
         answer_signal_keywords = [
-            "核心", "标准", "建议", "推荐", "优势", "原因", "如下", "包括",
-            "参考", "搜索", "资料", "公司", "产品", "业务", "场景", "结论",
-            "首先", "其次", "最后", "适合", "能力", "方案", "信息", "分析",
+            "核心",
+            "标准",
+            "建议",
+            "推荐",
+            "优势",
+            "原因",
+            "如下",
+            "包括",
+            "参考",
+            "搜索",
+            "资料",
+            "公司",
+            "产品",
+            "业务",
+            "场景",
+            "结论",
+            "首先",
+            "其次",
+            "最后",
+            "适合",
+            "能力",
+            "方案",
+            "信息",
+            "分析",
         ]
         structure_prefixes = (
-            "一、", "二、", "三、", "四、", "五、", "六、", "七、", "八、", "九、", "十、",
-            "1.", "2.", "3.", "4.", "5.", "1、", "2、", "3、", "4、", "5、",
-            "（一）", "（二）", "（三）", "(一)", "(二)", "(三)",
+            "一、",
+            "二、",
+            "三、",
+            "四、",
+            "五、",
+            "六、",
+            "七、",
+            "八、",
+            "九、",
+            "十、",
+            "1.",
+            "2.",
+            "3.",
+            "4.",
+            "5.",
+            "1、",
+            "2、",
+            "3、",
+            "4、",
+            "5、",
+            "（一）",
+            "（二）",
+            "（三）",
+            "(一)",
+            "(二)",
+            "(三)",
         )
         has_answer_signal = any(kw in cleaned for kw in answer_signal_keywords)
         has_structured_answer = any(l.startswith(structure_prefixes) for l in lines)
         has_long_content_line = any(len(l) >= 70 for l in lines)
         has_paragraph_punct = sum(cleaned.count(p) for p in "。，！？；：、,.!?;:") >= 3
-        looks_like_real_answer = (
-            len(cleaned) >= 180
-            and (
-                has_long_content_line
-                or has_structured_answer
-                or (has_answer_signal and has_paragraph_punct)
-            )
+        looks_like_real_answer = len(cleaned) >= 180 and (
+            has_long_content_line or has_structured_answer or (has_answer_signal and has_paragraph_punct)
         )
         if lines:
-            ui_line_count = sum(
-                1 for l in lines
-                if any(l == kw or l.startswith(kw) for kw in ui_button_keywords)
-            )
+            ui_line_count = sum(1 for l in lines if any(l == kw or l.startswith(kw) for kw in ui_button_keywords))
             if ui_line_count >= 3:
                 return {
-                    "valid": False, "quality": "invalid",
+                    "valid": False,
+                    "quality": "invalid",
                     "reason": f"疑似UI按钮列表（{ui_line_count}/{len(lines)} 行匹配UI关键词）",
                 }
 
         # ── 3. 排除：搜索推荐/联想query（短行列表，无标点结尾）──
         suggestion_keywords = ["推荐", "指南", "排名", "选型", "哪家好", "怎么选", "厂家"]
         if len(lines) >= 3:
-            short_no_punct = sum(
-                1 for l in lines
-                if len(l) < 50 and not l.endswith(("。", "！", "？", ".", "!", "?"))
-            )
-            has_suggestion = any(
-                any(kw in l for kw in suggestion_keywords) for l in lines[:5]
-            )
+            short_no_punct = sum(1 for l in lines if len(l) < 50 and not l.endswith(("。", "！", "？", ".", "!", "?")))
+            has_suggestion = any(any(kw in l for kw in suggestion_keywords) for l in lines[:5])
             if short_no_punct / len(lines) > 0.6 and has_suggestion and not looks_like_real_answer:
                 return {
-                    "valid": False, "quality": "invalid",
+                    "valid": False,
+                    "quality": "invalid",
                     "reason": f"疑似搜索推荐列表（{short_no_punct}/{len(lines)} 行为短行无标点，含推荐关键词）",
                 }
 
@@ -680,7 +735,8 @@ class AIPlatformChecker(ABC):
             return {"valid": False, "quality": "invalid", "reason": f"回答过短（{len(cleaned)}字）"}
         if len(cleaned) > 8000:
             return {
-                "valid": False, "quality": "suspicious",
+                "valid": False,
+                "quality": "suspicious",
                 "reason": f"回答过长（{len(cleaned)}字），疑似全页抓取",
             }
 
@@ -689,24 +745,25 @@ class AIPlatformChecker(ABC):
             chinese_punct = sum(cleaned.count(p) for p in "。，！？；：、")
             if chinese_punct < 2 and not looks_like_real_answer:
                 return {
-                    "valid": False, "quality": "suspicious",
+                    "valid": False,
+                    "quality": "suspicious",
                     "reason": f"{len(cleaned)}字但中文标点仅{chinese_punct}个，疑似非自然语言",
                 }
 
         # ── 6. 排除：包含用户名/UI 路径等噪声开头 ──
         noise_starts = [
-            "本地自动化", "国内工业", "蓝海智造",
+            "本地自动化",
+            "国内工业",
+            "蓝海智造",
         ]
         # 检查前3行是否都是搜索推荐风格（名词短语 + 推荐/指南 + 无标点）
-        first_few = lines[:min(4, len(lines))]
+        first_few = lines[: min(4, len(lines))]
         if len(first_few) >= 3:
-            noise_pattern_count = sum(
-                1 for l in first_few
-                if (len(l) < 40 and not l.endswith(("。", "！", "？")))
-            )
+            noise_pattern_count = sum(1 for l in first_few if (len(l) < 40 and not l.endswith(("。", "！", "？"))))
             if noise_pattern_count == len(first_few) and not looks_like_real_answer:
                 return {
-                    "valid": False, "quality": "suspicious",
+                    "valid": False,
+                    "quality": "suspicious",
                     "reason": f"前{len(first_few)}行均为短词组（无标点），疑似搜索推荐/菜单",
                 }
 
@@ -847,11 +904,11 @@ class AIPlatformChecker(ABC):
         r"doubao.*chat",
         # 通义千问
         r"/v1/chat/completions",
-        r"/api/knowledge.*chat",     # 通义千问知识库对话
+        r"/api/knowledge.*chat",  # 通义千问知识库对话
         # DeepSeek
         r"/chat/completion",
         r"/conversation/.*",
-        r"/v1.*message",           # DeepSeek 消息 API
+        r"/v1.*message",  # DeepSeek 消息 API
         # 通用（放在最后，更严格）
         r"/api/v\d+/chat",
         r"/api/v\d+/completion",
@@ -864,7 +921,7 @@ class AIPlatformChecker(ABC):
         r"/file",
         r"/document",
         r"/dataset",
-        r"/knowledge",              # 排除知识库 API
+        r"/knowledge",  # 排除知识库 API
         r"/rag",
         r"/upload.*file",
         r"/import",
@@ -902,8 +959,9 @@ class AIPlatformChecker(ABC):
         "RAG",
     ]
 
-    async def intercept_answer(self, page: Page, timeout_ms: int = 120000,
-                              collector: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def intercept_answer(
+        self, page: Page, timeout_ms: int = 120000, collector: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         通过拦截 API 响应获取 AI 完整回复。
 
@@ -922,7 +980,8 @@ class AIPlatformChecker(ABC):
         if collector is not None:
             # 预注册模式：监听器已由调用方注册，只负责等待
             return await self._wait_for_intercept_chunks(
-                collector["chunks"], timeout_ms,
+                collector["chunks"],
+                timeout_ms,
                 raw_bodies=collector.get("raw_bodies"),
             )
         else:
@@ -931,7 +990,8 @@ class AIPlatformChecker(ABC):
             page.on("response", collector["handler"])
             try:
                 return await self._wait_for_intercept_chunks(
-                    collector["chunks"], timeout_ms,
+                    collector["chunks"],
+                    timeout_ms,
                     raw_bodies=collector.get("raw_bodies"),
                 )
             finally:
@@ -1434,7 +1494,9 @@ class AIPlatformChecker(ABC):
         return {"chunks": collected_chunks, "raw_bodies": raw_bodies, "handler": _on_response_sync}
 
     async def _wait_for_intercept_chunks(
-        self, collected_chunks: List[str], timeout_ms: int,
+        self,
+        collected_chunks: List[str],
+        timeout_ms: int,
         raw_bodies: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
@@ -1495,7 +1557,7 @@ class AIPlatformChecker(ABC):
                 continue
 
             # 策略 1：如果是普通文本（不是 JSON），尝试提取文本内容
-            if not body.strip().startswith(('{', '[')) and 'data:' not in body[:20]:
+            if not body.strip().startswith(("{", "[")) and "data:" not in body[:20]:
                 # 可能是纯文本响应
                 cleaned = body.strip()
                 if len(cleaned) > 50:
@@ -1503,7 +1565,7 @@ class AIPlatformChecker(ABC):
                     return cleaned
 
             # 策略 2：如果是 HTML 响应（豆包有时会返回 HTML）
-            if '<html' in body.lower() or '<!doctype' in body.lower():
+            if "<html" in body.lower() or "<!doctype" in body.lower():
                 self._log("info", "[兜底] 响应是 HTML，提取文本内容")
                 text = self._extract_text_from_html(body)
                 if text and len(text) > 50:
@@ -1534,7 +1596,7 @@ class AIPlatformChecker(ABC):
 
         if isinstance(data, str):
             # 只返回有意义的文本（排除短字段名、URL 等）
-            if len(data) > 30 and not data.startswith('http'):
+            if len(data) > 30 and not data.startswith("http"):
                 return data
             return ""
 
@@ -1542,7 +1604,7 @@ class AIPlatformChecker(ABC):
             parts = []
             for key, val in data.items():
                 # 跳过明显的非内容字段
-                skip_keys = ('id', 'url', 'href', 'src', 'type', 'role', 'class', 'style', 'name')
+                skip_keys = ("id", "url", "href", "src", "type", "role", "class", "style", "name")
                 if key.lower() in skip_keys:
                     continue
                 text = self._deep_extract_all_text(val, depth + 1)
@@ -1568,7 +1630,7 @@ class AIPlatformChecker(ABC):
             r'"delta"\s*:\s*"((?:[^"\\]|\\.)*)"',
             r'"response"\s*:\s*"((?:[^"\\]|\\.)*)"',
             # SSE data 块
-            r'data:\s*(\{[^}]+\})',
+            r"data:\s*(\{[^}]+\})",
         ]
         parts = []
         for pattern in patterns:
@@ -1576,7 +1638,7 @@ class AIPlatformChecker(ABC):
             for match in matches:
                 # 解码转义字符
                 try:
-                    decoded = match.encode().decode('unicode_escape', errors='ignore')
+                    decoded = match.encode().decode("unicode_escape", errors="ignore")
                     if len(decoded) > 30:
                         parts.append(decoded)
                 except Exception:
@@ -1587,15 +1649,15 @@ class AIPlatformChecker(ABC):
     def _extract_text_from_html(self, html: str) -> str:
         """从 HTML 中提取纯文本"""
         # 移除 script 和 style 标签
-        text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
         # 移除 HTML 标签
-        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r"<[^>]+>", " ", text)
         # 解码 HTML 实体
-        text = text.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
-        text = re.sub(r'&#(\d+);', lambda m: chr(int(m.group(1))), text)
+        text = text.replace("&nbsp;", " ").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+        text = re.sub(r"&#(\d+);", lambda m: chr(int(m.group(1))), text)
         # 清理空白
-        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
         return text
 
     def _extract_text_from_response(self, body: str) -> str:
@@ -1660,7 +1722,7 @@ class AIPlatformChecker(ABC):
                 for match in matches:
                     # 处理转义字符
                     try:
-                        text = match.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
+                        text = match.replace('\\"', '"').replace("\\n", "\n").replace("\\\\", "\\")
                         if len(text) > 10:
                             parts.append(text)
                     except Exception:
@@ -1761,9 +1823,8 @@ class AIPlatformChecker(ABC):
         self._log("info", f"[AnswerTracker] 启动轮询追踪, 超时={timeout_ms}ms")
 
         import os
-        tracker_js_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "answer_tracker.js"
-        )
+
+        tracker_js_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "answer_tracker.js")
         with open(tracker_js_path, "r", encoding="utf-8") as f:
             tracker_js = f.read()
 
@@ -1776,8 +1837,7 @@ class AIPlatformChecker(ABC):
             if result and result.get("success"):
                 self._log(
                     "info",
-                    f"[AnswerTracker] 追踪成功 method={result['method']} "
-                    f"length={result['length']}",
+                    f"[AnswerTracker] 追踪成功 method={result['method']} length={result['length']}",
                 )
                 return result
             else:
@@ -1930,7 +1990,7 @@ class AIPlatformChecker(ABC):
 
                 # 检测是否为纯 UI 元素：很短（< 20 字符）且看起来像菜单项
                 is_ui_element = False
-                if len(line) < 20 and not any(c in line for c in '，。！？；：、'):
+                if len(line) < 20 and not any(c in line for c in "，。！？；：、"):
                     # 中文短词组，大概率是菜单/按钮
                     is_ui_element = True
 
@@ -1989,50 +2049,126 @@ class AIPlatformChecker(ABC):
     def _extract_company_layers(company: str):
         """从完整公司名提取分层匹配词"""
         locations = [
-            "北京", "上海", "深圳", "广州", "杭州", "南京", "成都", "武汉",
-            "重庆", "西安", "天津", "苏州", "东莞", "佛山", "合肥", "长沙",
-            "郑州", "济南", "青岛", "大连", "厦门", "福州", "无锡", "宁波",
-            "温州", "石家庄", "哈尔滨", "沈阳", "昆明", "贵阳", "南宁",
-            "海口", "珠海", "惠州", "中山", "中国", "香港", "澳门", "台湾",
+            "北京",
+            "上海",
+            "深圳",
+            "广州",
+            "杭州",
+            "南京",
+            "成都",
+            "武汉",
+            "重庆",
+            "西安",
+            "天津",
+            "苏州",
+            "东莞",
+            "佛山",
+            "合肥",
+            "长沙",
+            "郑州",
+            "济南",
+            "青岛",
+            "大连",
+            "厦门",
+            "福州",
+            "无锡",
+            "宁波",
+            "温州",
+            "石家庄",
+            "哈尔滨",
+            "沈阳",
+            "昆明",
+            "贵阳",
+            "南宁",
+            "海口",
+            "珠海",
+            "惠州",
+            "中山",
+            "中国",
+            "香港",
+            "澳门",
+            "台湾",
         ]
         suffixes = [
-            "股份有限公司", "有限责任公司", "集团有限公司",
-            "科技有限公司", "信息技术有限公司", "网络技术有限公司",
-            "实业有限公司", "贸易有限公司", "投资有限公司", "控股有限公司",
-            "发展有限公司", "有限公司",
+            "股份有限公司",
+            "有限责任公司",
+            "集团有限公司",
+            "科技有限公司",
+            "信息技术有限公司",
+            "网络技术有限公司",
+            "实业有限公司",
+            "贸易有限公司",
+            "投资有限公司",
+            "控股有限公司",
+            "发展有限公司",
+            "有限公司",
         ]
         industries = [
-            "信息技术", "网络技术", "生物医药", "新能源",
-            "科技", "实业", "贸易", "投资", "控股", "发展",
-            "信息", "软件", "数据", "智能", "互联", "电子", "通信",
-            "医药", "医疗", "教育", "文化", "传媒", "广告", "咨询",
-            "服务", "房地产", "建筑", "装饰", "环保", "农业",
-            "食品", "餐饮", "旅游", "物流", "金融", "保险", "证券",
+            "信息技术",
+            "网络技术",
+            "生物医药",
+            "新能源",
+            "科技",
+            "实业",
+            "贸易",
+            "投资",
+            "控股",
+            "发展",
+            "信息",
+            "软件",
+            "数据",
+            "智能",
+            "互联",
+            "电子",
+            "通信",
+            "医药",
+            "医疗",
+            "教育",
+            "文化",
+            "传媒",
+            "广告",
+            "咨询",
+            "服务",
+            "房地产",
+            "建筑",
+            "装饰",
+            "环保",
+            "农业",
+            "食品",
+            "餐饮",
+            "旅游",
+            "物流",
+            "金融",
+            "保险",
+            "证券",
         ]
 
         name = company.strip()
         core = name
         for loc in sorted(locations, key=len, reverse=True):
             if core.startswith(loc):
-                core = core[len(loc):]
+                core = core[len(loc) :]
                 break
         for suf in sorted(suffixes, key=len, reverse=True):
             if core.endswith(suf):
-                core = core[:-len(suf)]
+                core = core[: -len(suf)]
                 break
         industry_matched = ""
         for ind in sorted(industries, key=len, reverse=True):
             if core.endswith(ind):
                 industry_matched = ind
-                core = core[:-len(ind)]
+                core = core[: -len(ind)]
                 break
 
         core = core.strip()
         layers = []
         seen = set()
+
         def add(s):
             if s and len(s) >= 2 and s not in seen:
-                seen.add(s); layers.append(s)
+                seen.add(s)
+                layers.append(s)
+
         add(core)
         if core and industry_matched:
             add(core + industry_matched)
@@ -2086,7 +2222,9 @@ class AIPlatformChecker(ABC):
                 company_count = count
                 company_matched = layer
                 company_positions = [m.start() for m in re.finditer(re.escape(layer_lower), text_lower)]
-                self._log("info", f"公司名命中: '{layer}' (第{company_layers.index(layer)+1}/{len(company_layers)}层)")
+                self._log(
+                    "info", f"公司名命中: '{layer}' (第{company_layers.index(layer) + 1}/{len(company_layers)}层)"
+                )
                 break
 
         result = {

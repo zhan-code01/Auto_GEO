@@ -11,6 +11,7 @@ Revises: 0035_add_platforms_to_auto_publish_task
   - 删除 client_devices.device_id 全局唯一约束（uq_client_devices_device_id）
   - 新增 (user_id, device_id) 组合唯一约束（uq_client_devices_user_device）
 """
+
 from alembic import op
 
 
@@ -38,8 +39,7 @@ def upgrade() -> None:
         # 3. 新增 (user_id, device_id) 组合唯一约束（先清理残留再添加，保证幂等可重跑）
         op.execute("ALTER TABLE client_devices DROP CONSTRAINT IF EXISTS uq_client_devices_user_device")
         op.execute(
-            "ALTER TABLE client_devices ADD CONSTRAINT uq_client_devices_user_device "
-            "UNIQUE (user_id, device_id)"
+            "ALTER TABLE client_devices ADD CONSTRAINT uq_client_devices_user_device UNIQUE (user_id, device_id)"
         )
 
 
@@ -52,6 +52,4 @@ def downgrade() -> None:
     else:
         op.execute("ALTER TABLE client_devices DROP CONSTRAINT IF EXISTS uq_client_devices_user_device")
         op.execute("DROP INDEX IF EXISTS ix_client_devices_device_id")
-        op.execute(
-            "ALTER TABLE client_devices ADD CONSTRAINT uq_client_devices_device_id UNIQUE (device_id)"
-        )
+        op.execute("ALTER TABLE client_devices ADD CONSTRAINT uq_client_devices_device_id UNIQUE (device_id)")

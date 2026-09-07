@@ -129,8 +129,7 @@ class WebPageGeneratorService:
         deepseek_url = os.getenv("DEEPSEEK_API_URL", "").strip()
         conversation_key = os.getenv("AUTOGEO_CONVERSATION_LLM_API_KEY", "").strip() or AUTOGEO_CONVERSATION_LLM_API_KEY
         conversation_url = (
-            os.getenv("AUTOGEO_CONVERSATION_LLM_BASE_URL", "").strip()
-            or AUTOGEO_CONVERSATION_LLM_BASE_URL
+            os.getenv("AUTOGEO_CONVERSATION_LLM_BASE_URL", "").strip() or AUTOGEO_CONVERSATION_LLM_BASE_URL
         )
 
         if deepseek_key:
@@ -139,10 +138,7 @@ class WebPageGeneratorService:
         else:
             self.api_key = conversation_key
             self.api_url = (
-                conversation_url
-                or deepseek_url
-                or DEEPSEEK_API_URL
-                or "https://api.deepseek.com/v1"
+                conversation_url or deepseek_url or DEEPSEEK_API_URL or "https://api.deepseek.com/v1"
             ).rstrip("/")
 
         # 模型名：优先读取环境变量配置（默认 deepseek-v4-flash），不要再硬编码
@@ -197,7 +193,9 @@ class WebPageGeneratorService:
     async def _extract_structured_data(self, context: str, extra_instructions: str = "") -> Dict[str, Any]:
         """调用 DeepSeek 从 context 中提取结构化企业信息。"""
         if not self.api_key:
-            raise RuntimeError("AI API Key 未配置，请在 .env 中设置 DEEPSEEK_API_KEY 或 AUTOGEO_CONVERSATION_LLM_API_KEY")
+            raise RuntimeError(
+                "AI API Key 未配置，请在 .env 中设置 DEEPSEEK_API_KEY 或 AUTOGEO_CONVERSATION_LLM_API_KEY"
+            )
 
         if not context.strip():
             raise RuntimeError("知识库中没有检索到任何相关文档，无法生成网页")
@@ -206,7 +204,7 @@ class WebPageGeneratorService:
 
 {context}
 
-请根据以上资料提取企业信息。{('额外要求：' + extra_instructions) if extra_instructions else ''}
+请根据以上资料提取企业信息。{("额外要求：" + extra_instructions) if extra_instructions else ""}
 
 请严格按 JSON 格式输出，不要包裹在 markdown 代码块中。"""
 

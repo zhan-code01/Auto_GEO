@@ -11,7 +11,14 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from backend.database import SessionLocal
-from backend.database.models import GeoArticle, Keyword, Project, SmartArticleBatch, SmartArticleJob, SmartArticleQuestion
+from backend.database.models import (
+    GeoArticle,
+    Keyword,
+    Project,
+    SmartArticleBatch,
+    SmartArticleJob,
+    SmartArticleQuestion,
+)
 from backend.services.article_image_service import ArticleImageService
 from backend.services.article_markdown import markdown_to_html
 from backend.middleware.user_isolation import scoped_query
@@ -34,7 +41,9 @@ class SmartArticleService:
         self.db = db
         self.images = ArticleImageService()
 
-    def create_batch(self, current_user, project_id: int, article_count: int, question: str | None) -> SmartArticleBatch:
+    def create_batch(
+        self, current_user, project_id: int, article_count: int, question: str | None
+    ) -> SmartArticleBatch:
         if article_count < 1:
             raise ValueError("文章数量必须大于0")
         normalized_question = str(question or "").strip() or None
@@ -60,7 +69,9 @@ class SmartArticleService:
         self.db.refresh(batch)
         return batch
 
-    def create_selection_batch(self, current_user, project_id: int, question_ids: list[int]) -> tuple[SmartArticleBatch, list[int]]:
+    def create_selection_batch(
+        self, current_user, project_id: int, question_ids: list[int]
+    ) -> tuple[SmartArticleBatch, list[int]]:
         """Create an article batch from visible, not-yet-generated question rows."""
         if not question_ids:
             raise ValueError("请至少选择一个未生成文章的问题")
@@ -108,7 +119,9 @@ class SmartArticleService:
         self.db.refresh(batch)
         return batch, skipped
 
-    def _create_jobs_for_questions(self, batch: SmartArticleBatch, questions: list[SmartArticleQuestion], context) -> list[int]:
+    def _create_jobs_for_questions(
+        self, batch: SmartArticleBatch, questions: list[SmartArticleQuestion], context
+    ) -> list[int]:
         keyword_by_text = {
             row.keyword: row
             for row in self.db.query(Keyword)
@@ -118,7 +131,9 @@ class SmartArticleService:
         job_ids: list[int] = []
         for question_row in questions:
             key = hashlib.sha256(
-                f"{batch.user_id}|{batch.project_id}|{batch.id}|question:{question_row.id}|{PROMPT_VERSIONS['article']}".encode("utf-8")
+                f"{batch.user_id}|{batch.project_id}|{batch.id}|question:{question_row.id}|{PROMPT_VERSIONS['article']}".encode(
+                    "utf-8"
+                )
             ).hexdigest()
             keyword_obj = keyword_by_text.get(question_row.question)
             if keyword_obj is None:
@@ -237,7 +252,9 @@ class SmartArticleService:
         job_ids: list[int] = []
         for item in planned:
             key = hashlib.sha256(
-                f"{batch.user_id}|{batch.project_id}|{batch.id}|{normalize_question(item.question)}|{PROMPT_VERSIONS['article']}".encode("utf-8")
+                f"{batch.user_id}|{batch.project_id}|{batch.id}|{normalize_question(item.question)}|{PROMPT_VERSIONS['article']}".encode(
+                    "utf-8"
+                )
             ).hexdigest()
             if key in existing:
                 continue
@@ -298,7 +315,9 @@ class SmartArticleService:
         batch.success_count = sum(job.status == "completed" for job in jobs)
         batch.failed_count = sum(job.status == "failed" for job in jobs)
         if jobs and all(job.status in {"completed", "failed"} for job in jobs):
-            batch.status = "completed" if batch.failed_count == 0 else ("partial_failed" if batch.success_count else "failed")
+            batch.status = (
+                "completed" if batch.failed_count == 0 else ("partial_failed" if batch.success_count else "failed")
+            )
             batch.completed_at = datetime.now()
         self.db.commit()
 
@@ -331,7 +350,9 @@ class SmartArticleService:
             ],
         }
 
-    def list_articles(self, current_user, project_id: int | None, publish_status: str | None, page: int, limit: int) -> dict[str, Any]:
+    def list_articles(
+        self, current_user, project_id: int | None, publish_status: str | None, page: int, limit: int
+    ) -> dict[str, Any]:
         query = scoped_query(self.db, GeoArticle, current_user).filter(GeoArticle.source == "smart_article")
         if project_id is not None:
             query = query.filter(GeoArticle.project_id == project_id)
@@ -486,7 +507,9 @@ def _mark_job_failed(db: Session, job_id: int, message: str) -> None:
         batch.success_count = sum(item.status == "completed" for item in jobs)
         batch.failed_count = sum(item.status == "failed" for item in jobs)
         if jobs and all(item.status in {"completed", "failed"} for item in jobs):
-            batch.status = "completed" if batch.failed_count == 0 else ("partial_failed" if batch.success_count else "failed")
+            batch.status = (
+                "completed" if batch.failed_count == 0 else ("partial_failed" if batch.success_count else "failed")
+            )
             batch.completed_at = datetime.now()
         db.commit()
 

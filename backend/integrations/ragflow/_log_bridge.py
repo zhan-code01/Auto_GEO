@@ -50,10 +50,10 @@ def _ensure_init() -> None:
         logger.add(
             str(_LOG_DIR / "ragflow_cli_{time:YYYY-MM-DD}.log"),
             level="DEBUG",
-            rotation="00:00",      # 每天午夜轮转
-            retention="3 days",    # 仅保留最近 3 天
+            rotation="00:00",  # 每天午夜轮转
+            retention="3 days",  # 仅保留最近 3 天
             encoding="utf-8",
-            enqueue=False,         # 短命 CLI 脚本同步写入即可
+            enqueue=False,  # 短命 CLI 脚本同步写入即可
             backtrace=True,
             diagnose=False,
             catch=True,

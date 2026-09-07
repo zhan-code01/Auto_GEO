@@ -35,27 +35,28 @@ def upgrade():
     if not _column_exists("site_projects", "source"):
         op.add_column(
             "site_projects",
-            sa.Column("source", sa.String(20), server_default="manual",
-                      comment="生成方式：manual=手填 ai=AI生成"),
+            sa.Column("source", sa.String(20), server_default="manual", comment="生成方式：manual=手填 ai=AI生成"),
         )
     if not _column_exists("site_projects", "structured_data"):
         op.add_column(
             "site_projects",
-            sa.Column("structured_data", sa.JSON, nullable=True,
-                      comment="AI 提取的结构化企业数据"),
+            sa.Column("structured_data", sa.JSON, nullable=True, comment="AI 提取的结构化企业数据"),
         )
     if not _column_exists("site_projects", "client_id"):
         op.add_column(
             "site_projects",
-            sa.Column("client_id", sa.Integer,
-                      sa.ForeignKey("clients.id", ondelete="SET NULL"),
-                      nullable=True, comment="关联客户ID（AI生成时来源）"),
+            sa.Column(
+                "client_id",
+                sa.Integer,
+                sa.ForeignKey("clients.id", ondelete="SET NULL"),
+                nullable=True,
+                comment="关联客户ID（AI生成时来源）",
+            ),
         )
     if not _column_exists("site_projects", "template_id"):
         op.add_column(
             "site_projects",
-            sa.Column("template_id", sa.String(50), server_default="tech",
-                      comment="使用的模板ID"),
+            sa.Column("template_id", sa.String(50), server_default="tech", comment="使用的模板ID"),
         )
 
 

@@ -282,9 +282,7 @@ async def generate_project_articles(
     后台按 keyword_id 顺序逐条执行，降低卡顿与并发压力。
     """
     project = (
-        scoped_query(db, Project, current_user)
-        .filter(Project.id == request.project_id, Project.status == 1)
-        .first()
+        scoped_query(db, Project, current_user).filter(Project.id == request.project_id, Project.status == 1).first()
     )
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在或无权访问")

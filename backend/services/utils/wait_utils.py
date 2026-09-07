@@ -10,10 +10,7 @@ from loguru import logger
 
 
 async def wait_for_condition(
-    condition_fn: Callable[[], Any],
-    timeout: float = 10.0,
-    interval: float = 0.1,
-    description: str = "condition"
+    condition_fn: Callable[[], Any], timeout: float = 10.0, interval: float = 0.1, description: str = "condition"
 ) -> bool:
     """
     等待条件满足
@@ -38,12 +35,7 @@ async def wait_for_condition(
     return False
 
 
-async def wait_for_element_state(
-    page,
-    selector: str,
-    state: str = "visible",
-    timeout: float = 10.0
-) -> bool:
+async def wait_for_element_state(page, selector: str, state: str = "visible", timeout: float = 10.0) -> bool:
     """
     等待元素达到指定状态
 
@@ -64,11 +56,7 @@ async def wait_for_element_state(
         return False
 
 
-async def wait_for_network_idle(
-    page,
-    timeout: float = 10.0,
-    min_idle_time: float = 0.5
-) -> bool:
+async def wait_for_network_idle(page, timeout: float = 10.0, min_idle_time: float = 0.5) -> bool:
     """
     等待网络空闲
 
@@ -98,6 +86,7 @@ async def smart_delay(min_delay: float = 0.1, max_delay: float = 0.5, factor: fl
         factor: 延迟系数
     """
     import random
+
     delay = random.uniform(min_delay, max_delay) * factor
     await asyncio.sleep(delay)
 
@@ -125,7 +114,7 @@ class RetryWithBackoff:
                     raise
 
                 # 计算退避延迟
-                delay = min(self.base_delay * (2 ** attempt), self.max_delay)
+                delay = min(self.base_delay * (2**attempt), self.max_delay)
                 logger.warning(f"操作失败，{delay}秒后重试 ({attempt + 1}/{self.max_retries}): {e}")
                 await asyncio.sleep(delay)
 

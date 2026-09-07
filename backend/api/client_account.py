@@ -74,12 +74,9 @@ async def list_bound_accounts(
     current_user: User = Depends(get_current_user_from_token),
 ):
     """列出当前用户通过本地客户端绑定的账号。"""
-    query = (
-        scoped_query(db, Account, current_user)
-        .filter(
-            Account.deleted_at.is_(None),
-            Account.auth_mode == "local_client",
-        )
+    query = scoped_query(db, Account, current_user).filter(
+        Account.deleted_at.is_(None),
+        Account.auth_mode == "local_client",
     )
 
     if platform:

@@ -22,17 +22,20 @@ SCHEMA_VERSION = "1.0.0"
 
 # 五档情感映射
 SENTIMENT_LABELS = {
-    "strongly_positive": 100, "positive": 80,
-    "neutral": 50, "negative": 20, "strongly_negative": 0,
+    "strongly_positive": 100,
+    "positive": 80,
+    "neutral": 50,
+    "negative": 20,
+    "strongly_negative": 0,
 }
 
 # 排名分映射
 RANK_SCORES = {1: 100, 2: 80, 3: 60, 4: 40, 5: 40}
 
 # LLM Judge 调用稳定性参数
-JUDGE_TIMEOUT_SECONDS = 120.0        # 单次请求超时（从 60s 提升到 120s）
-JUDGE_MAX_RETRIES = 2                # 额外重试次数（总尝试 = 1 + JUDGE_MAX_RETRIES）
-JUDGE_RETRY_BACKOFF = 2.0            # 重试退避基数（秒）
+JUDGE_TIMEOUT_SECONDS = 120.0  # 单次请求超时（从 60s 提升到 120s）
+JUDGE_MAX_RETRIES = 2  # 额外重试次数（总尝试 = 1 + JUDGE_MAX_RETRIES）
+JUDGE_RETRY_BACKOFF = 2.0  # 重试退避基数（秒）
 
 
 def _clamp_score(value: Any) -> float:
@@ -129,7 +132,7 @@ def _extract_json_text(raw: str) -> str:
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
-        return text[start:end + 1]
+        return text[start : end + 1]
 
     return text
 
@@ -193,8 +196,14 @@ class GeoResponseJudgeService:
             raise ValueError("无法评估空回答")
         try:
             return await self._llm_evaluate(
-                company_name, brand_aliases, official_domains,
-                competitors, question, question_type, answer, citations,
+                company_name,
+                brand_aliases,
+                official_domains,
+                competitors,
+                question,
+                question_type,
+                answer,
+                citations,
             )
         except Exception as e:
             logger.warning(f"[Judge] LLM 评估失败，返回降级结果: {e}")
@@ -427,6 +436,8 @@ class GeoResponseJudgeService:
 
 # ── 异步工具 ──
 
+
 async def _sleep(seconds: float) -> None:
     import asyncio
+
     await asyncio.sleep(seconds)

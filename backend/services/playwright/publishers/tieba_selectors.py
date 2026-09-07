@@ -47,11 +47,11 @@ LOGGED_OUT_TEXT = ["登录", "请登录", "登录百度账号"]
 
 # === 发帖入口："发贴"按钮（注意贴吧用"发贴"字样，exact 匹配）===
 POST_ENTRY_BTN = [
-    'text=发贴',
+    "text=发贴",
     'a:has-text("发贴")',
     'button:has-text("发贴")',
     '[class*="post"] :has-text("发贴")',
-    'text=发帖',
+    "text=发帖",
     'a:has-text("发帖")',
 ]
 # 兜底：直接导航到综合发帖页（首页发贴按钮打开的目标；随版本可能变化）
@@ -101,10 +101,10 @@ TITLE_INPUT = [
     '[contenteditable="true"][data-placeholder*="标题"]',
     # 旧臆想路径（真机不存在，保留仅作历史/其他版本兜底）
     '#tb-editor-title [contenteditable="true"]',
-    '#tb-editor-title div[contenteditable]',
-    '#tb-editor-title p',
-    '#tb-editor-title div',
-    '#tb-editor-title',
+    "#tb-editor-title div[contenteditable]",
+    "#tb-editor-title p",
+    "#tb-editor-title div",
+    "#tb-editor-title",
     '[class*="editor-title"] [contenteditable]',
 ]
 
@@ -128,10 +128,10 @@ CONTENT_INPUT = [
     '[contenteditable="true"][data-placeholder*="内容"]',
     # 旧臆想路径（真机不存在，保留仅作兜底）
     '#tb-editor-content [contenteditable="true"]',
-    '#tb-editor-content div[contenteditable]',
-    '#tb-editor-content p',
-    '#tb-editor-content div',
-    '#tb-editor-content',
+    "#tb-editor-content div[contenteditable]",
+    "#tb-editor-content p",
+    "#tb-editor-content div",
+    "#tb-editor-content",
     '[class*="editor-content"] [contenteditable]',
 ]
 
@@ -140,8 +140,8 @@ CONTENT_INPUT = [
 CONTENT_IMAGE_TOOLBAR_BTN = [
     # ✅ codegen 实录（2026-07-14）：编辑器工具栏第 4 个 .action-icon 即“图片”，
     #    点击弹**文件选择器**（codegen 录不到选文件动作，故当时只见一个 click）。
-    'div:nth-child(4) > .action-icon > use',
-    'div:nth-child(4) > .action-icon',
+    "div:nth-child(4) > .action-icon > use",
+    "div:nth-child(4) > .action-icon",
     # 兜底推断（类名/标题）
     '[class*="toolbar"] [class*="img"]',
     '[class*="tool"] [class*="image"]',
@@ -156,7 +156,7 @@ IMAGE_FILE_INPUT = 'input[type="file"][accept*="image"]'
 IMAGE_ALL_FILE_INPUT = 'input[type="file"]'
 # 图片上传成功标识（正文里出现 img，或缩略图/上传完成态）
 IMAGE_SUCCESS_INDICATOR = [
-    '#tb-editor-content img',
+    "#tb-editor-content img",
     '[class*="editor-content"] img',
     '[class*="img-item"]',
     '[class*="upload-item"]',
@@ -179,13 +179,13 @@ IMAGE_CROP_CONFIRM_BTN = [
 
 # === 发布按钮（"发布"，exact）===
 PUBLISH_BUTTON = [
-    'text=发布',
+    "text=发布",
     'button:has-text("发布")',
     'a:has-text("发布")',
     '[class*="submit"]:has-text("发布")',
     '[class*="poster"] [class*="btn"]:has-text("发布")',
     'button[class*="primary"]:has-text("发布")',
-    'text=发表',
+    "text=发表",
     'button:has-text("发表")',
 ]
 # 发布二次确认 / 协议弹窗（若有）

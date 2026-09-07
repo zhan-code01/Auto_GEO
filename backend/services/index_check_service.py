@@ -238,7 +238,8 @@ class IndexCheckService:
                     if not questions:
                         questions = [
                             QuestionVariant(
-                                id=0, keyword_id=keyword_obj.id,
+                                id=0,
+                                keyword_id=keyword_obj.id,
                                 question=f"什么是{keyword_obj.keyword}？推荐哪家公司？",
                             )
                         ]
@@ -286,8 +287,7 @@ class IndexCheckService:
         resolved_user_id = user_id or 1
         resolved_project_id = project_id or getattr(keyword_obj, "project_id", None) or 1
         logger.info(
-            f"[收录检测] 身份: user_id={resolved_user_id}, project_id={resolved_project_id}, "
-            f"platforms={platforms}"
+            f"[收录检测] 身份: user_id={resolved_user_id}, project_id={resolved_project_id}, platforms={platforms}"
         )
 
         # 导入会话管理器
@@ -317,9 +317,7 @@ class IndexCheckService:
                     skipped_collector.append({"platform": platform_id, "name": checker.name, "reason": reason})
                 continue
 
-            is_valid, reason = await cookie_validator.validate_fast(
-                platform=platform_id, storage_state=storage_state
-            )
+            is_valid, reason = await cookie_validator.validate_fast(platform=platform_id, storage_state=storage_state)
 
             if not is_valid:
                 reason = f"授权已失效（{reason}）"
@@ -485,6 +483,7 @@ class IndexCheckService:
             answer_text = check_result.get("answer")
             if answer_text and check_result.get("success"):
                 from backend.services.playwright.ai_platforms.base import AIPlatformChecker
+
                 quality = AIPlatformChecker.validate_answer_quality(answer_text, qv.question)
                 check_result["answer_quality"] = quality
                 if not quality["valid"]:

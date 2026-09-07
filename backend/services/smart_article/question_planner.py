@@ -44,22 +44,34 @@ class SmartArticleQuestionPlanner:
             else []
         )
         rows = (
-            self.db.query(SmartArticleJob.question)
-            .filter(SmartArticleJob.project_id == context.project_id, SmartArticleJob.status == "completed")
-            .all()
-        ) if self.db is not None else []
+            (
+                self.db.query(SmartArticleJob.question)
+                .filter(SmartArticleJob.project_id == context.project_id, SmartArticleJob.status == "completed")
+                .all()
+            )
+            if self.db is not None
+            else []
+        )
         keyword_rows = (
-            self.db.query(Keyword.keyword)
-            .filter(Keyword.project_id == context.project_id, Keyword.keyword_type == "smart_question")
-            .all()
-        ) if self.db is not None else []
+            (
+                self.db.query(Keyword.keyword)
+                .filter(Keyword.project_id == context.project_id, Keyword.keyword_type == "smart_question")
+                .all()
+            )
+            if self.db is not None
+            else []
+        )
         return list(dict.fromkeys([row[0] for row in pool_rows + rows + keyword_rows if row[0]]))
 
     def manual(self, question: str, context: ProjectContext) -> PlannedQuestion:
         value = str(question or "").strip()
         if not value:
             raise QuestionPlanningError("指定问题不能为空")
-        context_type = "region" if detect_region(value, context.allowed_regions) else ("industry" if context.industry else "general")
+        context_type = (
+            "region"
+            if detect_region(value, context.allowed_regions)
+            else ("industry" if context.industry else "general")
+        )
         return PlannedQuestion(
             question=value,
             intent_type="manual",
@@ -137,7 +149,10 @@ class SmartArticleQuestionPlanner:
                     continue
                 selected.append(planned)
                 excluded_norm.add(norm)
-                if len(selected) >= target_count and sum(item.intent_type == "provider" for item in selected) >= provider_target:
+                if (
+                    len(selected) >= target_count
+                    and sum(item.intent_type == "provider" for item in selected) >= provider_target
+                ):
                     logger.success(
                         f"[QuestionPlanner] 问题规划完成: project_id={context.project_id} "
                         f"selected={len(selected)} rounds={_round + 1}"
@@ -152,9 +167,7 @@ class SmartArticleQuestionPlanner:
                 f"selected={len(selected)}/{target_count} provider_need={provider_target}"
             )
             raise QuestionPlanningError(f"没有筛选出足量问题，且推荐型问题需至少{provider_target}个")
-        logger.success(
-            f"[QuestionPlanner] 问题规划完成: project_id={context.project_id} selected={len(selected)}"
-        )
+        logger.success(f"[QuestionPlanner] 问题规划完成: project_id={context.project_id} selected={len(selected)}")
         return selected[:target_count]
 
     def _load_product_summary(self, context: ProjectContext) -> str:

@@ -96,10 +96,18 @@ class BaijiahaoCodegenPublisher(BasePublisher):
         """
         close_texts = [
             # codegen 验证过的顺序
-            "立即创作", "下一步", "我知道了", "完成",
+            "立即创作",
+            "下一步",
+            "我知道了",
+            "完成",
             # 其他可能出现的
-            "知道了", "关闭", "跳过", "不用了", "确定",
-            "稍后再说", "开始体验",
+            "知道了",
+            "关闭",
+            "跳过",
+            "不用了",
+            "确定",
+            "稍后再说",
+            "开始体验",
         ]
 
         for round_i in range(6):  # 最多6轮（从10轮减少）
@@ -363,7 +371,7 @@ class BaijiahaoCodegenPublisher(BasePublisher):
         for sel in [
             '[data-testid="content-editor"]',
             '[class*="FeEditorApp"]',
-            'iframe#ueditor_0',
+            "iframe#ueditor_0",
         ]:
             try:
                 el = page.locator(sel).first
@@ -444,7 +452,7 @@ class BaijiahaoCodegenPublisher(BasePublisher):
     # ═══════════════════════════════════════════════════════════
 
     def _clean_title(self, title: str) -> str:
-        return re.sub(r"[#*`\"<>]", "", title or "").strip()[:self.MAX_TITLE_LENGTH]
+        return re.sub(r"[#*`\"<>]", "", title or "").strip()[: self.MAX_TITLE_LENGTH]
 
     def _strip_markdown(self, text: str) -> str:
         """简单去掉 markdown 标记"""

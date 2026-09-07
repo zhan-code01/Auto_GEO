@@ -14,6 +14,7 @@
 但 Checkpointer 也会自动加载 messages → 历史消息被重复加载。
 修复后：messages 完全由 Checkpointer 管理，load_context 不再干预。
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -68,9 +69,8 @@ async def load_context(state: AgentState) -> AgentState:
 def _load_preferences(db: Session, user_id: int) -> dict[str, Any]:
     """加载用户偏好（从 UserAgentPreference 表）。"""
     from backend.database.models import UserAgentPreference
-    record = db.query(UserAgentPreference).filter(
-        UserAgentPreference.system_user_id == user_id
-    ).first()
+
+    record = db.query(UserAgentPreference).filter(UserAgentPreference.system_user_id == user_id).first()
     if not record:
         return {}
     return {

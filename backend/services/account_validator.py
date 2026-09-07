@@ -436,7 +436,9 @@ class AccountValidator:
 
         return result
 
-    async def check_all_accounts(self, db_session: Any, progress_callback: Optional[Callable] = None, user_id: Optional[int] = None) -> Dict[str, Any]:
+    async def check_all_accounts(
+        self, db_session: Any, progress_callback: Optional[Callable] = None, user_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         批量检测账号的授权状态
 

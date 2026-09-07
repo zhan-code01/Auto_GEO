@@ -130,7 +130,9 @@ class FeishuTaskHandler:
     # ==================== 生成 + 发布（核心流程） ====================
 
     async def _handle_generate_and_publish(
-        self, params: Dict[str, Any], chat_id: str,
+        self,
+        params: Dict[str, Any],
+        chat_id: str,
         system_user_id: int,
         binding=None,
     ):
@@ -151,9 +153,7 @@ class FeishuTaskHandler:
         publish_strategy = params.get("publish_strategy", "immediate")
 
         # 获取平台中文名
-        platform_names = [
-            PLATFORMS.get(p, {}).get("name", p) for p in target_platforms
-        ]
+        platform_names = [PLATFORMS.get(p, {}).get("name", p) for p in target_platforms]
         platform_text = "、".join(platform_names) if platform_names else "自动选择"
 
         # 1. 通知开始
@@ -187,8 +187,12 @@ class FeishuTaskHandler:
 
             # 3. 准备关键词（含蒸馏管道）
             keyword_objects = await self._resolve_keywords(
-                db, project, keywords, quantity,
-                system_user_id, company_name_resolved,
+                db,
+                project,
+                keywords,
+                quantity,
+                system_user_id,
+                company_name_resolved,
             )
 
             if not keyword_objects:
@@ -235,9 +239,13 @@ class FeishuTaskHandler:
 
                         # 记录关键词使用
                         self._record_keyword_usage(
-                            db, project.id if project else None,
-                            kw_obj.id, kw_obj.keyword, article_id,
-                            system_user_id, "feishu",
+                            db,
+                            project.id if project else None,
+                            kw_obj.id,
+                            kw_obj.keyword,
+                            article_id,
+                            system_user_id,
+                            "feishu",
                         )
 
                         article = await self._wait_for_generated_article(db, article_id)
@@ -305,7 +313,11 @@ class FeishuTaskHandler:
                     f"📊 {len(article_ids)} 篇文章生成完成，开始发布到 {platform_text}...",
                 )
                 await self._create_and_execute_publish_task(
-                    db, article_ids, target_platforms, chat_id, system_user_id,
+                    db,
+                    article_ids,
+                    target_platforms,
+                    chat_id,
+                    system_user_id,
                 )
             elif publish_strategy == "immediate" and not target_platforms:
                 # 没有指定平台，文章已设为 generating/completed，通知用户到后台配置
@@ -337,7 +349,9 @@ class FeishuTaskHandler:
     # ==================== 仅生成 ====================
 
     async def _handle_generate(
-        self, params: Dict[str, Any], chat_id: str,
+        self,
+        params: Dict[str, Any],
+        chat_id: str,
         system_user_id: int,
         binding=None,
     ):
@@ -349,7 +363,9 @@ class FeishuTaskHandler:
     # ==================== 仅发布 ====================
 
     async def _handle_publish(
-        self, params: Dict[str, Any], chat_id: str,
+        self,
+        params: Dict[str, Any],
+        chat_id: str,
         system_user_id: int,
     ):
         """
@@ -358,9 +374,7 @@ class FeishuTaskHandler:
         查找该用户最近完成的未发布文章并执行发布
         """
         target_platforms = params.get("platforms", [])
-        platform_names = [
-            PLATFORMS.get(p, {}).get("name", p) for p in target_platforms
-        ]
+        platform_names = [PLATFORMS.get(p, {}).get("name", p) for p in target_platforms]
         platform_text = "、".join(platform_names) if platform_names else "所有可用平台"
 
         await self._feishu.send_progress_card(
@@ -376,10 +390,15 @@ class FeishuTaskHandler:
             accessible_project_ids = self._get_user_project_ids(db, system_user_id)
 
             # 查找该用户最近完成的待发布文章
-            query = db.query(GeoArticle).filter(
-                GeoArticle.publish_status.in_(["completed", "failed"]),
-                GeoArticle.project_id.in_(accessible_project_ids),
-            ).order_by(GeoArticle.created_at.desc()).limit(10)
+            query = (
+                db.query(GeoArticle)
+                .filter(
+                    GeoArticle.publish_status.in_(["completed", "failed"]),
+                    GeoArticle.project_id.in_(accessible_project_ids),
+                )
+                .order_by(GeoArticle.created_at.desc())
+                .limit(10)
+            )
 
             articles = query.all()
 
@@ -394,18 +413,26 @@ class FeishuTaskHandler:
 
             if target_platforms:
                 await self._create_and_execute_publish_task(
-                    db, article_ids, target_platforms, chat_id, system_user_id,
+                    db,
+                    article_ids,
+                    target_platforms,
+                    chat_id,
+                    system_user_id,
                 )
             else:
                 # 未指定平台，提示用户（只显示该用户的账号）
                 available = []
                 for pid, pconf in PLATFORMS.items():
-                    account = db.query(Account).filter(
-                        Account.platform == pid,
-                        Account.status == 1,
-                        Account.user_id == system_user_id,
-                        Account.deleted_at == None,
-                    ).first()
+                    account = (
+                        db.query(Account)
+                        .filter(
+                            Account.platform == pid,
+                            Account.status == 1,
+                            Account.user_id == system_user_id,
+                            Account.deleted_at == None,
+                        )
+                        .first()
+                    )
                     if account:
                         available.append(pconf["name"])
 
@@ -417,8 +444,7 @@ class FeishuTaskHandler:
                 else:
                     await self._feishu.send_text_message(
                         chat_id,
-                        f"请指定发布平台。你的可用平台: {', '.join(available[:10])}\n\n"
-                        "例如: 帮我把文章发到知乎和搜狐",
+                        f"请指定发布平台。你的可用平台: {', '.join(available[:10])}\n\n例如: 帮我把文章发到知乎和搜狐",
                     )
 
         finally:
@@ -427,7 +453,9 @@ class FeishuTaskHandler:
     # ==================== 查询状态 ====================
 
     async def _handle_query_status(
-        self, params: Dict[str, Any], chat_id: str,
+        self,
+        params: Dict[str, Any],
+        chat_id: str,
         system_user_id: int,
     ):
         """查询该用户最近的任务状态（用户作用域内）"""
@@ -486,10 +514,7 @@ class FeishuTaskHandler:
                 }
                 for task in recent_tasks:
                     ts = task_status_map.get(task.status, task.status)
-                    lines.append(
-                        f"- {ts} {task.name} "
-                        f"({task.completed_count}/{task.total_count})"
-                    )
+                    lines.append(f"- {ts} {task.name} ({task.completed_count}/{task.total_count})")
 
             await self._feishu.send_card_message(
                 chat_id,
@@ -610,8 +635,8 @@ class FeishuTaskHandler:
                 title="✅ 绑定成功",
                 status="已完成",
                 detail=f"你的飞书账号已成功绑定到 AutoGEO 用户「{username}」。\n\n"
-                       "现在你可以直接在这里发送指令来生成和发布文章了！\n\n"
-                       "试试发送：**帮我写一篇关于智慧物流的文章发到知乎**",
+                "现在你可以直接在这里发送指令来生成和发布文章了！\n\n"
+                "试试发送：**帮我写一篇关于智慧物流的文章发到知乎**",
             )
 
         except Exception as e:
@@ -679,7 +704,9 @@ class FeishuTaskHandler:
         return None
 
     def _find_project(
-        self, db: Session, company_name: str,
+        self,
+        db: Session,
+        company_name: str,
         system_user_id: int,
         binding=None,
     ) -> Optional[Project]:
@@ -785,7 +812,10 @@ class FeishuTaskHandler:
         if project:
             try:
                 distilled = await self._distill_keywords(
-                    db, project, company_name, system_user_id,
+                    db,
+                    project,
+                    company_name,
+                    system_user_id,
                 )
                 if distilled:
                     return distilled[:quantity]
@@ -793,11 +823,7 @@ class FeishuTaskHandler:
                 log.warning(f"关键词蒸馏失败，回退到数据库查询: {e}")
 
             # 3. 从项目已有关键词中加权随机选择
-            active_kws = (
-                db.query(Keyword)
-                .filter(Keyword.project_id == project.id, Keyword.status == "active")
-                .all()
-            )
+            active_kws = db.query(Keyword).filter(Keyword.project_id == project.id, Keyword.status == "active").all()
             if active_kws:
                 return self._weighted_random_select(db, active_kws, quantity, project.id)
 
@@ -820,6 +846,7 @@ class FeishuTaskHandler:
 
         try:
             from backend.services.keyword_service import KeywordService
+
             svc = KeywordService(db)
             result = await svc.distill(
                 core_kw=core_kw,
@@ -835,10 +862,14 @@ class FeishuTaskHandler:
                     if not kw_text:
                         continue
                     # 查找或创建关键词
-                    kw = db.query(Keyword).filter(
-                        Keyword.keyword == kw_text,
-                        Keyword.project_id == project.id,
-                    ).first()
+                    kw = (
+                        db.query(Keyword)
+                        .filter(
+                            Keyword.keyword == kw_text,
+                            Keyword.project_id == project.id,
+                        )
+                        .first()
+                    )
                     if not kw:
                         kw = Keyword(
                             project_id=project.id,
@@ -968,9 +999,7 @@ class FeishuTaskHandler:
                     account_ids.append(acc.id)
 
         if not account_ids:
-            platform_names = [
-                PLATFORMS.get(p, {}).get("name", p) for p in target_platforms
-            ]
+            platform_names = [PLATFORMS.get(p, {}).get("name", p) for p in target_platforms]
             await self._feishu.send_progress_card(
                 chat_id,
                 title="⚠️ 未找到已授权账号",
@@ -1012,6 +1041,7 @@ class FeishuTaskHandler:
         # 异步执行发布任务（不再传递 db session，让后台任务自己管理）
         from backend.api.auto_publish import execute_auto_publish_task
         from backend.services.background_task_manager import background_task_manager
+
         background_task_manager.submit(
             execute_auto_publish_task(task.id),
             task_name=f"feishu_auto_publish_{task.id}",

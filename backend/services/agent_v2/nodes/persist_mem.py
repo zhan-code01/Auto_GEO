@@ -15,6 +15,7 @@ ConversationMessage 表与 checkpoint 表的关系：
 - 两者不重复：checkpoint 存完整 State（含 messages/tool_results/actions 等），
   ConversationMessage 只存用户可见的文本对话
 """
+
 from __future__ import annotations
 
 from loguru import logger
@@ -68,12 +69,16 @@ async def persist_mem(state: AgentState) -> None:
         # silent=true 时跳过用户消息保存（弹窗内操作不产生对话气泡）
         if user_message and not silent:
             session_store.add_message(
-                session_id, "user", user_message,
+                session_id,
+                "user",
+                user_message,
                 {"async_task_refs": async_task_refs} if async_task_refs else None,
             )
         if reply:
             session_store.add_message(
-                session_id, "assistant", reply,
+                session_id,
+                "assistant",
+                reply,
                 {"actions": actions, "status": status, "async_task_refs": async_task_refs},
             )
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ProjectAdapter - 项目管理适配器。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,8 +19,9 @@ class ProjectAdapter:
     def __init__(self, db: Session):
         self.db = db
 
-    def list_projects(self, user, client_id: int | None = None, keyword: str | None = None,
-                      page: int = 1, limit: int = 20) -> dict[str, Any]:
+    def list_projects(
+        self, user, client_id: int | None = None, keyword: str | None = None, page: int = 1, limit: int = 20
+    ) -> dict[str, Any]:
         query = scoped_query(self.db, Project, user)
         if client_id:
             query = query.filter(Project.client_id == client_id)
@@ -84,9 +86,7 @@ class ProjectAdapter:
 
     def find_by_name(self, user, name: str) -> list[dict[str, Any]]:
         """按项目名模糊查找（多候选时用）。"""
-        rows = scoped_query(self.db, Project, user).filter(
-            Project.name.ilike(f"%{name}%")
-        ).limit(10).all()
+        rows = scoped_query(self.db, Project, user).filter(Project.name.ilike(f"%{name}%")).limit(10).all()
         return [self._to_dict(r) for r in rows]
 
     @staticmethod

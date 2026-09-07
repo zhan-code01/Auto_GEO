@@ -231,12 +231,16 @@ class JuejinProPublisher(BasePublisher):
             logger.warning("[掘金] 正文与图片均为空，跳过")
             return True
 
-        blocks = self.build_content_blocks_by_markers(raw_content or content, image_paths, max_chars=self.MAX_CONTENT_LENGTH)
+        blocks = self.build_content_blocks_by_markers(
+            raw_content or content, image_paths, max_chars=self.MAX_CONTENT_LENGTH
+        )
         if blocks is not None:
             inserted_images = await self._fill_body_from_blocks(page, editor, blocks)
             logger.info(
                 "[掘金] 正文按原文位置写入完成：{} 个文本/图片块，{}/{} 张图片已插入",
-                len(blocks), inserted_images, len(image_paths),
+                len(blocks),
+                inserted_images,
+                len(image_paths),
             )
 
             # 文字自检：读不到只告警不判失败（CodeMirror 虚拟滚动/偶发读空），成败以 verify + 发布结果为准。
@@ -246,15 +250,17 @@ class JuejinProPublisher(BasePublisher):
                 norm_needle = re.sub(r"\s+", "", needle[:20])
                 if norm_needle and norm_needle not in norm_text:
                     logger.warning(
-                        "[掘金] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，"
-                        "继续走 verify 阶段复核", needle[:20],
+                        "[掘金] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，继续走 verify 阶段复核",
+                        needle[:20],
                     )
             return True
 
         plan = self._distribute_image_positions(len(paragraphs), len(image_paths))
         logger.info(
             "[掘金] 图文混排：{} 段文字 / {} 张图 → 段后插图计划 {}",
-            len(paragraphs), len(image_paths), plan,
+            len(paragraphs),
+            len(image_paths),
+            plan,
         )
 
         img_cursor = 0
@@ -297,7 +303,9 @@ class JuejinProPublisher(BasePublisher):
 
         logger.info(
             "[掘金] 正文写入完成：{} 段文字，{}/{} 张图片已插入",
-            len(paragraphs), inserted_images, len(image_paths),
+            len(paragraphs),
+            inserted_images,
+            len(image_paths),
         )
 
         # 文字自检：读不到只告警不判失败（CodeMirror 虚拟滚动/偶发读空），成败以 verify + 发布结果为准。
@@ -307,8 +315,8 @@ class JuejinProPublisher(BasePublisher):
             norm_needle = re.sub(r"\s+", "", needle[:20])
             if norm_needle and norm_needle not in norm_text:
                 logger.warning(
-                    "[掘金] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，"
-                    "继续走 verify 阶段复核", needle[:20],
+                    "[掘金] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，继续走 verify 阶段复核",
+                    needle[:20],
                 )
         return True
 
@@ -627,7 +635,9 @@ class JuejinProPublisher(BasePublisher):
 
         candidates = [
             page.get_by_role("button", name=re.compile("确定并发布|确认并发布|确定发布")).last,
-            page.locator('button:has-text("确定并发布"), button:has-text("确认并发布"), button:has-text("确定发布")').last,
+            page.locator(
+                'button:has-text("确定并发布"), button:has-text("确认并发布"), button:has-text("确定发布")'
+            ).last,
             page.locator('div[role="button"]:has-text("确定并发布"), div[role="button"]:has-text("确认并发布")').last,
             page.locator('[role="button"]:has-text("确定并发布"), [role="button"]:has-text("确认并发布")').last,
             page.get_by_text("确定并发布", exact=True).last,
@@ -670,8 +680,9 @@ class JuejinProPublisher(BasePublisher):
 
         # 首选：定位封面区隐藏 file input 直传（JS 标记离「文章封面/上传封面」最近的 input[type=file]）
         try:
-            marked = bool(await page.evaluate(
-                """() => {
+            marked = bool(
+                await page.evaluate(
+                    """() => {
                     document.querySelectorAll('[data-autogeo-juejin-cover]')
                         .forEach(el => el.removeAttribute('data-autogeo-juejin-cover'));
                     let ly = null;
@@ -697,7 +708,8 @@ class JuejinProPublisher(BasePublisher):
                     best.setAttribute('data-autogeo-juejin-cover', '1');
                     return true;
                 }"""
-            ))
+                )
+            )
             if marked:
                 await page.locator('[data-autogeo-juejin-cover="1"]').set_input_files(image_path)
                 await asyncio.sleep(1.5)
@@ -859,8 +871,9 @@ class JuejinProPublisher(BasePublisher):
                 return candidate
 
         try:
-            marked = bool(await page.evaluate(
-                """() => {
+            marked = bool(
+                await page.evaluate(
+                    """() => {
                     document.querySelectorAll('[data-autogeo-juejin-taginput]')
                         .forEach(el => el.removeAttribute('data-autogeo-juejin-taginput'));
                     const anchorRe = /(请搜索添加标签|还能添加\\s*\\d+\\s*个?标签|^\\*?\\s*添加标签)/;
@@ -890,7 +903,8 @@ class JuejinProPublisher(BasePublisher):
                     }
                     return false;
                 }"""
-            ))
+                )
+            )
         except Exception:
             marked = False
         return page.locator('[data-autogeo-juejin-taginput="1"]').first if marked else None
@@ -898,8 +912,9 @@ class JuejinProPublisher(BasePublisher):
     async def _tag_chip_exists(self, page: Page, tag: str) -> bool:
         """校验「添加标签」行附近是否已出现文本等于该标签的胶囊（排除别行的分类 chip）。"""
         try:
-            return bool(await page.evaluate(
-                """(tag) => {
+            return bool(
+                await page.evaluate(
+                    """(tag) => {
                     const norm = s => (s || '').replace(/\\s+/g, '').replace(/[×✕╳✖xX]/g, '');
                     const t = norm(tag);
                     if (!t) return false;
@@ -924,8 +939,9 @@ class JuejinProPublisher(BasePublisher):
                     }
                     return false;
                 }""",
-                tag,
-            ))
+                    tag,
+                )
+            )
         except Exception:
             return False
 
@@ -949,8 +965,18 @@ class JuejinProPublisher(BasePublisher):
                     logger.success("[掘金] 检测到成功提示: {}", text)
                     return {"success": True, "platform_url": current_url, "error_msg": None}
 
-            for text in ("发布失败", "标题不能为空", "请选择分类", "请添加标签", "请选择标签",
-                         "至少添加一个标签", "标签不能为空", "内容不能为空", "操作频繁", "内容违规"):
+            for text in (
+                "发布失败",
+                "标题不能为空",
+                "请选择分类",
+                "请添加标签",
+                "请选择标签",
+                "至少添加一个标签",
+                "标签不能为空",
+                "内容不能为空",
+                "操作频繁",
+                "内容违规",
+            ):
                 node = page.get_by_text(text, exact=False).first
                 if await self._is_visible(node, timeout=300):
                     message = (await node.inner_text()).strip() or text
@@ -967,9 +993,7 @@ class JuejinProPublisher(BasePublisher):
         try:
             expected_title = title.strip()
             editor_text = await self._editor_text(page)
-            first_para = next(
-                (p.strip() for p in self._split_paragraphs(content) if p.strip()), ""
-            )
+            first_para = next((p.strip() for p in self._split_paragraphs(content) if p.strip()), "")
             needle = re.sub(r"\s+", "", first_para)[:40]
             title_ok = bool(expected_title) and await page.evaluate(
                 """(expectedTitle) => {
@@ -998,7 +1022,8 @@ class JuejinProPublisher(BasePublisher):
                 return True
             logger.warning(
                 "[掘金] verify 未读到标题也未读到首段（title_ok={} content_ok={}），判失败",
-                title_ok, content_ok,
+                title_ok,
+                content_ok,
             )
             return False
         except Exception:

@@ -234,21 +234,25 @@ class FeishuClient:
         elements = []
 
         if detail:
-            elements.append({
-                "tag": "markdown",
-                "content": detail,
-            })
+            elements.append(
+                {
+                    "tag": "markdown",
+                    "content": detail,
+                }
+            )
 
         if progress:
-            elements.append({
-                "tag": "note",
-                "elements": [
-                    {
-                        "tag": "plain_text",
-                        "content": f"📊 进度: {progress}",
-                    }
-                ],
-            })
+            elements.append(
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": f"📊 进度: {progress}",
+                        }
+                    ],
+                }
+            )
 
         card = {
             "header": {
@@ -299,10 +303,12 @@ class FeishuClient:
                     lines.append(f"{status_icon} [{name}]({link})")
                 else:
                     lines.append(f"{status_icon} {name}")
-            elements.append({
-                "tag": "markdown",
-                "content": "\n".join(lines),
-            })
+            elements.append(
+                {
+                    "tag": "markdown",
+                    "content": "\n".join(lines),
+                }
+            )
 
         card = {
             "header": {
@@ -367,27 +373,33 @@ class FeishuClient:
         if platform_url:
             info_lines.append(f"\n🔗 [查看文章]({platform_url})")
 
-        elements.append({
-            "tag": "markdown",
-            "content": "\n".join(info_lines),
-        })
+        elements.append(
+            {
+                "tag": "markdown",
+                "content": "\n".join(info_lines),
+            }
+        )
 
         if not success and error_msg:
-            elements.append({
-                "tag": "markdown",
-                "content": f"**错误原因**: {error_msg[:200]}",
-            })
+            elements.append(
+                {
+                    "tag": "markdown",
+                    "content": f"**错误原因**: {error_msg[:200]}",
+                }
+            )
 
         if not success:
-            elements.append({
-                "tag": "note",
-                "elements": [
-                    {
-                        "tag": "plain_text",
-                        "content": "💡 提示：请检查账号授权状态，或在管理后台重新授权后再试。",
-                    }
-                ],
-            })
+            elements.append(
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "💡 提示：请检查账号授权状态，或在管理后台重新授权后再试。",
+                        }
+                    ],
+                }
+            )
 
         card = {
             "header": {

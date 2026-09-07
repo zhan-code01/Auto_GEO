@@ -18,9 +18,7 @@ class CompetitorResearcher:
         planned: PlannedQuestion,
         knowledge: KnowledgeResult,
     ) -> CompetitorResearchResult:
-        prompt = build_competitor_research_prompt(
-            context, planned, knowledge.status, knowledge.context_text
-        )
+        prompt = build_competitor_research_prompt(context, planned, knowledge.status, knowledge.context_text)
         last_error: BaseException | None = None
         # 竞品研究偶发返回空数组（模型过度谨慎）或 JSON 解析失败（模型抖动），
         # 重试一次以提高竞品命中率；重试后仍为空则如实返回空结果，由上游简报决定降级写法。

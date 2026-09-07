@@ -7,6 +7,7 @@ Revises: 0034_langgraph_checkpoint
 这样即使账号被删除或禁用，任务卡片上仍能正确显示平台标签。
 同时为历史数据回填 platforms 值（基于 account_ids 关联的账号平台）。
 """
+
 import json
 
 from alembic import op

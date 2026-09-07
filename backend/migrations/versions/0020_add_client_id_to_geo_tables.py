@@ -31,7 +31,10 @@ def upgrade():
         sa.Column("question_distribution", sa.JSON(), nullable=True),
     )
     op.create_index(
-        "ix_geo_prompt_sets_client_id", "geo_prompt_sets", ["client_id"], if_not_exists=True,
+        "ix_geo_prompt_sets_client_id",
+        "geo_prompt_sets",
+        ["client_id"],
+        if_not_exists=True,
     )
     # Backfill client_id from project.client_id for existing rows
     op.execute("""
@@ -55,7 +58,10 @@ def upgrade():
         sa.Column("related_project_name", sa.String(length=200), nullable=True),
     )
     op.create_index(
-        "ix_geo_prompts_client_id", "geo_prompts", ["client_id"], if_not_exists=True,
+        "ix_geo_prompts_client_id",
+        "geo_prompts",
+        ["client_id"],
+        if_not_exists=True,
     )
     # Backfill client_id from geo_prompt_sets.client_id
     op.execute("""
@@ -75,7 +81,10 @@ def upgrade():
         sa.Column("client_id", sa.Integer(), sa.ForeignKey("clients.id", ondelete="CASCADE"), nullable=True),
     )
     op.create_index(
-        "ix_geo_evaluation_runs_client_id", "geo_evaluation_runs", ["client_id"], if_not_exists=True,
+        "ix_geo_evaluation_runs_client_id",
+        "geo_evaluation_runs",
+        ["client_id"],
+        if_not_exists=True,
     )
     # Backfill from project
     op.execute("""
@@ -95,7 +104,10 @@ def upgrade():
         sa.Column("client_id", sa.Integer(), sa.ForeignKey("clients.id", ondelete="CASCADE"), nullable=True),
     )
     op.create_index(
-        "ix_geo_evaluation_records_client_id", "geo_evaluation_records", ["client_id"], if_not_exists=True,
+        "ix_geo_evaluation_records_client_id",
+        "geo_evaluation_records",
+        ["client_id"],
+        if_not_exists=True,
     )
     # Backfill from run
     op.execute("""

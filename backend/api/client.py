@@ -13,10 +13,16 @@ from loguru import logger
 
 from backend.database import get_db
 from backend.database.models import (
-    Client, Project, User,
-    Keyword, GeoArticle, QuestionVariant, IndexCheckRecord,
+    Client,
+    Project,
+    User,
+    Keyword,
+    GeoArticle,
+    QuestionVariant,
+    IndexCheckRecord,
     KeywordUsageRecord,
-    KnowledgeCategory, Knowledge,
+    KnowledgeCategory,
+    Knowledge,
 )
 from backend.schemas import ApiResponse
 from backend.api.user import get_current_user_from_token
@@ -66,10 +72,7 @@ async def get_clients(
             query = query.filter(Client.industry == industry)
 
         if keyword:
-            query = query.filter(or_(
-                Client.name.contains(keyword),
-                Client.company_name.contains(keyword)
-            ))
+            query = query.filter(or_(Client.name.contains(keyword), Client.company_name.contains(keyword)))
 
         # 统计总数
         total = query.count()
@@ -333,24 +336,36 @@ def _cascade_delete_client(client_id: int, user_id: int, db: Session) -> dict:
         if keywords:
             article_count = db.query(GeoArticle).filter(GeoArticle.keyword_id.in_([k.id for k in keywords])).count()
             stats["articles"] += article_count
-            db.query(GeoArticle).filter(GeoArticle.keyword_id.in_([k.id for k in keywords])).delete(synchronize_session=False)
+            db.query(GeoArticle).filter(GeoArticle.keyword_id.in_([k.id for k in keywords])).delete(
+                synchronize_session=False
+            )
 
         # 2. 问题变体（显式删除，确保跨数据库兼容性）
         if keywords:
-            qv_count = db.query(QuestionVariant).filter(QuestionVariant.keyword_id.in_([k.id for k in keywords])).count()
+            qv_count = (
+                db.query(QuestionVariant).filter(QuestionVariant.keyword_id.in_([k.id for k in keywords])).count()
+            )
             stats["question_variants"] += qv_count
-            db.query(QuestionVariant).filter(QuestionVariant.keyword_id.in_([k.id for k in keywords])).delete(synchronize_session=False)
+            db.query(QuestionVariant).filter(QuestionVariant.keyword_id.in_([k.id for k in keywords])).delete(
+                synchronize_session=False
+            )
 
         # 3. 收录检测记录（显式删除，确保跨数据库兼容性）
         if keywords:
-            ic_count = db.query(IndexCheckRecord).filter(IndexCheckRecord.keyword_id.in_([k.id for k in keywords])).count()
+            ic_count = (
+                db.query(IndexCheckRecord).filter(IndexCheckRecord.keyword_id.in_([k.id for k in keywords])).count()
+            )
             stats["index_records"] += ic_count
-            db.query(IndexCheckRecord).filter(IndexCheckRecord.keyword_id.in_([k.id for k in keywords])).delete(synchronize_session=False)
+            db.query(IndexCheckRecord).filter(IndexCheckRecord.keyword_id.in_([k.id for k in keywords])).delete(
+                synchronize_session=False
+            )
 
         # 4. 关键词使用记录（FK 是 SET NULL，显式删除防止残留）
         kur_count = db.query(KeywordUsageRecord).filter(KeywordUsageRecord.project_id == project.id).count()
         stats["keyword_usage_records"] += kur_count
-        db.query(KeywordUsageRecord).filter(KeywordUsageRecord.project_id == project.id).delete(synchronize_session=False)
+        db.query(KeywordUsageRecord).filter(KeywordUsageRecord.project_id == project.id).delete(
+            synchronize_session=False
+        )
 
     # 5. 删除关键词（cascade 清理 question_variants / index_check_records）
     if keyword_ids:
@@ -425,10 +440,14 @@ async def delete_client(
     # 执行完整级联删除
     stats = _cascade_delete_client(client_id, client.user_id, db)
     total_related = (
-        stats["projects"] + stats["keywords"] + stats["articles"]
-        + stats["question_variants"] + stats["index_records"]
+        stats["projects"]
+        + stats["keywords"]
+        + stats["articles"]
+        + stats["question_variants"]
+        + stats["index_records"]
         + stats["keyword_usage_records"]
-        + stats["knowledge_categories"] + stats["knowledge_items"]
+        + stats["knowledge_categories"]
+        + stats["knowledge_items"]
     )
 
     if total_related > 0:

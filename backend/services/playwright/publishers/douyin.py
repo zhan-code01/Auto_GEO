@@ -177,11 +177,11 @@ class DouyinPublisher(BasePublisher):
 
         for selector in [
             'input[type="file"][accept*="image"]',
-            'text=发布图文',
-            'text=上传图片',
-            'text=点击上传',
-            'text=拖拽上传',
-            'text=作品描述',
+            "text=发布图文",
+            "text=上传图片",
+            "text=点击上传",
+            "text=拖拽上传",
+            "text=作品描述",
         ]:
             try:
                 locator = page.locator(selector).first
@@ -213,7 +213,7 @@ class DouyinPublisher(BasePublisher):
             'button:has-text("高清发布")',
             'div:has-text("高清发布")',
             'span:has-text("高清发布")',
-            'text=高清发布',
+            "text=高清发布",
         ]:
             try:
                 locator = page.locator(selector).first
@@ -402,9 +402,9 @@ class DouyinPublisher(BasePublisher):
                 continue
 
         chooser_targets = [
-            'text=点击上传',
-            'text=直接将图片文件拖入此区域',
-            'text=上传图片',
+            "text=点击上传",
+            "text=直接将图片文件拖入此区域",
+            "text=上传图片",
             'div:has-text("点击上传")',
             'div:has-text("上传图片")',
             'div:has-text("直接将图片文件拖入此区域")',
@@ -546,9 +546,9 @@ class DouyinPublisher(BasePublisher):
         """尝试设置AI声明"""
         try:
             ai_selectors = [
-                'text=AI声明',
-                'text=AI创作',
-                'text=AI生成',
+                "text=AI声明",
+                "text=AI创作",
+                "text=AI生成",
                 '[class*="ai"]',
             ]
             for selector in ai_selectors:
@@ -616,7 +616,7 @@ class DouyinPublisher(BasePublisher):
             'button:has-text("确定")',
             'button:has-text("确认发布")',
             'button:has-text("仍要发布")',
-            '.confirm-btn',
+            ".confirm-btn",
         ]
         for selector in confirm_selectors:
             try:
@@ -641,7 +641,9 @@ class DouyinPublisher(BasePublisher):
             manual_result = await self.ensure_publish_can_continue(page, "wait_result")
             if manual_result:
                 debug_path = await self._save_debug_snapshot(page, "manual_wait_result")
-                manual_result["error_msg"] = f"{manual_result.get('error_msg') or '抖音发布触发人工验证'} debug={debug_path}"
+                manual_result["error_msg"] = (
+                    f"{manual_result.get('error_msg') or '抖音发布触发人工验证'} debug={debug_path}"
+                )
                 return manual_result
 
             for kw in success_keywords:

@@ -52,9 +52,11 @@ class AuthManager:
                     if platform == "baijiahao" and "baijiahao.baidu.com" in current_url and "login" not in current_url:
                         login_success = True
                         break
-                    if platform == "bilibili" and (
-                        "member.bilibili.com" in current_url or "www.bilibili.com" in current_url
-                    ) and "passport" not in current_url:
+                    if (
+                        platform == "bilibili"
+                        and ("member.bilibili.com" in current_url or "www.bilibili.com" in current_url)
+                        and "passport" not in current_url
+                    ):
                         login_success = True
                         break
 

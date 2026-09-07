@@ -4,7 +4,20 @@
 包含基础发布、GEO、监控、知识库及AI招聘所有表结构
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Boolean, func, ForeignKey, JSON, Float, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    DateTime,
+    Date,
+    Boolean,
+    func,
+    ForeignKey,
+    JSON,
+    Float,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship, backref
 from backend.database import Base
 from datetime import datetime
@@ -31,13 +44,17 @@ class Account(Base):
     remark = Column(Text, nullable=True)
 
     # 用户隔离（迁移 0002 添加，此处补齐 ORM 声明）
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属系统用户ID")
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属系统用户ID"
+    )
 
     # 软删除
     deleted_at = Column(DateTime, nullable=True, comment="软删除时间")
 
     # 分组与标签（Phase 2）
-    group_id = Column(Integer, ForeignKey("account_groups.id", ondelete="SET NULL"), nullable=True, index=True, comment="账号分组ID")
+    group_id = Column(
+        Integer, ForeignKey("account_groups.id", ondelete="SET NULL"), nullable=True, index=True, comment="账号分组ID"
+    )
     tags = Column(JSON, nullable=True, comment="标签列表，如 ['主账号', '高权重']")
 
     # 健康度（Phase 3）
@@ -51,12 +68,14 @@ class Account(Base):
 
     # 本地客户端发布（Phase 0：本地客户端架构）
     auth_mode = Column(
-        String(20), default="cloud_browser",
+        String(20),
+        default="cloud_browser",
         comment="授权模式：cloud_browser=服务器浏览器 local_client=本地客户端 api=官方API",
     )
     device_id = Column(String(64), nullable=True, index=True, comment="本地客户端设备ID（local_client 模式）")
     session_location = Column(
-        String(20), default="server",
+        String(20),
+        default="server",
         comment="会话位置：server=服务器保存 local_only=仅本地",
     )
 
@@ -125,7 +144,9 @@ class Client(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
 
     # 用户隔离（数据归属）
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID")
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID"
+    )
 
     name = Column(String(200), nullable=False, comment="客户名称")
     company_name = Column(String(200), nullable=True, comment="公司名称")
@@ -225,7 +246,9 @@ class Project(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
 
     # 用户隔离（迁移 0002 添加，此处补齐 ORM 声明）
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID")
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID"
+    )
 
     # 关联客户
     client_id = Column(
@@ -371,7 +394,9 @@ class GeoArticle(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
 
     # 用户隔离（迁移 0002 添加，此处补齐 ORM 声明）
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID")
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID"
+    )
 
     keyword_id = Column(
         Integer, ForeignKey("keywords.id", ondelete="CASCADE"), nullable=False, index=True, comment="关键词ID"
@@ -413,7 +438,9 @@ class GeoArticle(Base):
         default="manual",
         comment="文章来源：manual=手动 agent_excel=Agent Excel 批量生成 smart_article=智能文章生成",
     )
-    generation_batch_id = Column(Integer, nullable=True, index=True, comment="批量生成批次ID（ArticleGenerationBatch.id）")
+    generation_batch_id = Column(
+        Integer, nullable=True, index=True, comment="批量生成批次ID（ArticleGenerationBatch.id）"
+    )
 
     # 强壮性与重试 (Added back from v1)
     retry_count = Column(Integer, default=0)
@@ -460,7 +487,9 @@ class KnowledgeCategory(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="本地主键ID")
 
     # 用户隔离（数据归属）：每个用户只看到自己创建的知识库分类
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID")
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID"
+    )
 
     # 关联客户（支持级联删除）
     client_id = Column(
@@ -588,22 +617,10 @@ class User(Base):
     password_hash = Column(String(255), nullable=False, comment="密码哈希（bcrypt）")
 
     # 角色管理
-    role = Column(
-        String(20),
-        default="user",
-        nullable=False,
-        index=True,
-        comment="角色：admin=管理员 user=普通用户"
-    )
+    role = Column(String(20), default="user", nullable=False, index=True, comment="角色：admin=管理员 user=普通用户")
 
     # 状态管理
-    is_active = Column(
-        Boolean,
-        default=True,
-        nullable=False,
-        index=True,
-        comment="是否激活：True=激活 False=禁用"
-    )
+    is_active = Column(Boolean, default=True, nullable=False, index=True, comment="是否激活：True=激活 False=禁用")
     status = Column(Integer, default=1, comment="状态：1=活跃 0=禁用（保留字段，优先使用is_active）")
 
     # 登录追踪
@@ -632,6 +649,7 @@ class User(Base):
         if self.locked_until is None:
             return False
         from datetime import datetime
+
         return datetime.now() < self.locked_until
 
 
@@ -650,13 +668,7 @@ class SystemConfig(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
 
     # 配置键值
-    config_key = Column(
-        String(100),
-        nullable=False,
-        unique=True,
-        index=True,
-        comment="配置键（唯一标识符）"
-    )
+    config_key = Column(String(100), nullable=False, unique=True, index=True, comment="配置键（唯一标识符）")
     config_value = Column(Text, nullable=True, comment="配置值（JSON字符串或纯文本）")
 
     # 配置分类
@@ -665,7 +677,7 @@ class SystemConfig(Base):
         default="general",
         nullable=False,
         index=True,
-        comment="配置分类：general=通用 auth=认证 security=安全 email=邮件 storage=存储"
+        comment="配置分类：general=通用 auth=认证 security=安全 email=邮件 storage=存储",
     )
 
     # 配置描述
@@ -676,33 +688,19 @@ class SystemConfig(Base):
         String(20),
         default="string",
         nullable=False,
-        comment="值类型：string=字符串 int=整数 float=浮点数 bool=布尔 json=JSON对象"
+        comment="值类型：string=字符串 int=整数 float=浮点数 bool=布尔 json=JSON对象",
     )
 
     # 是否可编辑
-    is_editable = Column(
-        Boolean,
-        default=True,
-        nullable=False,
-        comment="是否可通过界面编辑：True=可编辑 False=只读"
-    )
+    is_editable = Column(Boolean, default=True, nullable=False, comment="是否可通过界面编辑：True=可编辑 False=只读")
 
     # 是否敏感配置（如API密钥）
     is_sensitive = Column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="是否为敏感配置（如密码、密钥）：True=敏感 False=普通"
+        Boolean, default=False, nullable=False, comment="是否为敏感配置（如密码、密钥）：True=敏感 False=普通"
     )
 
     # 状态
-    is_active = Column(
-        Boolean,
-        default=True,
-        nullable=False,
-        index=True,
-        comment="是否启用：True=启用 False=禁用"
-    )
+    is_active = Column(Boolean, default=True, nullable=False, index=True, comment="是否启用：True=启用 False=禁用")
 
     # 排序权重
     sort_order = Column(Integer, default=0, comment="排序权重（越小越靠前）")
@@ -825,7 +823,9 @@ class SiteProject(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # 用户隔离（迁移 0002 添加，此处补齐 ORM 声明）
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID")
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="所属用户ID"
+    )
     name = Column(String, comment="项目名称，如：极速物流官网")
     site_id = Column(String, unique=True, index=True, comment="唯一标识，用于生成路径")
 
@@ -835,7 +835,13 @@ class SiteProject(Base):
     # AI 生成模式专用
     source = Column(String(20), default="manual", comment="生成方式：manual=手填 ai=AI生成")
     structured_data = Column(JSON, nullable=True, comment="AI 提取的结构化企业数据（换模板时复用，不重调 AI）")
-    client_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True, comment="关联客户ID（AI生成时来源）")
+    client_id = Column(
+        Integer,
+        ForeignKey("clients.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="关联客户ID（AI生成时来源）",
+    )
     template_id = Column(String(50), default="tech", comment="使用的模板ID")
 
     # 状态管理
@@ -867,12 +873,17 @@ class ClientDevice(Base):
 
     # 归属用户
     user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False, index=True, comment="所属用户ID",
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="所属用户ID",
     )
 
     # 设备标识
-    device_id = Column(String(64), nullable=False, index=True, comment="客户端生成的设备ID（同一安装可被多账号分别登记）")
+    device_id = Column(
+        String(64), nullable=False, index=True, comment="客户端生成的设备ID（同一安装可被多账号分别登记）"
+    )
     device_name = Column(String(200), nullable=True, comment="用户可识别的设备名称（如 hostname）")
     os = Column(String(20), nullable=True, comment="操作系统：windows/mac/linux")
     app_version = Column(String(30), nullable=True, comment="客户端版本号")
@@ -961,7 +972,8 @@ class AutoPublishTask(Base):
 
     # 本地客户端发布（Phase 0：本地客户端架构）
     execution_mode = Column(
-        String(20), default="cloud_browser",
+        String(20),
+        default="cloud_browser",
         comment="执行模式：local_client=本地客户端 cloud_browser=服务器浏览器 api=官方API manual=仅草稿",
     )
     assigned_device_id = Column(String(64), nullable=True, index=True, comment="指定执行设备ID")
@@ -1085,7 +1097,8 @@ class PublishApprovalLog(Base):
 
     # 审批检查点
     checkpoint = Column(
-        String(30), nullable=False,
+        String(30),
+        nullable=False,
         comment="审批检查点: before_write / before_fill_body / before_submit",
     )
 
@@ -1105,7 +1118,9 @@ class PublishApprovalLog(Base):
     created_at = Column(DateTime, server_default=func.now(), index=True)
 
     def __repr__(self):
-        return f"<PublishApprovalLog user={self.user_id} task={self.task_id} {self.checkpoint} approved={self.approved}>"
+        return (
+            f"<PublishApprovalLog user={self.user_id} task={self.task_id} {self.checkpoint} approved={self.approved}>"
+        )
 
 
 class UserPublishQuota(Base):
@@ -1123,8 +1138,11 @@ class UserPublishQuota(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False, index=True, unique=True,
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        unique=True,
         comment="所属系统用户ID",
     )
 
@@ -2010,7 +2028,9 @@ class SmartArticleQuestion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
-    generation_batch_id = Column(Integer, ForeignKey("smart_article_batches.id", ondelete="SET NULL"), nullable=True, index=True)
+    generation_batch_id = Column(
+        Integer, ForeignKey("smart_article_batches.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     question = Column(Text, nullable=False)
     normalized_question = Column(String(255), nullable=False)
     source = Column(String(20), nullable=False, default="ai", comment="ai/manual")
@@ -2042,7 +2062,9 @@ class SmartArticleBatch(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
-    batch_type = Column(String(30), nullable=False, default="article_generation", comment="question_generation/article_generation")
+    batch_type = Column(
+        String(30), nullable=False, default="article_generation", comment="question_generation/article_generation"
+    )
     mode = Column(String(20), nullable=False, default="auto", comment="auto/manual")
     requested_count = Column(Integer, nullable=False, default=1)
     planned_count = Column(Integer, nullable=False, default=0)
@@ -2060,9 +2082,7 @@ class SmartArticleBatch(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
-    jobs = relationship(
-        "SmartArticleJob", back_populates="batch", cascade="all, delete-orphan", passive_deletes=True
-    )
+    jobs = relationship("SmartArticleJob", back_populates="batch", cascade="all, delete-orphan", passive_deletes=True)
 
     def __repr__(self):
         return f"<SmartArticleBatch id={self.id} status={self.status} ok={self.success_count}>"
@@ -2075,13 +2095,14 @@ class SmartArticleJob(Base):
     __table_args__ = TABLE_ARGS
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    batch_id = Column(
-        Integer, ForeignKey("smart_article_batches.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    batch_id = Column(Integer, ForeignKey("smart_article_batches.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     question_id = Column(
-        Integer, ForeignKey("smart_article_questions.id", ondelete="SET NULL"), nullable=True, index=True,
+        Integer,
+        ForeignKey("smart_article_questions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     question = Column(Text, nullable=False)
     intent_type = Column(String(30), nullable=False, default="manual")
@@ -2131,12 +2152,18 @@ class GeoPromptSet(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
     # 测评粒度改为公司级别
     client_id = Column(
-        Integer, ForeignKey("clients.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="所属公司ID",
+        Integer,
+        ForeignKey("clients.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="所属公司ID",
     )
     project_id = Column(
-        Integer, ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="关联项目ID（用于内容追踪，可为空）",
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="关联项目ID（用于内容追踪，可为空）",
     )
     name = Column(String(200), nullable=True, comment="问题集名称")
     question_count = Column(Integer, default=100, comment="问题数量")
@@ -2144,13 +2171,16 @@ class GeoPromptSet(Base):
     generation_model = Column(String(100), nullable=True, comment="生成使用的模型")
     generation_prompt = Column(Text, nullable=True, comment="生成提示词")
     status = Column(
-        String(20), default="active",
+        String(20),
+        default="active",
         comment="状态：active=当前使用 archived=已归档 frozen=已冻结",
     )
     version = Column(Integer, default=1, comment="版本号")
     created_by = Column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True, comment="创建者用户ID",
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="创建者用户ID",
     )
     frozen_at = Column(DateTime, nullable=True, comment="冻结时间")
     created_at = Column(DateTime, default=func.now(), comment="创建时间")
@@ -2183,26 +2213,40 @@ class GeoPrompt(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
     prompt_set_id = Column(
-        Integer, ForeignKey("geo_prompt_sets.id", ondelete="CASCADE"),
-        nullable=False, index=True, comment="所属问题集ID",
+        Integer,
+        ForeignKey("geo_prompt_sets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="所属问题集ID",
     )
     client_id = Column(
-        Integer, ForeignKey("clients.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="所属公司ID",
+        Integer,
+        ForeignKey("clients.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="所属公司ID",
     )
     project_id = Column(
-        Integer, ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="关联项目ID（可为空）",
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="关联项目ID（可为空）",
     )
     smart_article_question_id = Column(
-        Integer, ForeignKey("smart_article_questions.id", ondelete="SET NULL"),
-        nullable=True, index=True, comment="来源智能文章问题ID",
+        Integer,
+        ForeignKey("smart_article_questions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="来源智能文章问题ID",
     )
     # 业务维度：问题中涉及的项目名称（如涉及多个项目则用逗号分隔）
     related_project_name = Column(String(500), nullable=True, comment="问题涉及的项目名称")
     question = Column(Text, nullable=False, comment="测评问题")
     question_type = Column(
-        String(30), nullable=False, default="recommendation",
+        String(30),
+        nullable=False,
+        default="recommendation",
         comment="问题类型：recommendation/scenario/comparison/business_understanding/reputation/brand_awareness",
     )
     intent_tags = Column(JSON, nullable=True, comment="意图标签")
@@ -2236,30 +2280,44 @@ class GeoEvaluationRun(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
     # 公司级别粒度
     client_id = Column(
-        Integer, ForeignKey("clients.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="所属公司ID",
+        Integer,
+        ForeignKey("clients.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="所属公司ID",
     )
     project_id = Column(
-        Integer, ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="关联项目ID（可为空，用于生成部分业务问题）",
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="关联项目ID（可为空，用于生成部分业务问题）",
     )
     prompt_set_id = Column(
-        Integer, ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"),
-        nullable=True, index=True, comment="使用的问题集ID",
+        Integer,
+        ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="使用的问题集ID",
     )
     account_id = Column(
-        Integer, ForeignKey("accounts.id", ondelete="SET NULL"),
-        nullable=True, index=True, comment="本次测评固定使用的授权账户",
+        Integer,
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="本次测评固定使用的授权账户",
     )
     phase = Column(
-        String(20), nullable=False,
+        String(20),
+        nullable=False,
         comment="检测阶段：baseline=使用前基线 ongoing=使用后复测",
     )
     platforms = Column(JSON, nullable=True, comment="检测平台列表，如 ['doubao', 'qianwen']")
     prompt_ids = Column(JSON, nullable=True, comment="本次任务固定使用的问题ID列表")
     rounds = Column(Integer, default=1, comment="测试轮数")
     status = Column(
-        String(20), default="pending",
+        String(20),
+        default="pending",
         comment="任务状态：pending/running/completed/failed/cancelled",
     )
     total_planned = Column(Integer, default=0, comment="计划检测总数")
@@ -2270,12 +2328,16 @@ class GeoEvaluationRun(Base):
     current_progress = Column(Integer, default=0, comment="当前进度(已提问数)")
     claimed_device_id = Column(String(64), nullable=True, index=True, comment="领取任务的本地客户端设备ID")
     heartbeat_at = Column(DateTime, nullable=True, comment="本地客户端最近一次任务心跳")
-    interruption_reason = Column(String(50), nullable=True, comment="中断原因：client_offline/consecutive_failures/client_error")
+    interruption_reason = Column(
+        String(50), nullable=True, comment="中断原因：client_offline/consecutive_failures/client_error"
+    )
     started_at = Column(DateTime, nullable=True, comment="开始时间")
     finished_at = Column(DateTime, nullable=True, comment="完成时间")
     created_by = Column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True, comment="创建者用户ID",
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="创建者用户ID",
     )
     error_message = Column(Text, nullable=True, comment="错误信息")
     evaluation_schema_version = Column(String(20), nullable=True, comment="评估规则版本")
@@ -2304,25 +2366,40 @@ class GeoEvaluationRecord(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
     run_id = Column(
-        Integer, ForeignKey("geo_evaluation_runs.id", ondelete="CASCADE"),
-        nullable=False, index=True, comment="所属任务ID",
+        Integer,
+        ForeignKey("geo_evaluation_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="所属任务ID",
     )
     # 公司级别粒度
     client_id = Column(
-        Integer, ForeignKey("clients.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="所属公司ID",
+        Integer,
+        ForeignKey("clients.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="所属公司ID",
     )
     project_id = Column(
-        Integer, ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=True, index=True, comment="关联项目ID（可为空）",
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="关联项目ID（可为空）",
     )
     prompt_set_id = Column(
-        Integer, ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"),
-        nullable=True, index=True, comment="使用的问题集ID",
+        Integer,
+        ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="使用的问题集ID",
     )
     prompt_id = Column(
-        Integer, ForeignKey("geo_prompts.id", ondelete="SET NULL"),
-        nullable=True, index=True, comment="对应问题ID",
+        Integer,
+        ForeignKey("geo_prompts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="对应问题ID",
     )
     # 问题中涉及的项目名称（如问题涉及特定业务线）
     related_project_name = Column(String(500), nullable=True, comment="问题涉及的项目名称")
@@ -2351,7 +2428,8 @@ class GeoEvaluationRecord(Base):
     cited_urls = Column(JSON, nullable=True, comment="引用 URL 列表")
     cited_domains = Column(JSON, nullable=True, comment="引用域名列表")
     sentiment = Column(
-        String(30), nullable=True,
+        String(30),
+        nullable=True,
         comment="情感：strongly_positive/positive/neutral/negative/strongly_negative/not_mentioned",
     )
     sentiment_score = Column(Float, nullable=True, comment="情感分 0-100")

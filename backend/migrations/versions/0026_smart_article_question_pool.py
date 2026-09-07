@@ -79,9 +79,10 @@ def upgrade() -> None:
     # Backfill existing smart jobs and legacy smart_question keywords so the first
     # two-step question generation does not immediately repeat old questions.
     bind = op.get_bind()
-    question_rows = bind.execute(
-        sa.text(
-            """
+    question_rows = (
+        bind.execute(
+            sa.text(
+                """
             SELECT j.id, j.user_id, j.project_id, j.batch_id, j.question, j.status, j.article_id,
                    COALESCE(b.mode, 'auto') AS batch_mode
             FROM smart_article_jobs j
@@ -89,8 +90,11 @@ def upgrade() -> None:
             WHERE j.question IS NOT NULL AND length(trim(j.question)) > 0
             ORDER BY j.id
             """
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     question_ids: dict[tuple[int, str], int] = {}
     for row in question_rows:
         key = (int(row["project_id"]), _normalize_question(row["question"]))
@@ -131,15 +135,19 @@ def upgrade() -> None:
             {"question_id": question_id, "job_id": row["id"]},
         )
 
-    keyword_rows = bind.execute(
-        sa.text(
-            """
+    keyword_rows = (
+        bind.execute(
+            sa.text(
+                """
             SELECT project_id, keyword
             FROM keywords
             WHERE keyword_type = 'smart_question' AND keyword IS NOT NULL
             """
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     for row in keyword_rows:
         key = (int(row["project_id"]), _normalize_question(row["keyword"]))
         if not key[1] or key in question_ids:

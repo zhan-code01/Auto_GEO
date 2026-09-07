@@ -202,8 +202,12 @@ class RAGFlowClient:
             update_payload["chunk_method"] = self.DEFAULT_CHUNK_METHOD
 
         if current_parser_config != desired_parser_config:
-            current_layout = current_parser_config.get("layout_recognize") if isinstance(current_parser_config, dict) else None
-            current_pdf_parser = current_parser_config.get("pdf_parser") if isinstance(current_parser_config, dict) else None
+            current_layout = (
+                current_parser_config.get("layout_recognize") if isinstance(current_parser_config, dict) else None
+            )
+            current_pdf_parser = (
+                current_parser_config.get("pdf_parser") if isinstance(current_parser_config, dict) else None
+            )
             logger.warning(
                 f"Dataset {dataset_id} layout_recognize={current_layout}, pdf_parser={current_pdf_parser}, "
                 "fixing to DeepDOC for PDF parsing"
@@ -219,10 +223,7 @@ class RAGFlowClient:
         return {"code": 0}
 
         if current_method and current_method != "naive":
-            logger.warning(
-                f"数据集 {dataset_id} chunk_method={current_method}, "
-                f"自动修复为 naive 以确保文档解析正常"
-            )
+            logger.warning(f"数据集 {dataset_id} chunk_method={current_method}, 自动修复为 naive 以确保文档解析正常")
             update_result = self.update_dataset(dataset_id, chunk_method="naive")
             if update_result.get("code") == 0:
                 logger.info(f"已更新数据集 chunk_method: {dataset_id} paper/qa/etc -> naive")
@@ -646,7 +647,9 @@ class RAGFlowClient:
 
             # 检查返回 code
             if result.get("code") != 0:
-                logger.error(f"文档解析 API 返回错误: code={result.get('code')}, message={result.get('message')}, document_ids={document_ids}")
+                logger.error(
+                    f"文档解析 API 返回错误: code={result.get('code')}, message={result.get('message')}, document_ids={document_ids}"
+                )
                 return result
 
             logger.info(f"文档解析已触发: {len(document_ids)} 个文档")
@@ -669,13 +672,17 @@ class RAGFlowClient:
 
             # 检查返回 code
             if result.get("code") != 0:
-                logger.error(f"文档解析（兼容接口）返回错误: code={result.get('code')}, message={result.get('message')}, document_ids={document_ids}")
+                logger.error(
+                    f"文档解析（兼容接口）返回错误: code={result.get('code')}, message={result.get('message')}, document_ids={document_ids}"
+                )
                 return result
 
             logger.info(f"文档解析已通过兼容接口触发: {len(document_ids)} 个文档")
             return result
         except requests.exceptions.Timeout:
-            logger.warning(f"文档解析（兼容接口）请求超时（{self.parse_timeout}s），文档可能已在后台开始解析: {document_ids}")
+            logger.warning(
+                f"文档解析（兼容接口）请求超时（{self.parse_timeout}s），文档可能已在后台开始解析: {document_ids}"
+            )
             return {"code": 0, "message": "解析请求已发送，文档可能正在后台处理"}
         except Exception as e:
             logger.error(f"文档解析失败: {e}")
@@ -750,7 +757,9 @@ class RAGFlowClient:
                 status = status_map.get(status_str, "unknown")
 
                 # 进度（仅 RAGFlow 返回）
-                progress = float(data.get("progress", 0.0)) if status == "running" else (1.0 if status == "done" else 0.0)
+                progress = (
+                    float(data.get("progress", 0.0)) if status == "running" else (1.0 if status == "done" else 0.0)
+                )
 
                 # 错误信息
                 error_msg = data.get("error_msg") or data.get("message", "")
@@ -855,7 +864,9 @@ class RAGFlowClient:
                     if chunks:
                         # 按 chunk_id 排序后拼接，保持原文顺序
                         chunks_sorted = sorted(chunks, key=lambda c: c.get("chunk_id", 0))
-                        content = "\n\n".join(chunk.get("content", "") for chunk in chunks_sorted if chunk.get("content"))
+                        content = "\n\n".join(
+                            chunk.get("content", "") for chunk in chunks_sorted if chunk.get("content")
+                        )
                         title = chunks[0].get("document_name", "") if chunks else ""
                         if content:
                             return {"code": 0, "data": {"content": content, "title": title}}

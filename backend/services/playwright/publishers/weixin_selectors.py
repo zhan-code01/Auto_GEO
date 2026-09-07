@@ -21,12 +21,12 @@ LOGIN_URL_INDICATOR = [
 ]
 LOGIN_QR_CODE = 'img[class*="qrcode"], .login__type__container__scan img'
 LOGIN_SUCCESS_ELEMENT = [
-    '.account_name',
-    '.weui-desktop-account__name',
-    '#nickname',
-    '.nickname',
+    ".account_name",
+    ".weui-desktop-account__name",
+    "#nickname",
+    ".nickname",
     '[class*="nickname"]',
-    '.main_avatar',
+    ".main_avatar",
     '[class*="avatar"]',
 ]
 
@@ -39,7 +39,7 @@ NEW_ARTICLE_BTN = [
     '.weui-desktop-btn_primary:has-text("写新图文")',
     '[role="button"]:has-text("写新图文")',
     'div:has-text("写新图文")',
-    'text=写新图文',
+    "text=写新图文",
 ]
 
 # 兜底入口：先点"图文消息"卡片，再点写新图文
@@ -52,7 +52,7 @@ IMAGE_ARTICLE_ENTRY = [
 # === 干扰弹窗 ===
 CLOSE_POPUP_BTN = [
     '.weui-desktop-dialog__btn:has-text("知道了")',
-    '.weui-desktop-dialog__close',
+    ".weui-desktop-dialog__close",
     'button:has-text("知道了")',
     'button:has-text("我知道了")',
     'button:has-text("完成")',
@@ -68,18 +68,26 @@ CLOSE_POPUP_BTN = [
 ]
 
 GUIDE_TEXT = [
-    "知道了", "我知道了", "完成", "下一步", "跳过", "关闭", "稍后", "确定", "开始体验",
+    "知道了",
+    "我知道了",
+    "完成",
+    "下一步",
+    "跳过",
+    "关闭",
+    "稍后",
+    "确定",
+    "开始体验",
 ]
 
 # === 标题 ===
 TITLE_INPUT = [
-    '#title',
-    'textarea#title',
+    "#title",
+    "textarea#title",
     'textarea[placeholder*="请输入标题"]',
     'textarea[placeholder*="标题"]',
     'input[placeholder*="标题"]',
-    '.title-area textarea',
-    '.title_input textarea',
+    ".title-area textarea",
+    ".title_input textarea",
     'div[class*="title"] textarea',
     'div[class*="title"] input',
     # 新版编辑器
@@ -90,15 +98,15 @@ TITLE_INPUT = [
 
 # === 正文（微信公众号 UEditor）===
 CONTENT_INPUT = [
-    '#ueditor_0',
-    '.edui-body-container',
-    'iframe#ueditor_0_iframe',
-    '.editor_area',
-    '.rich_media_editor',
+    "#ueditor_0",
+    ".edui-body-container",
+    "iframe#ueditor_0_iframe",
+    ".editor_area",
+    ".rich_media_editor",
     '[contenteditable="true"][class*="editor"]',
     'div[class*="editable"][contenteditable="true"]',
     # Tiptap 新版
-    '.ProseMirror',
+    ".ProseMirror",
     # 通用兜底
     '[contenteditable="true"]',
 ]
@@ -112,9 +120,9 @@ CONTENT_PLACEHOLDER = [
 
 # === 封面 ===
 COVER_BUTTON = [
-    '.js_cover_area',
-    '.appmsg-cover',
-    '.weui-desktop-card__cover',
+    ".js_cover_area",
+    ".appmsg-cover",
+    ".weui-desktop-card__cover",
     'div:has-text("封面图片")',
     'button:has-text("从正文选择")',
     '[class*="cover-upload"]',
@@ -131,21 +139,21 @@ COVER_FILE_INPUT = [
 COVER_CONFIRM = [
     'button:has-text("完成")',
     'button:has-text("确定")',
-    '.weui-desktop-dialog__btn-primary',
-    '.js_cover_done',
+    ".weui-desktop-dialog__btn-primary",
+    ".js_cover_done",
 ]
 
 # 摘要（封面摘要，部分版本必填）
 DIGEST_INPUT = [
-    '#digest',
-    'textarea#digest',
+    "#digest",
+    "textarea#digest",
     'textarea[placeholder*="摘要"]',
-    '.digest-area textarea',
+    ".digest-area textarea",
 ]
 
 # === 发布按钮 ===
 PUBLISH_BUTTON = [
-    '#js_send',
+    "#js_send",
     'button:has-text("保存并群发")',
     'button:has-text("群发")',
     '.weui-desktop-btn_primary:has-text("群发")',
@@ -155,7 +163,7 @@ PUBLISH_BUTTON = [
 
 # 仅保存草稿（备用，主流程不用）
 SAVE_DRAFT_BUTTON = [
-    '#js_save',
+    "#js_save",
     'button:has-text("保存")',
     'button:has-text("保存为草稿")',
 ]
@@ -164,21 +172,21 @@ SAVE_DRAFT_BUTTON = [
 PUBLISH_CONFIRM = [
     'button:has-text("确定")',
     'button:has-text("确认群发")',
-    '.weui-desktop-dialog__btn-primary',
-    '.js_dialog_confirm',
-    '.weui-desktop-modal__btn-primary',
+    ".weui-desktop-dialog__btn-primary",
+    ".js_dialog_confirm",
+    ".weui-desktop-modal__btn-primary",
 ]
 
 # === 扫码/验证 ===
 SCAN_QRCODE = [
-    '.qrcode-layer',
-    '.js_scan_qrcode',
+    ".qrcode-layer",
+    ".js_scan_qrcode",
     'canvas[class*="qr"]',
     'img[class*="qrcode"]',
-    '.balloon',
+    ".balloon",
 ]
 
-CAPTCHA_INDICATOR = '.captcha-container, .weui-desktop-captcha'
+CAPTCHA_INDICATOR = ".captcha-container, .weui-desktop-captcha"
 
 # === 成功/失败提示 ===
 SUCCESS_TEXT = [

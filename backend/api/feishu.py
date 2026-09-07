@@ -43,9 +43,8 @@ def _cleanup_old_events():
     db = SessionLocal()
     try:
         from sqlalchemy import text
-        result = db.execute(
-            text("DELETE FROM feishu_events WHERE created_at < NOW() - INTERVAL '7 days'")
-        )
+
+        result = db.execute(text("DELETE FROM feishu_events WHERE created_at < NOW() - INTERVAL '7 days'"))
         db.commit()
         count = result.rowcount
         if count:
@@ -174,9 +173,7 @@ async def feishu_webhook(request: Request):
 
         # 7. 立即返回 200（飞书要求 3 秒内响应）
         # 然后异步处理意图解析和任务执行
-        asyncio.create_task(
-            _process_message_async(event_id, message_text, chat_id, user_id)
-        )
+        asyncio.create_task(_process_message_async(event_id, message_text, chat_id, user_id))
 
     # 返回成功
     return {"code": 0}
@@ -290,18 +287,9 @@ async def _build_context() -> dict:
 
     try:
         db = SessionLocal()
-        clients = (
-            db.query(Client)
-            .filter(Client.status == 1)
-            .order_by(Client.created_at.desc())
-            .limit(10)
-            .all()
-        )
+        clients = db.query(Client).filter(Client.status == 1).order_by(Client.created_at.desc()).limit(10).all()
         if clients:
-            context["clients"] = [
-                {"name": c.name, "company_name": c.company_name}
-                for c in clients
-            ]
+            context["clients"] = [{"name": c.name, "company_name": c.company_name} for c in clients]
         db.close()
     except Exception as e:
         log.warning(f"构建上下文失败: {e}")
@@ -322,30 +310,30 @@ async def list_feishu_bindings(
     返回绑定信息含系统用户名和默认项目名
     """
     try:
-        bindings = (
-            db.query(FeishuUserBinding)
-            .order_by(FeishuUserBinding.created_at.desc())
-            .all()
-        )
+        bindings = db.query(FeishuUserBinding).order_by(FeishuUserBinding.created_at.desc()).all()
 
         items = []
         for b in bindings:
             user = db.query(User).filter(User.id == b.system_user_id).first()
-            project = db.query(Project).filter(Project.id == b.default_project_id).first() if b.default_project_id else None
+            project = (
+                db.query(Project).filter(Project.id == b.default_project_id).first() if b.default_project_id else None
+            )
 
-            items.append({
-                "id": b.id,
-                "open_id": b.open_id,
-                "union_id": b.union_id,
-                "system_user_id": b.system_user_id,
-                "username": user.username if user else None,
-                "default_project_id": b.default_project_id,
-                "default_project_name": project.name if project else None,
-                "default_client_id": b.default_client_id,
-                "status": b.status,
-                "created_at": b.created_at.isoformat() if b.created_at else None,
-                "updated_at": b.updated_at.isoformat() if b.updated_at else None,
-            })
+            items.append(
+                {
+                    "id": b.id,
+                    "open_id": b.open_id,
+                    "union_id": b.union_id,
+                    "system_user_id": b.system_user_id,
+                    "username": user.username if user else None,
+                    "default_project_id": b.default_project_id,
+                    "default_project_name": project.name if project else None,
+                    "default_client_id": b.default_client_id,
+                    "status": b.status,
+                    "created_at": b.created_at.isoformat() if b.created_at else None,
+                    "updated_at": b.updated_at.isoformat() if b.updated_at else None,
+                }
+            )
 
         return ApiResponse(data={"total": len(items), "items": items})
     except Exception as e:
@@ -365,10 +353,14 @@ async def create_feishu_binding(
     """
     try:
         # 检查 open_id 是否已绑定
-        existing = db.query(FeishuUserBinding).filter(
-            FeishuUserBinding.open_id == request.open_id,
-            FeishuUserBinding.status == 1,
-        ).first()
+        existing = (
+            db.query(FeishuUserBinding)
+            .filter(
+                FeishuUserBinding.open_id == request.open_id,
+                FeishuUserBinding.status == 1,
+            )
+            .first()
+        )
         if existing:
             raise HTTPException(status_code=400, detail="该 open_id 已绑定到其他用户")
 
@@ -473,31 +465,41 @@ async def check_feishu_binding(
     返回绑定信息（含用户名和项目名）
     """
     try:
-        binding = db.query(FeishuUserBinding).filter(
-            FeishuUserBinding.open_id == open_id,
-            FeishuUserBinding.status == 1,
-        ).first()
+        binding = (
+            db.query(FeishuUserBinding)
+            .filter(
+                FeishuUserBinding.open_id == open_id,
+                FeishuUserBinding.status == 1,
+            )
+            .first()
+        )
 
         if not binding:
             return ApiResponse(data={"bound": False, "binding": None})
 
         user = db.query(User).filter(User.id == binding.system_user_id).first()
-        project = db.query(Project).filter(Project.id == binding.default_project_id).first() if binding.default_project_id else None
+        project = (
+            db.query(Project).filter(Project.id == binding.default_project_id).first()
+            if binding.default_project_id
+            else None
+        )
 
-        return ApiResponse(data={
-            "bound": True,
-            "binding": {
-                "id": binding.id,
-                "open_id": binding.open_id,
-                "system_user_id": binding.system_user_id,
-                "username": user.username if user else None,
-                "default_project_id": binding.default_project_id,
-                "default_project_name": project.name if project else None,
-                "default_client_id": binding.default_client_id,
-                "status": binding.status,
-                "created_at": binding.created_at.isoformat() if binding.created_at else None,
-            },
-        })
+        return ApiResponse(
+            data={
+                "bound": True,
+                "binding": {
+                    "id": binding.id,
+                    "open_id": binding.open_id,
+                    "system_user_id": binding.system_user_id,
+                    "username": user.username if user else None,
+                    "default_project_id": binding.default_project_id,
+                    "default_project_name": project.name if project else None,
+                    "default_client_id": binding.default_client_id,
+                    "status": binding.status,
+                    "created_at": binding.created_at.isoformat() if binding.created_at else None,
+                },
+            }
+        )
     except Exception as e:
         log.error(f"检查绑定失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -509,7 +511,7 @@ async def check_feishu_binding(
 def _generate_binding_code() -> str:
     """生成6位随机绑定码（大写字母+数字）"""
     chars = string.ascii_uppercase + string.digits
-    return ''.join(random.choice(chars) for _ in range(6))
+    return "".join(random.choice(chars) for _ in range(6))
 
 
 @router.post("/bindings/generate-code/{user_id}", response_model=ApiResponse)
@@ -540,13 +542,15 @@ async def generate_binding_code_for_user(
         .first()
     )
     if existing:
-        return ApiResponse(data={
-            "code": existing.code,
-            "expires_at": existing.expires_at.isoformat(),
-            "user_id": user_id,
-            "username": user.username,
-            "message": "已存在有效绑定码，请在30分钟内使用",
-        })
+        return ApiResponse(
+            data={
+                "code": existing.code,
+                "expires_at": existing.expires_at.isoformat(),
+                "user_id": user_id,
+                "username": user.username,
+                "message": "已存在有效绑定码，请在30分钟内使用",
+            }
+        )
 
     # 生成新绑定码
     code = _generate_binding_code()
@@ -569,13 +573,15 @@ async def generate_binding_code_for_user(
 
     log.info(f"🔑 生成绑定码: code={code}, user_id={user_id}, username={user.username}")
 
-    return ApiResponse(data={
-        "code": code,
-        "expires_at": binding_code.expires_at.isoformat(),
-        "user_id": user_id,
-        "username": user.username,
-        "message": f"请在飞书中发送「绑定 {code}」完成绑定，30分钟内有效",
-    })
+    return ApiResponse(
+        data={
+            "code": code,
+            "expires_at": binding_code.expires_at.isoformat(),
+            "user_id": user_id,
+            "username": user.username,
+            "message": f"请在飞书中发送「绑定 {code}」完成绑定，30分钟内有效",
+        }
+    )
 
 
 @router.get("/bindings/my-status/{user_id}", response_model=ApiResponse)
@@ -613,7 +619,11 @@ async def get_user_binding_status(
 
     if binding:
         bound_user = db.query(User).filter(User.id == binding.system_user_id).first()
-        bound_project = db.query(Project).filter(Project.id == binding.default_project_id).first() if binding.default_project_id else None
+        bound_project = (
+            db.query(Project).filter(Project.id == binding.default_project_id).first()
+            if binding.default_project_id
+            else None
+        )
         result["binding"] = {
             "id": binding.id,
             "open_id": binding.open_id,

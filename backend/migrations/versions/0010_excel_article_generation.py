@@ -177,7 +177,9 @@ def upgrade():
     _create_index_if_missing("ix_article_generation_jobs_project_id", "article_generation_jobs", ["project_id"])
     _create_index_if_missing("ix_article_generation_jobs_keyword_id", "article_generation_jobs", ["keyword_id"])
     _create_index_if_missing("ix_article_generation_jobs_article_id", "article_generation_jobs", ["article_id"])
-    _create_index_if_missing("ix_article_generation_jobs_idempotency_key", "article_generation_jobs", ["idempotency_key"])
+    _create_index_if_missing(
+        "ix_article_generation_jobs_idempotency_key", "article_generation_jobs", ["idempotency_key"]
+    )
 
     # job 重试字段（max_attempts / last_error_at）—— 兼容已被 create_table 建好的旧库
     _add_column_if_missing(
@@ -227,5 +229,4 @@ def upgrade():
 
 def downgrade():
     # 谨慎起见不自动 drop 业务表，避免误删数据；如需回滚请手动处理。
-    _add_column_if_missing  # noqa: 占位，保持引用
     pass

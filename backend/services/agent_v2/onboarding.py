@@ -14,6 +14,7 @@ show_add_account / show_article_list），且 action 类型已在 actions.py 注
 进度真相来源 = DB 实况 + UserAgentPreference.onboarding_dismissed +
 UserAgentFact.onboarding_completed，不依赖会话上下文（MemorySaver 重启无妨）。
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -101,29 +102,16 @@ def _questions_done(db: Session, user_id: int) -> bool:
 
 def _articles_done(db: Session, user_id: int) -> bool:
     """文章已生成（生成后状态非 draft 即视为已生成）。"""
-    return (
-        db.query(GeoArticle)
-        .filter(GeoArticle.user_id == user_id, GeoArticle.publish_status != "draft")
-        .count()
-        > 0
-    )
+    return db.query(GeoArticle).filter(GeoArticle.user_id == user_id, GeoArticle.publish_status != "draft").count() > 0
 
 
 def _account_done(db: Session, user_id: int) -> bool:
-    return (
-        db.query(Account)
-        .filter(Account.user_id == user_id, Account.deleted_at.is_(None))
-        .count()
-        > 0
-    )
+    return db.query(Account).filter(Account.user_id == user_id, Account.deleted_at.is_(None)).count() > 0
 
 
 def _publish_done(db: Session, user_id: int) -> bool:
     return (
-        db.query(GeoArticle)
-        .filter(GeoArticle.user_id == user_id, GeoArticle.publish_status == "published")
-        .count()
-        > 0
+        db.query(GeoArticle).filter(GeoArticle.user_id == user_id, GeoArticle.publish_status == "published").count() > 0
     )
 
 
@@ -143,23 +131,13 @@ def _latest_project_id(db: Session, user_id: int) -> int | None:
     引导是线性流程（建客户→建项目→…），进行到“生成问题/文章”时通常只有一个项目。
     取最新创建的项目作为目标，使生成的 action 自带 project_id，前端点击即可直达工具。
     """
-    proj = (
-        db.query(Project)
-        .filter(Project.user_id == user_id)
-        .order_by(Project.id.desc())
-        .first()
-    )
+    proj = db.query(Project).filter(Project.user_id == user_id).order_by(Project.id.desc()).first()
     return proj.id if proj else None
 
 
 def _latest_client(db: Session, user_id: int) -> Client | None:
     """取该用户最新创建的客户，用于引导期"上传资料"等动作自动带入选定客户。"""
-    return (
-        db.query(Client)
-        .filter(Client.user_id == user_id)
-        .order_by(Client.id.desc())
-        .first()
-    )
+    return db.query(Client).filter(Client.user_id == user_id).order_by(Client.id.desc()).first()
 
 
 def _client_has_knowledge(db: Session, client_id: int) -> bool:
@@ -173,18 +151,13 @@ def _client_has_knowledge(db: Session, client_id: int) -> bool:
 
 
 def _checklist(done: dict[str, bool]) -> list[dict[str, Any]]:
-    return [
-        {"key": s["key"], "label": s["label"], "done": bool(done[s["key"]])}
-        for s in STEPS
-    ]
+    return [{"key": s["key"], "label": s["label"], "done": bool(done[s["key"]])} for s in STEPS]
 
 
 # ---------------------------------------------------------------------------
 #  对外主函数
 # ---------------------------------------------------------------------------
-def compute_onboarding_state(
-    db: Session, user_id: int, is_admin: bool = False
-) -> dict[str, Any]:
+def compute_onboarding_state(db: Session, user_id: int, is_admin: bool = False) -> dict[str, Any]:
     """计算新用户引导状态。
 
     返回结构（前端数据源）：
@@ -210,11 +183,7 @@ def compute_onboarding_state(
             "can_skip": False,
         }
 
-    pref = (
-        db.query(UserAgentPreference)
-        .filter(UserAgentPreference.system_user_id == user_id)
-        .first()
-    )
+    pref = db.query(UserAgentPreference).filter(UserAgentPreference.system_user_id == user_id).first()
     dismissed = bool(pref and pref.onboarding_dismissed)
 
     fact_store = FactStore(db)
@@ -230,8 +199,7 @@ def compute_onboarding_state(
         logger.info(f"[Onboarding] 新用户引导全部完成: user_id={user_id} done={done}")
 
     logger.debug(
-        f"[Onboarding] 引导状态计算: user_id={user_id} dismissed={dismissed} "
-        f"completed={completed} done={done}"
+        f"[Onboarding] 引导状态计算: user_id={user_id} dismissed={dismissed} completed={completed} done={done}"
     )
     checklist = _checklist(done)
 
@@ -312,11 +280,7 @@ def compute_onboarding_state(
 
 def set_onboarding_dismissed(db: Session, user_id: int, value: bool = True) -> None:
     """持久化“跳过引导”。落在 UserAgentPreference（与 V1 同一个字段）。"""
-    pref = (
-        db.query(UserAgentPreference)
-        .filter(UserAgentPreference.system_user_id == user_id)
-        .first()
-    )
+    pref = db.query(UserAgentPreference).filter(UserAgentPreference.system_user_id == user_id).first()
     if not pref:
         pref = UserAgentPreference(system_user_id=user_id)
         db.add(pref)

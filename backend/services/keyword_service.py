@@ -15,7 +15,9 @@ class KeywordService:
     def __init__(self, db: Session):
         self.db = db
 
-    def add_keyword(self, project_id: int, keyword: str, difficulty_score: Optional[int] = None, keyword_type: str = "keyword") -> Keyword:
+    def add_keyword(
+        self, project_id: int, keyword: str, difficulty_score: Optional[int] = None, keyword_type: str = "keyword"
+    ) -> Keyword:
         """
         添加单个关键词 (带查重逻辑)
         """
@@ -33,7 +35,13 @@ class KeywordService:
             return exists
 
         # 2. 创建新词
-        new_kw = Keyword(project_id=project_id, keyword=keyword, difficulty_score=difficulty_score, keyword_type=keyword_type, status="active")
+        new_kw = Keyword(
+            project_id=project_id,
+            keyword=keyword,
+            difficulty_score=difficulty_score,
+            keyword_type=keyword_type,
+            status="active",
+        )
         self.db.add(new_kw)
         self.db.commit()
         self.db.refresh(new_kw)
@@ -96,10 +104,7 @@ class KeywordService:
         keywords_data = result.get("keywords", []) or []
         variants_data = result.get("variants", []) or []
         conversion_phrases = (
-            result.get("conversion_phrases")
-            or result.get("questions")
-            or result.get("high_conversion_phrases")
-            or []
+            result.get("conversion_phrases") or result.get("questions") or result.get("high_conversion_phrases") or []
         )
 
         # Some upstream responses return `{code, data: [...]}`. KeywordService.distill
@@ -271,9 +276,7 @@ class KeywordService:
 
             keywords_list = kw_result.get("keywords", [])
             formatted_keywords = [
-                {"keyword": kw, "difficulty_score": 50}
-                for kw in keywords_list
-                if kw and isinstance(kw, str)
+                {"keyword": kw, "difficulty_score": 50} for kw in keywords_list if kw and isinstance(kw, str)
             ]
             logger.success(f"✅ Step1 蒸馏完成: {len(formatted_keywords)} 个关键词")
 

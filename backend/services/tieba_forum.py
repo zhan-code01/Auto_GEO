@@ -37,7 +37,7 @@ def _decode_one(tag: Any) -> Optional[str]:
     text = str(tag).strip()
     for prefix in FORUM_TAG_PREFIXES:
         if text.startswith(prefix):
-            name = normalize_forum(text[len(prefix):])
+            name = normalize_forum(text[len(prefix) :])
             return name or None
     return None
 

@@ -224,7 +224,7 @@ def ensure_company_website_link(content: str, company_name: str, website: str) -
                 if line.startswith(variant, pos) and len(variant) > len(matched_variant):
                     matched_variant = variant
             if matched_variant and not _inside_markdown_link(line, pos):
-                lines[index] = f"{line[:pos]}[{matched_variant}]({url}){line[pos + len(matched_variant):]}"
+                lines[index] = f"{line[:pos]}[{matched_variant}]({url}){line[pos + len(matched_variant) :]}"
                 return "\n".join(lines), True
             pos += 1
     return content, False
@@ -235,7 +235,12 @@ def _inside_markdown_link(line: str, pos: int) -> bool:
     open_bracket = line.rfind("[", 0, pos)
     if open_bracket != -1:
         close_bracket = line.find("]", open_bracket)
-        if close_bracket != -1 and close_bracket >= pos and close_bracket + 1 < len(line) and line[close_bracket + 1] == "(":
+        if (
+            close_bracket != -1
+            and close_bracket >= pos
+            and close_bracket + 1 < len(line)
+            and line[close_bracket + 1] == "("
+        ):
             return True
     open_paren = line.rfind("](", 0, pos)
     if open_paren != -1 and line.find(")", open_paren) >= pos:

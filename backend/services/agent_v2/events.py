@@ -16,6 +16,7 @@
 - progress: 心跳/阶段进度
 - done: 本轮响应结束
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -59,12 +60,12 @@ def tool_calls_event(tool_calls: list[dict]) -> str:
 
     在 Agent 决策调用工具但还未执行时发送，让前端展示"正在调用 list_clients..."等状态。
     """
-    return format_sse(EVENT_TOOL_CALLS, {
-        "tool_calls": [
-            {"name": tc.get("name", ""), "args": tc.get("args", {}) or {}}
-            for tc in tool_calls
-        ],
-    })
+    return format_sse(
+        EVENT_TOOL_CALLS,
+        {
+            "tool_calls": [{"name": tc.get("name", ""), "args": tc.get("args", {}) or {}} for tc in tool_calls],
+        },
+    )
 
 
 def tool_start_event(tool_name: str, params: dict) -> str:
@@ -74,11 +75,14 @@ def tool_start_event(tool_name: str, params: dict) -> str:
 
 def tool_end_event(tool_name: str, result: dict, actions: list | None = None) -> str:
     """工具执行完成事件。"""
-    return format_sse(EVENT_TOOL_END, {
-        "tool_name": tool_name,
-        "result": result,
-        "actions": actions or [],
-    })
+    return format_sse(
+        EVENT_TOOL_END,
+        {
+            "tool_name": tool_name,
+            "result": result,
+            "actions": actions or [],
+        },
+    )
 
 
 def actions_event(actions: list[dict]) -> str:
@@ -99,11 +103,14 @@ def async_task_started_event(task_type: str, task_id: Any, query_tool: str) -> s
 
     前端收到后可用 query_tool 轮询结果。
     """
-    return format_sse(EVENT_ASYNC_TASK_STARTED, {
-        "task_type": task_type,
-        "task_id": task_id,
-        "query_tool": query_tool,
-    })
+    return format_sse(
+        EVENT_ASYNC_TASK_STARTED,
+        {
+            "task_type": task_type,
+            "task_id": task_id,
+            "query_tool": query_tool,
+        },
+    )
 
 
 def clarification_event(reply: str, actions: list | None = None) -> str:
@@ -111,10 +118,13 @@ def clarification_event(reply: str, actions: list | None = None) -> str:
 
     ReAct 模式下：当工具返回 need_clarification 或 Agent 追问用户时发送。
     """
-    return format_sse(EVENT_CLARIFICATION, {
-        "reply": reply,
-        "actions": actions or [],
-    })
+    return format_sse(
+        EVENT_CLARIFICATION,
+        {
+            "reply": reply,
+            "actions": actions or [],
+        },
+    )
 
 
 def error_event(code: str, message: str) -> str:
@@ -146,17 +156,19 @@ def done_event(
         async_task_refs: 异步任务引用（前端可轮询）
         tool_results: 工具执行结果列表
     """
-    return format_sse(EVENT_DONE, {
-        "status": status,
-        "session_id": session_id,
-        "actions": actions or [],
-        "async_task_refs": async_task_refs or [],
-        "tool_results": tool_results or [],
-    })
+    return format_sse(
+        EVENT_DONE,
+        {
+            "status": status,
+            "session_id": session_id,
+            "actions": actions or [],
+            "async_task_refs": async_task_refs or [],
+            "tool_results": tool_results or [],
+        },
+    )
 
 
-async def stream_text_deltas(text: str, chunk_size: int = 8,
-                             delay_ms: int = 20) -> AsyncIterator[str]:
+async def stream_text_deltas(text: str, chunk_size: int = 8, delay_ms: int = 20) -> AsyncIterator[str]:
     """把完整文本按字分片，模拟打字机流式输出。
 
     对于不支持原生流式的 LLM 调用，用此函数把 reply 切片发送 text_delta 事件。
@@ -166,7 +178,7 @@ async def stream_text_deltas(text: str, chunk_size: int = 8,
         return
     i = 0
     while i < len(text):
-        chunk = text[i:i + chunk_size]
+        chunk = text[i : i + chunk_size]
         yield text_delta_event(chunk)
         i += chunk_size
         if delay_ms > 0:

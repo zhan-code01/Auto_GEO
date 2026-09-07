@@ -13,6 +13,7 @@ Reducer 规则：
 - reply / thinking: last_non_empty（保留最后的非空值，避免被空字符串覆盖）
 - tool_calls / status / task_context: 覆盖语义（每轮最新值）
 """
+
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal, Optional, TypedDict
@@ -22,10 +23,10 @@ from langgraph.graph.message import add_messages
 
 # 执行状态
 ExecutionStatus = Literal[
-    "completed",          # 本轮执行完成
+    "completed",  # 本轮执行完成
     "need_clarification",  # 需要用户补充信息
-    "running",            # 异步任务运行中
-    "failed",             # 执行失败
+    "running",  # 异步任务运行中
+    "failed",  # 执行失败
 ]
 
 # Action 交互方式
@@ -35,6 +36,7 @@ ActionInteraction = Literal["frontend_direct", "via_agent"]
 # ================================================================
 #  自定义 Reducer
 # ================================================================
+
 
 def add_list(left: list | None, right: list | None) -> list:
     """累积合并 list，None 视为空列表。
@@ -60,9 +62,9 @@ def last_non_empty(left: Any, right: Any) -> Any:
 class Action(TypedDict):
     """Action 按钮。"""
 
-    type: str                       # Action 类型（见 actions.ACTION_TYPES）
-    label: str                      # 按钮文案
-    payload: dict                   # 按钮数据
+    type: str  # Action 类型（见 actions.ACTION_TYPES）
+    label: str  # 按钮文案
+    payload: dict  # 按钮数据
     interaction: ActionInteraction  # 交互方式：前端直连 / 走智能体
 
 
@@ -73,10 +75,10 @@ class TaskContext(TypedDict):
     对应 PRD §7.2.2。
     """
 
-    type: str                       # 任务类型（如 create_client / generate_articles）
-    slots: dict[str, Any]           # 已收集的槽位
-    missing_slots: list[str]        # 仍缺失的必填槽位
-    created_at: str                 # 任务开始时间（ISO 格式）
+    type: str  # 任务类型（如 create_client / generate_articles）
+    slots: dict[str, Any]  # 已收集的槽位
+    missing_slots: list[str]  # 仍缺失的必填槽位
+    created_at: str  # 任务开始时间（ISO 格式）
 
 
 class AgentState(TypedDict):
@@ -98,31 +100,31 @@ class AgentState(TypedDict):
     # ===== 输入 =====
     user_id: int
     session_id: str
-    attachments: list[dict]                     # 用户上传的附件
+    attachments: list[dict]  # 用户上传的附件
 
     # ===== 工作记忆（messages，自动累积） =====
-    messages: Annotated[list, add_messages]     # 对话历史，LangGraph 自动管理
+    messages: Annotated[list, add_messages]  # 对话历史，LangGraph 自动管理
 
     # ===== 短期记忆（task_context，任务级语义） =====
-    task_context: Optional[TaskContext]         # 当前任务上下文，任务完成置 None
+    task_context: Optional[TaskContext]  # 当前任务上下文，任务完成置 None
 
     # ===== 长期记忆（user_facts，跨会话） =====
-    user_facts: dict                            # 用户事实（公司/行业/常选平台/默认ID等）
-    preferences: dict                           # 用户偏好
+    user_facts: dict  # 用户事实（公司/行业/常选平台/默认ID等）
+    preferences: dict  # 用户偏好
 
     # ===== ReAct 循环（工具调用） =====
-    tool_calls: list[dict]                      # Agent 决定调用的工具列表（当前轮，覆盖语义）
+    tool_calls: list[dict]  # Agent 决定调用的工具列表（当前轮，覆盖语义）
     tool_results: Annotated[list[dict], add_list]  # 工具执行结果（累积，多轮不丢失）
 
     # ===== 异步任务追踪 =====
     async_task_refs: Annotated[list[dict], add_list]  # 本轮触发的异步任务引用（累积）
 
     # ===== 输出 =====
-    reply: Annotated[str, last_non_empty]       # Agent 回复（保留最后非空值）
+    reply: Annotated[str, last_non_empty]  # Agent 回复（保留最后非空值）
     actions: Annotated[list[Action], add_list]  # 前端按钮（累积）
-    status: ExecutionStatus                     # 执行状态（覆盖语义）
+    status: ExecutionStatus  # 执行状态（覆盖语义）
     facts_patch: Annotated[list[dict], add_list]  # 待回写用户事实（累积）
-    thinking: Annotated[str, last_non_empty]    # Agent 思考过程（保留最后非空值）
+    thinking: Annotated[str, last_non_empty]  # Agent 思考过程（保留最后非空值）
 
 
 def make_initial_state(

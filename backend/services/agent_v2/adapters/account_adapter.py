@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """AccountAdapter - 平台账号适配器。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -23,14 +24,18 @@ class AccountAdapter:
         只返回「发布平台」，过滤掉 doubao/qianwen/deepseek 等 AI 鉴权专用账号
         （那些是 GEO 评测采集用的，普通用户不应在「我绑了哪些平台」里看到）。
         """
-        rows = scoped_query(self.db, Account, user).filter(
-            Account.deleted_at.is_(None)
-        ).order_by(Account.created_at.desc()).all()
+        rows = (
+            scoped_query(self.db, Account, user)
+            .filter(Account.deleted_at.is_(None))
+            .order_by(Account.created_at.desc())
+            .all()
+        )
         return [self._to_dict(r) for r in rows if not is_ai_platform(r.platform)]
 
     def list_available_platforms(self) -> list[dict[str, Any]]:
         """查询系统支持的所有平台。"""
         from backend.config import PLATFORMS
+
         if not PLATFORMS:
             return []
         return [
@@ -43,10 +48,14 @@ class AccountAdapter:
         return self._to_dict(row) if row else None
 
     def find_by_platform(self, user, platform: str) -> list[dict[str, Any]]:
-        rows = scoped_query(self.db, Account, user).filter(
-            Account.platform == platform,
-            Account.deleted_at.is_(None),
-        ).all()
+        rows = (
+            scoped_query(self.db, Account, user)
+            .filter(
+                Account.platform == platform,
+                Account.deleted_at.is_(None),
+            )
+            .all()
+        )
         return [self._to_dict(r) for r in rows]
 
     @staticmethod

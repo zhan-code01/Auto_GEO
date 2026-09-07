@@ -13,9 +13,7 @@ SLOT_RE = re.compile(r"\{\{IMAGE_SLOT:(\d+)\|(hero|section|case|summary)\|([^{}|
 # `{{ IMAGE_SLOT: 1 | section | 描述 }}` 这类带空格的写法，严格正则匹配不到会误判
 # 占位符数量为 0，进而触发“图片占位符数量必须为2到3个”并导致所有生成失败。
 # 这里按容错正则找出占位符，再统一重写为无空格的标准写法。
-_SLOT_LOOSE_RE = re.compile(
-    r"\{\{\s*IMAGE_SLOT\s*:\s*(\d+)\s*\|\s*([A-Za-z]+)\s*\|\s*([^{}|]+?)\s*\}\}"
-)
+_SLOT_LOOSE_RE = re.compile(r"\{\{\s*IMAGE_SLOT\s*:\s*(\d+)\s*\|\s*([A-Za-z]+)\s*\|\s*([^{}|]+?)\s*\}\}")
 
 # 模型偶尔会吐出 (PARSING) / （PARSING） 这类解析残留，清理掉以免污染正文。
 _PARSING_ARTIFACT_RE = re.compile(r"[（(]\s*PARSING\s*[）)]", re.IGNORECASE)

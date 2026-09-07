@@ -13,6 +13,7 @@ LLM 通过 Tool Calling 机制基于 schema 自动生成结构化参数。
 - 收录监控 3：create_baseline, run_recheck, get_diagnosis
 - 资料管理 1：upload_documents
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -50,6 +51,7 @@ def _ai_platform_options_text() -> str:
 #  客户管理（3 个）
 # ====================================================================
 
+
 class CreateClientInput(BaseModel):
     """创建客户的输入参数。"""
 
@@ -62,9 +64,7 @@ class CreateClientInput(BaseModel):
 class ListClientsInput(BaseModel):
     """查询客户列表的输入参数。"""
 
-    keyword: Optional[str] = Field(
-        default=None, description="客户名称关键词（可选，用于模糊搜索）"
-    )
+    keyword: Optional[str] = Field(default=None, description="客户名称关键词（可选，用于模糊搜索）")
 
 
 class GetClientDetailInput(BaseModel):
@@ -76,6 +76,7 @@ class GetClientDetailInput(BaseModel):
 # ====================================================================
 #  项目管理（3 个）
 # ====================================================================
+
 
 class CreateProjectInput(BaseModel):
     """创建项目的输入参数。"""
@@ -89,12 +90,8 @@ class CreateProjectInput(BaseModel):
 class ListProjectsInput(BaseModel):
     """查询项目列表的输入参数。"""
 
-    client_id: Optional[int] = Field(
-        default=None, description="按客户ID筛选（可选）"
-    )
-    keyword: Optional[str] = Field(
-        default=None, description="项目名称关键词（可选）"
-    )
+    client_id: Optional[int] = Field(default=None, description="按客户ID筛选（可选）")
+    keyword: Optional[str] = Field(default=None, description="项目名称关键词（可选）")
 
 
 class GetProjectDetailInput(BaseModel):
@@ -107,21 +104,18 @@ class GetProjectDetailInput(BaseModel):
 #  智能文章（4 个）
 # ====================================================================
 
+
 class GenerateQuestionsInput(BaseModel):
     """生成用户问题的输入参数。"""
 
     project_id: int = Field(description="项目ID，必填")
-    question_count: int = Field(
-        default=5, ge=1, le=30, description="生成问题数量，默认5，单次最多30"
-    )
+    question_count: int = Field(default=5, ge=1, le=30, description="生成问题数量，默认5，单次最多30")
 
 
 class ListQuestionsInput(BaseModel):
     """查询问题列表的输入参数。"""
 
-    project_id: Optional[int] = Field(
-        default=None, description="按项目ID筛选（可选）"
-    )
+    project_id: Optional[int] = Field(default=None, description="按项目ID筛选（可选）")
 
 
 class GenerateArticlesInput(BaseModel):
@@ -143,17 +137,14 @@ class GenerateArticlesInput(BaseModel):
 class ListArticlesInput(BaseModel):
     """查询文章列表的输入参数。"""
 
-    project_id: Optional[int] = Field(
-        default=None, description="按项目ID筛选（可选）"
-    )
-    keyword: Optional[str] = Field(
-        default=None, description="文章标题关键词（可选）"
-    )
+    project_id: Optional[int] = Field(default=None, description="按项目ID筛选（可选）")
+    keyword: Optional[str] = Field(default=None, description="文章标题关键词（可选）")
 
 
 # ====================================================================
 #  账户绑定（2 个）
 # ====================================================================
+
 
 class BindPlatformInput(BaseModel):
     """绑定平台账户的输入参数。"""
@@ -169,14 +160,13 @@ class BindPlatformInput(BaseModel):
 class ListBindingsInput(BaseModel):
     """查询已绑定账户的输入参数。"""
 
-    platform: Optional[str] = Field(
-        default=None, description="按平台筛选（可选）"
-    )
+    platform: Optional[str] = Field(default=None, description="按平台筛选（可选）")
 
 
 # ====================================================================
 #  文章发布（2 个）
 # ====================================================================
+
 
 class PublishArticleInput(BaseModel):
     """发布文章的输入参数（单篇单平台）。"""
@@ -188,17 +178,14 @@ class PublishArticleInput(BaseModel):
 class ListPublishRecordsInput(BaseModel):
     """查询发布记录的输入参数。"""
 
-    article_id: Optional[int] = Field(
-        default=None, description="按文章ID筛选（可选）"
-    )
-    status: Optional[str] = Field(
-        default=None, description="按状态筛选（可选）：pending/running/success/failed"
-    )
+    article_id: Optional[int] = Field(default=None, description="按文章ID筛选（可选）")
+    status: Optional[str] = Field(default=None, description="按状态筛选（可选）：pending/running/success/failed")
 
 
 # ====================================================================
 #  收录监控（3 个）
 # ====================================================================
+
 
 class CreateBaselineInput(BaseModel):
     """创建基线的输入参数（使用前）。
@@ -208,11 +195,7 @@ class CreateBaselineInput(BaseModel):
     """
 
     client_id: int = Field(description="客户ID，必填")
-    ai_platform: str = Field(
-        description=(
-            f"要监测的 AI 平台（单选），必填。可选值：{_ai_platform_options_text()}"
-        )
-    )
+    ai_platform: str = Field(description=(f"要监测的 AI 平台（单选），必填。可选值：{_ai_platform_options_text()}"))
     account_id: Optional[int] = Field(
         default=None,
         description="AI 平台账号ID（可选，未提供时自动从用户绑定的同平台账号中解析）",
@@ -226,11 +209,7 @@ class RunRecheckInput(BaseModel):
     """
 
     client_id: int = Field(description="客户ID，必填")
-    ai_platform: str = Field(
-        description=(
-            f"要监测的 AI 平台（单选），必填。可选值：{_ai_platform_options_text()}"
-        )
-    )
+    ai_platform: str = Field(description=(f"要监测的 AI 平台（单选），必填。可选值：{_ai_platform_options_text()}"))
     account_id: Optional[int] = Field(
         default=None,
         description="AI 平台账号ID（可选，未提供时自动从用户绑定的同平台账号中解析）",
@@ -247,13 +226,12 @@ class GetDiagnosisInput(BaseModel):
 #  资料管理（1 个）
 # ====================================================================
 
+
 class UploadDocumentsInput(BaseModel):
     """上传资料的输入参数。"""
 
     client_id: int = Field(description="客户ID，必填")
-    file_names: list[str] = Field(
-        description="已上传文件名列表（前端先上传到临时区，这里接收文件名）"
-    )
+    file_names: list[str] = Field(description="已上传文件名列表（前端先上传到临时区，这里接收文件名）")
 
 
 # ====================================================================
@@ -379,15 +357,17 @@ def build_tool_definitions() -> list[dict]:
     for name, (schema_cls, doc) in TOOL_SCHEMAS.items():
         # Pydantic v2 的 schema 生成
         schema_dict = schema_cls.model_json_schema()
-        definitions.append({
-            "name": name,
-            "description": doc,
-            "parameters": {
-                "type": "object",
-                "properties": schema_dict.get("properties", {}),
-                "required": schema_dict.get("required", []),
-            },
-        })
+        definitions.append(
+            {
+                "name": name,
+                "description": doc,
+                "parameters": {
+                    "type": "object",
+                    "properties": schema_dict.get("properties", {}),
+                    "required": schema_dict.get("required", []),
+                },
+            }
+        )
     return definitions
 
 
@@ -405,8 +385,10 @@ def build_langchain_tools() -> list:
 
     def _make_placeholder(tool_name: str):
         """工厂函数，避免闭包变量捕获问题。"""
+
         async def _placeholder(**kwargs):
             return f"Tool {tool_name} should be executed by tools_node"
+
         return _placeholder
 
     tools: list[StructuredTool] = []

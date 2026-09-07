@@ -28,8 +28,7 @@ DEFAULT_OUTLINE = [
 def _format_default_outline(company_name: str) -> list[dict[str, str]]:
     """将 DEFAULT_OUTLINE 中的 {company_name} 占位符替换为实际公司名。"""
     return [
-        {"heading": item["heading"].format(company_name=company_name), "goal": item["goal"]}
-        for item in DEFAULT_OUTLINE
+        {"heading": item["heading"].format(company_name=company_name), "goal": item["goal"]} for item in DEFAULT_OUTLINE
     ]
 
 
@@ -112,7 +111,9 @@ class SmartArticleBriefBuilder:
             "title": str(data.get("title") or "").strip()[:20],
             "industry_intro": industry_intro,
             "target_company_points": [
-                str(item or "").strip()[:200] for item in (data.get("target_company_points") or []) if str(item or "").strip()
+                str(item or "").strip()[:200]
+                for item in (data.get("target_company_points") or [])
+                if str(item or "").strip()
             ][:6],
             "selected_metrics": selected_metrics,
             "selected_competitors": selected_competitors,

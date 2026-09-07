@@ -47,9 +47,7 @@ class AuthStartFlowRequest(BaseModel):
     platforms: List[str]
 
 
-async def _sync_ai_session_from_account(
-    db: Session, user_id: int, project_id: Optional[int], platform: str
-) -> bool:
+async def _sync_ai_session_from_account(db: Session, user_id: int, project_id: Optional[int], platform: str) -> bool:
     """Backfill AI evaluation session from account auth storage_state."""
     if platform not in {"doubao", "qianwen", "deepseek"}:
         return False
@@ -71,7 +69,9 @@ async def _sync_ai_session_from_account(
 
     storage_state = decrypt_storage_state(account.storage_state)
     if not storage_state:
-        logger.warning(f"AI session backfill failed: storage_state decrypt empty, user_id={user_id}, platform={platform}")
+        logger.warning(
+            f"AI session backfill failed: storage_state decrypt empty, user_id={user_id}, platform={platform}"
+        )
         return False
 
     is_valid, reason, _probe_info = await cookie_validator.validate(platform=platform, storage_state=storage_state)
@@ -90,7 +90,9 @@ async def _sync_ai_session_from_account(
         is_new_login=False,
     )
     if ok:
-        logger.info(f"AI session backfilled from account: user_id={user_id}, platform={platform}, account_id={account.id}")
+        logger.info(
+            f"AI session backfilled from account: user_id={user_id}, platform={platform}, account_id={account.id}"
+        )
     return ok
 
 
@@ -120,24 +122,16 @@ async def start_auth_flow(request: Request, db: Session = Depends(get_db)):
         platforms = body.get("platforms")
 
         # 🔒 安全修复：优先从已认证的 JWT 中获取 user_id，忽略前端传入的值
-        jwt_user_id = getattr(getattr(request, 'state', None), 'user_id', None)
+        jwt_user_id = getattr(getattr(request, "state", None), "user_id", None)
         if jwt_user_id:
             # 中间件已验证 JWT，使用真实 user_id
             if user_id is not None and user_id != jwt_user_id:
-                logger.warning(
-                    f"⚠️ 安全告警: JWT user_id={jwt_user_id} 与请求体 user_id={user_id} 不匹配，已拒绝"
-                )
-                raise HTTPException(
-                    status_code=403,
-                    detail="安全告警：user_id 与登录身份不匹配"
-                )
+                logger.warning(f"⚠️ 安全告警: JWT user_id={jwt_user_id} 与请求体 user_id={user_id} 不匹配，已拒绝")
+                raise HTTPException(status_code=403, detail="安全告警：user_id 与登录身份不匹配")
             user_id = jwt_user_id
         else:
             # 无 JWT 上下文（理论上中间件会拦截），拒绝请求
-            raise HTTPException(
-                status_code=401,
-                detail="未认证：需要有效登录会话"
-            )
+            raise HTTPException(status_code=401, detail="未认证：需要有效登录会话")
 
         # 简单的参数校验
         if user_id is None:
@@ -151,10 +145,7 @@ async def start_auth_flow(request: Request, db: Session = Depends(get_db)):
         # 🔒 安全修复：移除"用户不存在则自动创建"的危险逻辑
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(
-                status_code=404,
-                detail=f"用户不存在 (user_id={user_id})，请先注册"
-            )
+            raise HTTPException(status_code=404, detail=f"用户不存在 (user_id={user_id})，请先注册")
 
         if project_id is not None:
             project = db.query(Project).filter(Project.id == project_id).first()
@@ -510,6 +501,7 @@ async def create_pair_code(
     try:
         from backend.config import JWT_SECRET_KEY, JWT_ALGORITHM
         import jwt
+
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("user_id")
         if not user_id:
@@ -528,10 +520,14 @@ async def create_pair_code(
     scene = body.get("scene", "account_auth")
 
     # 使该用户的旧绑定码失效
-    old_codes = db.query(ExtensionPairingCode).filter(
-        ExtensionPairingCode.user_id == user_id,
-        ExtensionPairingCode.status == 0,
-    ).all()
+    old_codes = (
+        db.query(ExtensionPairingCode)
+        .filter(
+            ExtensionPairingCode.user_id == user_id,
+            ExtensionPairingCode.status == 0,
+        )
+        .all()
+    )
     for c in old_codes:
         c.status = -1
     db.commit()
@@ -553,11 +549,13 @@ async def create_pair_code(
     db.commit()
 
     logger.info(f"插件绑定码已生成: user_id={user_id}, platform={platform}")
-    return JSONResponse(content={
-        "success": True,
-        "pair_code": pair_code,  # 明文返回给前端展示
-        "expires_in": 300,
-    })
+    return JSONResponse(
+        content={
+            "success": True,
+            "pair_code": pair_code,  # 明文返回给前端展示
+            "expires_in": 300,
+        }
+    )
 
 
 @router.post("/extension/bind")
@@ -582,10 +580,14 @@ async def bind_extension(
 
     # 查找并校验绑定码（用 hash 匹配）
     code_hash = hashlib.sha256(pair_code.encode()).hexdigest()
-    db_code = db.query(ExtensionPairingCode).filter(
-        ExtensionPairingCode.code == code_hash,
-        ExtensionPairingCode.status == 0,
-    ).first()
+    db_code = (
+        db.query(ExtensionPairingCode)
+        .filter(
+            ExtensionPairingCode.code == code_hash,
+            ExtensionPairingCode.status == 0,
+        )
+        .first()
+    )
 
     if not db_code:
         raise HTTPException(status_code=400, detail="无效或已过期的绑定码")
@@ -606,10 +608,14 @@ async def bind_extension(
     token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
 
     # 保存绑定关系（同一 extension_id 只能绑定一个用户）
-    existing = db.query(BrowserExtensionBinding).filter(
-        BrowserExtensionBinding.extension_id == extension_id,
-        BrowserExtensionBinding.revoked_at.is_(None),
-    ).first()
+    existing = (
+        db.query(BrowserExtensionBinding)
+        .filter(
+            BrowserExtensionBinding.extension_id == extension_id,
+            BrowserExtensionBinding.revoked_at.is_(None),
+        )
+        .first()
+    )
     if existing:
         # 复用但重新生成 token
         existing.user_id = user_id
@@ -630,14 +636,17 @@ async def bind_extension(
     db.commit()
     logger.info(f"插件绑定成功: user_id={user_id}, extension_id={extension_id}")
 
-    return JSONResponse(content={
-        "success": True,
-        "extension_token": raw_token,  # 明文返回给插件保存
-        "user_id": user_id,
-    })
+    return JSONResponse(
+        content={
+            "success": True,
+            "extension_token": raw_token,  # 明文返回给插件保存
+            "user_id": user_id,
+        }
+    )
 
 
 # ==================== extension_token 鉴权依赖 ====================
+
 
 async def get_binding_from_token(
     request: Request,
@@ -653,9 +662,13 @@ async def get_binding_from_token(
         raise HTTPException(status_code=401, detail="无效的插件令牌格式")
 
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    binding = db.query(BrowserExtensionBinding).filter(
-        BrowserExtensionBinding.token_hash == token_hash,
-    ).first()
+    binding = (
+        db.query(BrowserExtensionBinding)
+        .filter(
+            BrowserExtensionBinding.token_hash == token_hash,
+        )
+        .first()
+    )
 
     if not binding:
         raise HTTPException(status_code=401, detail="插件令牌无效")
@@ -877,9 +890,8 @@ async def sync_local_storage_state(
         is_valid, reason = await _validate_ai_storage_state(request.platform, request.storage_state)
         cookies = request.storage_state.get("cookies", [])
         origins = request.storage_state.get("origins", [])
-        has_deepseek_state = (
-            any("deepseek" in (cookie.get("domain") or "") for cookie in cookies)
-            and any("chat.deepseek.com" in (origin.get("origin") or "") for origin in origins)
+        has_deepseek_state = any("deepseek" in (cookie.get("domain") or "") for cookie in cookies) and any(
+            "chat.deepseek.com" in (origin.get("origin") or "") for origin in origins
         )
         has_doubao_state = any("doubao.com" in (cookie.get("domain") or "") for cookie in cookies)
         browser_verified = (
@@ -891,9 +903,8 @@ async def sync_local_storage_state(
                 or (request.platform == "doubao" and has_doubao_state)
             )
         )
-        explicit_auth_failure = (
-            request.platform == "deepseek"
-            and any(marker in reason.lower() for marker in ["invalid token", "token expired", "认证失败"])
+        explicit_auth_failure = request.platform == "deepseek" and any(
+            marker in reason.lower() for marker in ["invalid token", "token expired", "认证失败"]
         )
         if explicit_auth_failure:
             browser_verified = False
@@ -1021,11 +1032,7 @@ async def upload_roaming_session(
     （B 发布时若本机无会话，会调用下载接口拉取）。只影响 local_only 内容平台，
     不改变账号的 session_location / auth_mode（发布仍走各电脑本地浏览器）。
     """
-    account = (
-        db.query(Account)
-        .filter(Account.id == request.account_id, Account.deleted_at.is_(None))
-        .first()
-    )
+    account = db.query(Account).filter(Account.id == request.account_id, Account.deleted_at.is_(None)).first()
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
     if account.user_id != current_user.id:
@@ -1051,11 +1058,7 @@ async def download_roaming_session(
     current_user: User = Depends(get_current_user_from_token),
 ):
     """拉取当前用户某账号的漫游会话（供本机无会话时发布使用）。"""
-    account = (
-        db.query(Account)
-        .filter(Account.id == account_id, Account.deleted_at.is_(None))
-        .first()
-    )
+    account = db.query(Account).filter(Account.id == account_id, Account.deleted_at.is_(None)).first()
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
     if getattr(current_user, "role", None) != "admin" and account.user_id != current_user.id:
@@ -1067,9 +1070,7 @@ async def download_roaming_session(
             status_code=404,
             detail="服务器上没有该账号的漫游会话，请先在任一台电脑完成登录授权",
         )
-    return JSONResponse(
-        content={"success": True, "platform": account.platform, "storage_state": state}
-    )
+    return JSONResponse(content={"success": True, "platform": account.platform, "storage_state": state})
 
 
 @router.post("/start-local-browser-auth")
@@ -1207,6 +1208,7 @@ async def list_extension_devices(
     try:
         from backend.config import JWT_SECRET_KEY, JWT_ALGORITHM
         import jwt
+
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("user_id")
         if not user_id:
@@ -1216,20 +1218,27 @@ async def list_extension_devices(
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="无效令牌")
 
-    bindings = db.query(BrowserExtensionBinding).filter(
-        BrowserExtensionBinding.user_id == user_id,
-    ).order_by(BrowserExtensionBinding.last_seen_at.desc()).all()
+    bindings = (
+        db.query(BrowserExtensionBinding)
+        .filter(
+            BrowserExtensionBinding.user_id == user_id,
+        )
+        .order_by(BrowserExtensionBinding.last_seen_at.desc())
+        .all()
+    )
 
     devices = []
     for b in bindings:
-        devices.append({
-            "id": b.id,
-            "extension_id": b.extension_id,
-            "device_name": b.device_name,
-            "created_at": b.created_at.isoformat() if b.created_at else None,
-            "last_seen_at": b.last_seen_at.isoformat() if b.last_seen_at else None,
-            "revoked": b.revoked_at is not None,
-        })
+        devices.append(
+            {
+                "id": b.id,
+                "extension_id": b.extension_id,
+                "device_name": b.device_name,
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+                "last_seen_at": b.last_seen_at.isoformat() if b.last_seen_at else None,
+                "revoked": b.revoked_at is not None,
+            }
+        )
 
     return JSONResponse(content={"success": True, "devices": devices})
 
@@ -1252,6 +1261,7 @@ async def revoke_extension_device(
     try:
         from backend.config import JWT_SECRET_KEY, JWT_ALGORITHM
         import jwt
+
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("user_id")
         if not user_id:
@@ -1270,10 +1280,14 @@ async def revoke_extension_device(
     if not binding_id:
         raise HTTPException(status_code=400, detail="binding_id 不能为空")
 
-    binding = db.query(BrowserExtensionBinding).filter(
-        BrowserExtensionBinding.id == binding_id,
-        BrowserExtensionBinding.user_id == user_id,
-    ).first()
+    binding = (
+        db.query(BrowserExtensionBinding)
+        .filter(
+            BrowserExtensionBinding.id == binding_id,
+            BrowserExtensionBinding.user_id == user_id,
+        )
+        .first()
+    )
 
     if not binding:
         raise HTTPException(status_code=404, detail="未找到该插件设备")

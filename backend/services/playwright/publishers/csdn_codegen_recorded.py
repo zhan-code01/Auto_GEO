@@ -13,8 +13,16 @@ async def run(playwright: Playwright) -> None:
     await page.get_by_placeholder("请输入文章标题（5～100个字）").click()
     await page.get_by_placeholder("请输入文章标题（5～100个字）").fill("此处输入的是文章的标题")
     await page.locator("#cke_1_contents iframe").content_frame.locator("body").click()
-    await page.locator("#cke_1_contents iframe").content_frame.locator("body").fill("此处输入的是文章的正文，我们可以在这个地方输入文字和图片等信息的哦")
-    await page.locator("#cke_1_contents iframe").content_frame.get_by_text("此处输入的是文章的正文，我们可以在这个地方输入文字和图片等信息的哦").click()
+    await (
+        page.locator("#cke_1_contents iframe")
+        .content_frame.locator("body")
+        .fill("此处输入的是文章的正文，我们可以在这个地方输入文字和图片等信息的哦")
+    )
+    await (
+        page.locator("#cke_1_contents iframe")
+        .content_frame.get_by_text("此处输入的是文章的正文，我们可以在这个地方输入文字和图片等信息的哦")
+        .click()
+    )
     await page.locator("#cke_1_contents iframe").content_frame.locator("body").press("ArrowRight")
     await page.locator("#cke_1_contents iframe").content_frame.locator("body").press("ArrowRight")
     await page.locator("#cke_1_contents iframe").content_frame.locator("body").press("ArrowRight")

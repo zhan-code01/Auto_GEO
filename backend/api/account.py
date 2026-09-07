@@ -75,6 +75,7 @@ async def get_optional_user(
     try:
         payload = None
         from backend.api.user import decode_token
+
         payload = decode_token(credentials.credentials)
         if not payload:
             return None
@@ -169,9 +170,7 @@ async def get_accounts(
     if group_id is not None:
         query = query.filter(Account.group_id == group_id)
     if keyword:
-        query = query.filter(
-            (Account.account_name.contains(keyword)) | (Account.username.contains(keyword))
-        )
+        query = query.filter((Account.account_name.contains(keyword)) | (Account.username.contains(keyword)))
     if tag:
         # JSON 字段中的标签匹配（SQLite 使用 LIKE 兼容）
         query = query.filter(Account.tags.contains(tag))
@@ -234,10 +233,14 @@ async def get_account(
     current_user: Optional[User] = Depends(get_optional_user),
 ):
     """获取账号详情"""
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        Account.deleted_at.is_(None),
-    ).first()
+    account = (
+        db.query(Account)
+        .filter(
+            Account.id == account_id,
+            Account.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
 
@@ -316,12 +319,17 @@ async def create_account(
 
     # 记录操作日志
     await _log_operation(
-        db, account.id, current_user, "create",
+        db,
+        account.id,
+        current_user,
+        "create",
         detail={"platform": account.platform, "account_name": account.account_name},
     )
     db.commit()
 
-    logger.info(f"账号已创建: {account.id} - {account.platform}:{account.account_name} (user={current_user.username if current_user else 'anonymous'})")
+    logger.info(
+        f"账号已创建: {account.id} - {account.platform}:{account.account_name} (user={current_user.username if current_user else 'anonymous'})"
+    )
     return account
 
 
@@ -333,10 +341,14 @@ async def update_account(
     current_user: Optional[User] = Depends(get_optional_user),
 ):
     """更新账号信息"""
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        Account.deleted_at.is_(None),
-    ).first()
+    account = (
+        db.query(Account)
+        .filter(
+            Account.id == account_id,
+            Account.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
 
@@ -373,7 +385,10 @@ async def update_account(
 
     # 记录操作日志
     await _log_operation(
-        db, account.id, current_user, "update",
+        db,
+        account.id,
+        current_user,
+        "update",
         detail={"changed_fields": changed_fields},
     )
     db.commit()
@@ -406,17 +421,23 @@ async def delete_account(
     else:
         # 软删除
         from datetime import datetime
+
         account.deleted_at = datetime.now()
         account.status = 0
 
     # 记录操作日志
     await _log_operation(
-        db, account_id, current_user, "delete",
+        db,
+        account_id,
+        current_user,
+        "delete",
         detail={"hard_delete": hard, "account_name": account.account_name},
     )
     db.commit()
 
-    logger.info(f"账号已{'硬' if hard else '软'}删除: {account_id} (user={current_user.username if current_user else 'anonymous'})")
+    logger.info(
+        f"账号已{'硬' if hard else '软'}删除: {account_id} (user={current_user.username if current_user else 'anonymous'})"
+    )
     return ApiResponse(success=True, message=f"账号已{'彻底删除' if hard else '删除'}")
 
 
@@ -436,10 +457,14 @@ async def get_tieba_forums(
     current_user: Optional[User] = Depends(get_optional_user),
 ):
     """读取贴吧账号已配置的目标吧列表（第一个为默认）。"""
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        Account.deleted_at.is_(None),
-    ).first()
+    account = (
+        db.query(Account)
+        .filter(
+            Account.id == account_id,
+            Account.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
     if current_user:
@@ -462,10 +487,14 @@ async def set_tieba_forums(
     吧名以 "吧:" 前缀编码进 Account.tags（零迁移），第一条为默认发布吧；非吧标签原样保留。
     换吧只需调整顺序把目标吧排到第一位，无需重新绑定账号。
     """
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        Account.deleted_at.is_(None),
-    ).first()
+    account = (
+        db.query(Account)
+        .filter(
+            Account.id == account_id,
+            Account.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
     if current_user:
@@ -490,7 +519,10 @@ async def set_tieba_forums(
 
     if current_user:
         await _log_operation(
-            db, account.id, current_user, "set_tieba_forums",
+            db,
+            account.id,
+            current_user,
+            "set_tieba_forums",
             detail={"forums": cleaned},
         )
         db.commit()
@@ -539,10 +571,14 @@ async def start_auth(
 
     # 如果是更新授权，检查账号是否存在且属于当前用户
     if auth_data.account_id:
-        account = db.query(Account).filter(
-            Account.id == auth_data.account_id,
-            Account.deleted_at.is_(None),
-        ).first()
+        account = (
+            db.query(Account)
+            .filter(
+                Account.id == auth_data.account_id,
+                Account.deleted_at.is_(None),
+            )
+            .first()
+        )
         if not account:
             raise HTTPException(status_code=404, detail="账号不存在")
         if current_user:
@@ -553,7 +589,10 @@ async def start_auth(
     # 记录操作日志（有用户时才记录）
     if current_user:
         await _log_operation(
-            db, auth_data.account_id, current_user, "auth_start",
+            db,
+            auth_data.account_id,
+            current_user,
+            "auth_start",
             detail={"platform": platform},
         )
     db.commit()
@@ -561,10 +600,11 @@ async def start_auth(
     # 创建授权任务
     try:
         task = await playwright_mgr.create_auth_task(
-            platform, auth_data.account_id, auth_data.account_name,
-            user_id=current_user.id if current_user else None
+            platform, auth_data.account_id, auth_data.account_name, user_id=current_user.id if current_user else None
         )
-        logger.info(f"授权任务已启动: {task.task_id}, 平台: {platform} (user={current_user.username if current_user else 'anonymous'})")
+        logger.info(
+            f"授权任务已启动: {task.task_id}, 平台: {platform} (user={current_user.username if current_user else 'anonymous'})"
+        )
         return AuthStartResponse(
             task_id=task.task_id,
             message=f"已打开{PLATFORMS[platform]['name']}登录页面，请完成扫码/密码登录",
@@ -642,7 +682,10 @@ async def save_auth(
     # 记录操作日志
     if current_user:
         await _log_operation(
-            db, account_id, current_user, "auth_success",
+            db,
+            account_id,
+            current_user,
+            "auth_success",
             detail={"platform": account.platform},
         )
     db.commit()
@@ -679,13 +722,15 @@ async def confirm_auth(
         # 关闭上下文（关弹窗）+ 广播前端通知都要做，前端轮询拿到 success 时会调用本接口。
         await playwright_mgr.close_auth_task(task_id)
         if ws_manager:
-            await ws_manager.broadcast({
-                "type": "auth_complete",
-                "task_id": task.task_id,
-                "platform": task.platform,
-                "account_id": task.created_account_id,
-                "success": True,
-            })
+            await ws_manager.broadcast(
+                {
+                    "type": "auth_complete",
+                    "task_id": task.task_id,
+                    "platform": task.platform,
+                    "account_id": task.created_account_id,
+                    "success": True,
+                }
+            )
         logger.info(f"授权已确认（自动完成路径），已关闭浏览器: {task_id}")
         return ApiResponse(success=True, message="授权已完成")
 
@@ -702,6 +747,7 @@ async def confirm_auth(
     try:
         # 委托给 _finalize_auth 执行完整验证+入库
         import json as _json
+
         result_raw = await playwright_mgr._finalize_auth(task_id)
         result = _json.loads(result_raw)
 
@@ -710,7 +756,10 @@ async def confirm_auth(
             account_id = task.account_id or task.created_account_id
             if current_user:
                 await _log_operation(
-                    db, account_id, current_user, "auth_success",
+                    db,
+                    account_id,
+                    current_user,
+                    "auth_success",
                     detail={"platform": task.platform},
                 )
                 db.commit()
@@ -719,13 +768,15 @@ async def confirm_auth(
             await playwright_mgr.close_auth_task(task_id)
 
             if ws_manager:
-                await ws_manager.broadcast({
-                    "type": "auth_complete",
-                    "task_id": task.task_id,
-                    "platform": task.platform,
-                    "account_id": account_id,
-                    "success": True,
-                })
+                await ws_manager.broadcast(
+                    {
+                        "type": "auth_complete",
+                        "task_id": task.task_id,
+                        "platform": task.platform,
+                        "account_id": account_id,
+                        "success": True,
+                    }
+                )
 
             logger.info(f"授权确认成功: {task_id}")
             return ApiResponse(
@@ -747,7 +798,10 @@ async def confirm_auth(
 
         if current_user:
             await _log_operation(
-                db, None, current_user, "auth_fail",
+                db,
+                None,
+                current_user,
+                "auth_fail",
                 detail={"platform": task.platform, "error": str(e)},
             )
             db.commit()
@@ -863,10 +917,14 @@ async def report_check_result(
       - auth_status == "unknown"     → 不改动任何状态（网络/反爬/浏览器异常等不确定情况，
                                         绝不据此推断账号失效）
     """
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        Account.deleted_at.is_(None),
-    ).first()
+    account = (
+        db.query(Account)
+        .filter(
+            Account.id == account_id,
+            Account.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
 
@@ -896,17 +954,23 @@ async def report_check_result(
     db.refresh(account)
 
     await _log_operation(
-        db, account.id, current_user, "check_result",
+        db,
+        account.id,
+        current_user,
+        "check_result",
         detail={"auth_status": status, "changed": changed},
     )
     db.commit()
 
-    return ApiResponse(success=True, data={
-        "account_id": account.id,
-        "status": account.status,
-        "last_check_time": account.last_check_time.isoformat() if account.last_check_time else None,
-        "auth_status": status,
-    })
+    return ApiResponse(
+        success=True,
+        data={
+            "account_id": account.id,
+            "status": account.status,
+            "last_check_time": account.last_check_time.isoformat() if account.last_check_time else None,
+            "auth_status": status,
+        },
+    )
 
 
 # ==================== 账号分组 API ====================
@@ -931,20 +995,26 @@ async def get_groups(
     # 统计每个分组的账号数量
     result = []
     for group in groups:
-        count = db.query(Account).filter(
-            Account.group_id == group.id,
-            Account.deleted_at.is_(None),
-        ).count()
-        result.append({
-            "id": group.id,
-            "name": group.name,
-            "icon": group.icon,
-            "color": group.color,
-            "sort_order": group.sort_order,
-            "account_count": count,
-            "created_at": group.created_at.isoformat() if group.created_at else None,
-            "updated_at": group.updated_at.isoformat() if group.updated_at else None,
-        })
+        count = (
+            db.query(Account)
+            .filter(
+                Account.group_id == group.id,
+                Account.deleted_at.is_(None),
+            )
+            .count()
+        )
+        result.append(
+            {
+                "id": group.id,
+                "name": group.name,
+                "icon": group.icon,
+                "color": group.color,
+                "sort_order": group.sort_order,
+                "account_count": count,
+                "created_at": group.created_at.isoformat() if group.created_at else None,
+                "updated_at": group.updated_at.isoformat() if group.updated_at else None,
+            }
+        )
 
     return ApiResponse(success=True, data=result)
 
@@ -1024,6 +1094,7 @@ async def delete_group(
 
 # ==================== 批量操作 API ====================
 
+
 def _user_filter(current_user: Optional[User]):
     """辅助：有用户时返回用户ID过滤条件列表，无用户时返回空列表"""
     if current_user:
@@ -1055,7 +1126,10 @@ async def batch_update_status(
 
     if current_user:
         await _log_operation(
-            db, None, current_user, "batch_update_status",
+            db,
+            None,
+            current_user,
+            "batch_update_status",
             detail={"account_ids": request.account_ids, "status": request.status, "updated": updated},
         )
     db.commit()
@@ -1086,7 +1160,10 @@ async def batch_delete(
 
     if current_user:
         await _log_operation(
-            db, None, current_user, "batch_delete",
+            db,
+            None,
+            current_user,
+            "batch_delete",
             detail={"account_ids": request.account_ids, "deleted": deleted},
         )
     db.commit()
@@ -1120,7 +1197,10 @@ async def batch_move_group(
 
     if current_user:
         await _log_operation(
-            db, None, current_user, "batch_move_group",
+            db,
+            None,
+            current_user,
+            "batch_move_group",
             detail={"account_ids": request.account_ids, "group_id": request.group_id, "moved": moved},
         )
     db.commit()
@@ -1184,7 +1264,10 @@ async def import_accounts(
 
     if current_user:
         await _log_operation(
-            db, None, current_user, "batch_import",
+            db,
+            None,
+            current_user,
+            "batch_import",
             detail={"created": len(created), "errors": len(errors)},
         )
         db.commit()
@@ -1216,18 +1299,20 @@ async def export_accounts(
 
     for acc in accounts:
         status_map = {1: "正常", 0: "禁用", -1: "授权过期"}
-        writer.writerow([
-            acc.id,
-            acc.platform,
-            acc.account_name,
-            status_map.get(acc.status, str(acc.status)),
-            acc.group_id or "",
-            ",".join(acc.tags) if acc.tags else "",
-            acc.health_score or "",
-            acc.last_auth_time.isoformat() if acc.last_auth_time else "",
-            acc.created_at.isoformat() if acc.created_at else "",
-            acc.remark or "",
-        ])
+        writer.writerow(
+            [
+                acc.id,
+                acc.platform,
+                acc.account_name,
+                status_map.get(acc.status, str(acc.status)),
+                acc.group_id or "",
+                ",".join(acc.tags) if acc.tags else "",
+                acc.health_score or "",
+                acc.last_auth_time.isoformat() if acc.last_auth_time else "",
+                acc.created_at.isoformat() if acc.created_at else "",
+                acc.remark or "",
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
@@ -1265,14 +1350,16 @@ async def get_expiring_accounts(
 
     result = []
     for acc in accounts:
-        result.append({
-            "id": acc.id,
-            "platform": acc.platform,
-            "account_name": acc.account_name,
-            "health_score": acc.health_score,
-            "last_auth_time": acc.last_auth_time.isoformat() if acc.last_auth_time else None,
-            "auth_expires_at": acc.auth_expires_at.isoformat() if acc.auth_expires_at else None,
-        })
+        result.append(
+            {
+                "id": acc.id,
+                "platform": acc.platform,
+                "account_name": acc.account_name,
+                "health_score": acc.health_score,
+                "last_auth_time": acc.last_auth_time.isoformat() if acc.last_auth_time else None,
+                "auth_expires_at": acc.auth_expires_at.isoformat() if acc.auth_expires_at else None,
+            }
+        )
 
     return ApiResponse(success=True, data=result)
 
@@ -1293,9 +1380,7 @@ async def get_account_logs(
         return ApiResponse(success=True, data={"total": 0, "items": [], "page": page, "limit": limit})
 
     # 获取当前用户的所有账号 ID
-    user_account_ids = [
-        row[0] for row in db.query(Account.id).filter(Account.user_id == current_user.id).all()
-    ]
+    user_account_ids = [row[0] for row in db.query(Account.id).filter(Account.user_id == current_user.id).all()]
 
     query = db.query(AccountOperationLog).filter(
         AccountOperationLog.user_id == current_user.id,
@@ -1313,18 +1398,23 @@ async def get_account_logs(
 
     items = []
     for log in logs:
-        items.append({
-            "id": log.id,
-            "account_id": log.account_id,
-            "operation": log.operation,
-            "detail": log.detail,
-            "ip_address": log.ip_address,
-            "created_at": log.created_at.isoformat() if log.created_at else None,
-        })
+        items.append(
+            {
+                "id": log.id,
+                "account_id": log.account_id,
+                "operation": log.operation,
+                "detail": log.detail,
+                "ip_address": log.ip_address,
+                "created_at": log.created_at.isoformat() if log.created_at else None,
+            }
+        )
 
-    return ApiResponse(success=True, data={
-        "total": total,
-        "items": items,
-        "page": page,
-        "limit": limit,
-    })
+    return ApiResponse(
+        success=True,
+        data={
+            "total": total,
+            "items": items,
+            "page": page,
+            "limit": limit,
+        },
+    )

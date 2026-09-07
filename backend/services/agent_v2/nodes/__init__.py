@@ -9,6 +9,7 @@ graph 外辅助函数（在 graph.ainvoke 前后调用）：
 - load_context: 加载历史消息 + user_facts + task_context
 - persist_mem: 保存对话历史 + facts_patch + task_context
 """
+
 from backend.services.agent_v2.nodes.agent_node import agent_node
 from backend.services.agent_v2.nodes.load_context import load_context
 from backend.services.agent_v2.nodes.persist_mem import persist_mem

@@ -152,9 +152,7 @@ class ContentProfileExtractionService:
             if total_chars >= MAX_SOURCE_TEXT_CHARS:
                 break
             try:
-                result = ragflow.retrieve(
-                    question=q, dataset_ids=[dataset_id], similarity_threshold=0.2, top_k=5
-                )
+                result = ragflow.retrieve(question=q, dataset_ids=[dataset_id], similarity_threshold=0.2, top_k=5)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"画像抽取检索失败: {exc}")
                 continue
@@ -320,7 +318,9 @@ class ContentProfileExtractionService:
             self.db.query(ClientContentProfile)
             .filter(
                 ClientContentProfile.client_id == client_id,
-                ClientContentProfile.project_id == project_id if project_id is not None else ClientContentProfile.project_id.is_(None),
+                ClientContentProfile.project_id == project_id
+                if project_id is not None
+                else ClientContentProfile.project_id.is_(None),
                 ClientContentProfile.source == source,
                 ClientContentProfile.status == "active",
             )
@@ -361,7 +361,9 @@ class ContentProfileExtractionService:
             self.db.query(ClientContentProfile)
             .filter(
                 ClientContentProfile.client_id == client_id,
-                ClientContentProfile.project_id == project_id if project_id is not None else ClientContentProfile.project_id.is_(None),
+                ClientContentProfile.project_id == project_id
+                if project_id is not None
+                else ClientContentProfile.project_id.is_(None),
                 ClientContentProfile.source == source,
                 ClientContentProfile.status == "active",
             )
@@ -386,7 +388,14 @@ class ContentProfileExtractionService:
             if v:
                 fields[f] = v
         # 列表（Excel 里是逗号/顿号串）
-        for f in ("target_customer", "pain_points", "product_service", "selling_points", "case_materials", "forbidden_words"):
+        for f in (
+            "target_customer",
+            "pain_points",
+            "product_service",
+            "selling_points",
+            "case_materials",
+            "forbidden_words",
+        ):
             v = (nd.get(f) or "").strip()
             if v:
                 fields[f] = _normalize_list(v)

@@ -258,10 +258,30 @@ class CsdnCodegenPublisher(BasePublisher):
         text = f"{title}\n{self.markdown_to_plain_text(content, drop_first_h1=True)}"
         candidates = re.findall(r"[\u4e00-\u9fffA-Za-z0-9]{2,12}", text)
         stop_words = {
-            "我们", "他们", "一个", "一种", "可以", "通过", "进行",
-            "实现", "提升", "降低", "系统", "企业", "用户", "文章",
-            "详解", "分析", "这个", "什么", "怎么", "如何", "使用",
-            "相关", "推荐", "一些",
+            "我们",
+            "他们",
+            "一个",
+            "一种",
+            "可以",
+            "通过",
+            "进行",
+            "实现",
+            "提升",
+            "降低",
+            "系统",
+            "企业",
+            "用户",
+            "文章",
+            "详解",
+            "分析",
+            "这个",
+            "什么",
+            "怎么",
+            "如何",
+            "使用",
+            "相关",
+            "推荐",
+            "一些",
         }
         seen = set(tags)
         for word in candidates:
@@ -286,9 +306,7 @@ class CsdnCodegenPublisher(BasePublisher):
         try:
             add_btn = page.get_by_role("button", name="添加文章标签").first
             if await add_btn.count() == 0:
-                add_btn = page.locator(
-                    'button:has-text("添加文章标签"), span:has-text("添加文章标签")'
-                ).first
+                add_btn = page.locator('button:has-text("添加文章标签"), span:has-text("添加文章标签")').first
             if await add_btn.count() > 0:
                 await add_btn.scroll_into_view_if_needed(timeout=3000)
                 await add_btn.click()

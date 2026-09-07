@@ -51,8 +51,7 @@ def upgrade():
         op.create_table(
             "client_devices",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-            sa.Column("user_id", sa.Integer(),
-                      sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
             sa.Column("device_id", sa.String(length=64), nullable=False),
             sa.Column("device_name", sa.String(length=200), nullable=True),
             sa.Column("os", sa.String(length=20), nullable=True),
@@ -71,52 +70,70 @@ def upgrade():
 
     # 2. auto_publish_tasks 路由列（PG 此前缺失，补齐；SQLite legacy 已由 fix_database 兜底）
     _add_column_if_missing(
-        "auto_publish_tasks", "execution_mode",
-        sa.Column("execution_mode", sa.String(length=20), server_default="cloud_browser",
-                  comment="执行模式：local_client/cloud_browser/api/manual"),
+        "auto_publish_tasks",
+        "execution_mode",
+        sa.Column(
+            "execution_mode",
+            sa.String(length=20),
+            server_default="cloud_browser",
+            comment="执行模式：local_client/cloud_browser/api/manual",
+        ),
     )
     _add_column_if_missing(
-        "auto_publish_tasks", "assigned_device_id",
-        sa.Column("assigned_device_id", sa.String(length=64), nullable=True,
-                  comment="指定执行设备ID"),
+        "auto_publish_tasks",
+        "assigned_device_id",
+        sa.Column("assigned_device_id", sa.String(length=64), nullable=True, comment="指定执行设备ID"),
     )
     _add_column_if_missing(
-        "auto_publish_tasks", "claimed_by_device_id",
-        sa.Column("claimed_by_device_id", sa.String(length=64), nullable=True,
-                  comment="实际领取设备ID"),
+        "auto_publish_tasks",
+        "claimed_by_device_id",
+        sa.Column("claimed_by_device_id", sa.String(length=64), nullable=True, comment="实际领取设备ID"),
     )
     _add_column_if_missing(
-        "auto_publish_tasks", "claim_expires_at",
+        "auto_publish_tasks",
+        "claim_expires_at",
         sa.Column("claim_expires_at", sa.DateTime(), nullable=True, comment="任务领取锁过期时间"),
     )
     _add_column_if_missing(
-        "auto_publish_tasks", "manual_required",
-        sa.Column("manual_required", sa.Boolean(), server_default=sa.text("false"),
-                  comment="是否需要人工接管"),
+        "auto_publish_tasks",
+        "manual_required",
+        sa.Column("manual_required", sa.Boolean(), server_default=sa.text("false"), comment="是否需要人工接管"),
     )
     _add_column_if_missing(
-        "auto_publish_tasks", "manual_message",
+        "auto_publish_tasks",
+        "manual_message",
         sa.Column("manual_message", sa.Text(), nullable=True, comment="人工接管原因"),
     )
-    op.create_index("ix_auto_publish_tasks_assigned_device_id", "auto_publish_tasks",
-                    ["assigned_device_id"], if_not_exists=True)
+    op.create_index(
+        "ix_auto_publish_tasks_assigned_device_id", "auto_publish_tasks", ["assigned_device_id"], if_not_exists=True
+    )
 
     # 3. accounts 本地客户端授权列（§6.1.2 / §7.3）
     #    模型与 fix_database（SQLite legacy）已声明，但 PG 此前无对应迁移，此处幂等补齐。
     _add_column_if_missing(
-        "accounts", "auth_mode",
-        sa.Column("auth_mode", sa.String(length=20), server_default="cloud_browser",
-                  comment="授权模式：cloud_browser=服务器浏览器 local_client=本地客户端 api=官方API"),
+        "accounts",
+        "auth_mode",
+        sa.Column(
+            "auth_mode",
+            sa.String(length=20),
+            server_default="cloud_browser",
+            comment="授权模式：cloud_browser=服务器浏览器 local_client=本地客户端 api=官方API",
+        ),
     )
     _add_column_if_missing(
-        "accounts", "device_id",
-        sa.Column("device_id", sa.String(length=64), nullable=True,
-                  comment="本地客户端设备ID（local_client 模式）"),
+        "accounts",
+        "device_id",
+        sa.Column("device_id", sa.String(length=64), nullable=True, comment="本地客户端设备ID（local_client 模式）"),
     )
     _add_column_if_missing(
-        "accounts", "session_location",
-        sa.Column("session_location", sa.String(length=20), server_default="server",
-                  comment="会话位置：server=服务器保存 local_only=仅本地"),
+        "accounts",
+        "session_location",
+        sa.Column(
+            "session_location",
+            sa.String(length=20),
+            server_default="server",
+            comment="会话位置：server=服务器保存 local_only=仅本地",
+        ),
     )
     op.create_index("ix_accounts_device_id", "accounts", ["device_id"], if_not_exists=True)
 

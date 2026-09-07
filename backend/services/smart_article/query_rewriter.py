@@ -14,10 +14,14 @@ class SmartArticleQueryRewriter:
     def __init__(self, llm: SmartArticleLLMAdapter | None = None):
         self.llm = llm or SmartArticleLLMAdapter()
 
-    async def rewrite(self, context: ProjectContext, planned: PlannedQuestion, initial: list[QuerySpec]) -> list[QuerySpec]:
+    async def rewrite(
+        self, context: ProjectContext, planned: PlannedQuestion, initial: list[QuerySpec]
+    ) -> list[QuerySpec]:
         data = await self.llm.json(
             QUERY_REWRITE_SYSTEM,
-            build_query_rewrite_prompt(context, planned.question, planned.intent_type, [item.as_dict() for item in initial]),
+            build_query_rewrite_prompt(
+                context, planned.question, planned.intent_type, [item.as_dict() for item in initial]
+            ),
             temperature=0.2,
             max_tokens=800,
             stage="Prompt R：知识库Query兜底改写",
@@ -34,7 +38,9 @@ class SmartArticleQueryRewriter:
             text = " ".join(str(item.get("text") or "").split()).strip()
             if not text or text.casefold() in existing or len(text) > 120:
                 continue
-            result.append(QuerySpec(text=text, kind="capability_match", purpose=str(item.get("purpose") or "补充检索产品资料")))
+            result.append(
+                QuerySpec(text=text, kind="capability_match", purpose=str(item.get("purpose") or "补充检索产品资料"))
+            )
             existing.add(text.casefold())
         if not 3 <= len(result) <= 5:
             raise QueryRewriteError("Prompt R返回的Query数量或内容不合格")

@@ -46,21 +46,21 @@ class BilibiliPublisher(BasePublisher):
     # ─── 常量 ─────────────────────────────────
     MAX_TITLE_LENGTH = 30
     MAX_CONTENT_LENGTH = 20000
-    MAX_PER_HOUR = 5           # 每小时最多发布次数
-    MAX_PER_DAY = 15           # 每天最多发布次数
-    MIN_INTERVAL_MINUTES = 5   # 两次发布最小间隔（分钟）
+    MAX_PER_HOUR = 5  # 每小时最多发布次数
+    MAX_PER_DAY = 15  # 每天最多发布次数
+    MIN_INTERVAL_MINUTES = 5  # 两次发布最小间隔（分钟）
 
     # 编辑器/列表页 URL 特征（用于判断发布后是否已离开编辑器）。
     # 注意：B站创作中心专栏链路 URL 本身普遍含 upload（如 /platform/upload/text/new-article），
     # 因此不能用宽泛的 "upload"/"edit" 一刀切排除，必须用下列精确特征判断。
     EDITOR_URL_FEATURES = (
-        "new-article",       # 专栏管理列表页（publish_url 落地页）
+        "new-article",  # 专栏管理列表页（publish_url 落地页）
         "upload-text/edit",  # 新版编辑器直链（备用入口）
         "upload/text/edit",  # 旧版编辑器直链（备用入口）
-        "read-editor",       # 编辑器 iframe
-        "read-draft",        # 草稿/编辑器 iframe
-        "article-editor",    # 最旧版编辑器
-        "post_text",         # 最旧版编辑器
+        "read-editor",  # 编辑器 iframe
+        "read-draft",  # 草稿/编辑器 iframe
+        "article-editor",  # 最旧版编辑器
+        "post_text",  # 最旧版编辑器
     )
 
     # ─── 类变量：发布历史（频率控制）───
@@ -90,7 +90,10 @@ class BilibiliPublisher(BasePublisher):
         if self._publish_history:
             minutes = (now - self._publish_history[-1]).total_seconds() / 60
             if minutes < self.MIN_INTERVAL_MINUTES:
-                return {"allowed": False, "reason": f"距上次发布仅{int(minutes)}分钟，需≥{self.MIN_INTERVAL_MINUTES}分钟"}
+                return {
+                    "allowed": False,
+                    "reason": f"距上次发布仅{int(minutes)}分钟，需≥{self.MIN_INTERVAL_MINUTES}分钟",
+                }
 
         return {"allowed": True, "reason": "频率检查通过"}
 
@@ -98,10 +101,7 @@ class BilibiliPublisher(BasePublisher):
     # 主流程
     # ═══════════════════════════════════════════════════════════
 
-    async def publish(
-        self, page: Page, article: Any, account: Any,
-        declare_ai_content: bool = True
-    ) -> Dict[str, Any]:
+    async def publish(self, page: Page, article: Any, account: Any, declare_ai_content: bool = True) -> Dict[str, Any]:
         temp_files = []
         stage = "init"
         try:
@@ -144,7 +144,8 @@ class BilibiliPublisher(BasePublisher):
             stage = "ensure_editor"
             if not await self._wait_for_editor(page, timeout=8000):
                 return await self._fail(
-                    page, "ensure_editor",
+                    page,
+                    "ensure_editor",
                     "未进入专栏编辑器（未点中「新的创作」或编辑器未加载），停止填写以避免误填列表页",
                 )
 
@@ -165,7 +166,9 @@ class BilibiliPublisher(BasePublisher):
                     and self.config.get("auto_generate_images", False)
                     and generated_publish_images_enabled(self.config)
                 ):
-                    image_paths = await self._download_inline_images(keyword, count=self.config.get("inline_image_count", 3))
+                    image_paths = await self._download_inline_images(
+                        keyword, count=self.config.get("inline_image_count", 3)
+                    )
                     temp_files.extend(image_paths)
                 elif not image_paths and self.config.get("auto_generate_images", False):
                     logger.warning("[B站] 图片下载失败，尝试继续发布（可能无图）...")
@@ -413,10 +416,12 @@ class BilibiliPublisher(BasePublisher):
             for factory in (
                 lambda c=context: c.get_by_role("link", name=name_re).first,
                 lambda c=context: c.get_by_role("button", name=name_re).first,
-                lambda c=context: c.locator(
-                    'a:has-text("专栏"), [role="menuitem"]:has-text("专栏"), '
-                    '[class*="menu"]:has-text("写专栏"), [class*="dropdown"]:has-text("专栏")'
-                ).first,
+                lambda c=context: (
+                    c.locator(
+                        'a:has-text("专栏"), [role="menuitem"]:has-text("专栏"), '
+                        '[class*="menu"]:has-text("写专栏"), [class*="dropdown"]:has-text("专栏")'
+                    ).first
+                ),
             ):
                 try:
                     loc = factory()
@@ -466,9 +471,7 @@ class BilibiliPublisher(BasePublisher):
         # 显式排除列表页搜索框（其 placeholder 不含“建议/文章标题”）
         for context in self._editor_contexts(page):
             try:
-                title = context.get_by_placeholder(
-                    re.compile(r"请输入.{0,6}标题（?建议|请输入文章标题")
-                ).first
+                title = context.get_by_placeholder(re.compile(r"请输入.{0,6}标题（?建议|请输入文章标题")).first
                 if await title.count() > 0 and await title.is_visible(timeout=timeout):
                     return True
             except Exception:
@@ -705,7 +708,7 @@ class BilibiliPublisher(BasePublisher):
 
     async def _fill_title(self, page: Page, title: str) -> bool:
         """填充标题，使用增强选择器列表（含MPP精确选择器）"""
-        clean = re.sub(r"#|\*|\"", "", title).strip()[:self.MAX_TITLE_LENGTH]
+        clean = re.sub(r"#|\*|\"", "", title).strip()[: self.MAX_TITLE_LENGTH]
 
         if await self._fill_bili_placeholder_by_click(page, "title", clean):
             logger.info(f"📝 [B站] 标题已通过占位文字点击写入: {clean}")
@@ -737,9 +740,7 @@ class BilibiliPublisher(BasePublisher):
         for context in self._editor_contexts(page):
             try:
                 # 必须形如“请输入…标题（建议…”才匹配，避免在列表页误填“草稿搜索”框
-                inp = context.get_by_placeholder(
-                    re.compile(r"请输入.{0,6}标题（?建议|请输入文章标题")
-                ).first
+                inp = context.get_by_placeholder(re.compile(r"请输入.{0,6}标题（?建议|请输入文章标题")).first
                 if await inp.count() > 0 and await inp.is_visible(timeout=2000):
                     # fill() 自带清空逻辑，无需手动 Ctrl+A + Backspace
                     # 全局 Control+A 会选中整个页面而非仅输入框，导致 fill 失败
@@ -775,7 +776,7 @@ class BilibiliPublisher(BasePublisher):
                 return True
             logger.warning("[B站] 图文正文写入失败，降级为纯文本正文")
 
-        clean = self._deep_clean(content)[:self.MAX_CONTENT_LENGTH]
+        clean = self._deep_clean(content)[: self.MAX_CONTENT_LENGTH]
 
         if not clean:
             logger.warning("⚠️ [B站] 待发布正文为空，停止正文写入")
@@ -835,7 +836,7 @@ class BilibiliPublisher(BasePublisher):
                 continue
 
         # L2: 尝试普通 textarea
-        for selector in ['textarea', 'textarea[placeholder]', '#desc']:
+        for selector in ["textarea", "textarea[placeholder]", "#desc"]:
             try:
                 editor = await self._first_visible_editor_locator(page, selector, timeout=3000)
                 if await editor.count() > 0 and await editor.is_visible(timeout=3000):
@@ -964,7 +965,7 @@ class BilibiliPublisher(BasePublisher):
         category_selectors = [
             'div[class*="category"]',
             'select[class*="category"]',
-            '.article-category',
+            ".article-category",
         ]
         for selector in category_selectors:
             try:
@@ -1174,11 +1175,7 @@ class BilibiliPublisher(BasePublisher):
     def _still_in_editor(self, page: Page) -> bool:
         """主页面或任一 frame 仍停留在编辑器/列表页 URL 上。"""
         urls = [page.url or ""] + [frame.url or "" for frame in page.frames]
-        return any(
-            feature in url
-            for url in urls
-            for feature in self.EDITOR_URL_FEATURES
-        )
+        return any(feature in url for url in urls for feature in self.EDITOR_URL_FEATURES)
 
     # ═══════════════════════════════════════════════════════════
     # 工具方法
@@ -1214,7 +1211,7 @@ class BilibiliPublisher(BasePublisher):
         )
         cursor = 0
         for match in pattern.finditer(content or ""):
-            text = self._deep_clean((content or "")[cursor:match.start()])
+            text = self._deep_clean((content or "")[cursor : match.start()])
             if text:
                 blocks.append({"type": "text", "content": text})
             if image_index < len(image_paths):
@@ -1416,8 +1413,7 @@ class BilibiliPublisher(BasePublisher):
         contexts: List[Any] = []
         page_url = page.url or ""
         if any(
-            token in page_url
-            for token in ("upload-text/edit", "upload/text/edit", "article-editor", "read-editor")
+            token in page_url for token in ("upload-text/edit", "upload/text/edit", "article-editor", "read-editor")
         ):
             contexts.append(page)
         for frame in page.frames:
@@ -1604,11 +1600,7 @@ class BilibiliPublisher(BasePublisher):
         """Click visible B站 placeholder text and type, matching the current editor UI."""
         if not text:
             return False
-        patterns = (
-            [r"请输入标题", r"标题.*建议"]
-            if kind == "title"
-            else [r"请输入正文", r"正文"]
-        )
+        patterns = [r"请输入标题", r"标题.*建议"] if kind == "title" else [r"请输入正文", r"正文"]
         for context in self._editor_contexts(page):
             for pattern in patterns:
                 try:
@@ -1915,7 +1907,9 @@ class BilibiliPublisher(BasePublisher):
         """Reject the draft-list search box even when a broad selector matches it."""
         try:
             tag = await locator.evaluate("(el) => el.tagName.toLowerCase()")
-            placeholder = await locator.evaluate("(el) => el.getAttribute('placeholder') || el.getAttribute('data-placeholder') || ''")
+            placeholder = await locator.evaluate(
+                "(el) => el.getAttribute('placeholder') || el.getAttribute('data-placeholder') || ''"
+            )
             text = await locator.evaluate("(el) => (el.innerText || el.textContent || '').trim()")
             combined = f"{placeholder} {text}"
             if any(word in combined for word in ("搜索", "草稿", "稿件")):
@@ -1933,7 +1927,9 @@ class BilibiliPublisher(BasePublisher):
     async def _looks_like_content_locator(self, locator: Any) -> bool:
         """Reject title/search nodes when filling article body."""
         try:
-            placeholder = await locator.evaluate("(el) => el.getAttribute('placeholder') || el.getAttribute('data-placeholder') || ''")
+            placeholder = await locator.evaluate(
+                "(el) => el.getAttribute('placeholder') || el.getAttribute('data-placeholder') || ''"
+            )
             text = await locator.evaluate("(el) => (el.innerText || el.textContent || '').trim()")
             klass = await locator.evaluate("(el) => el.getAttribute('class') || ''")
             combined = f"{placeholder} {text} {klass}"

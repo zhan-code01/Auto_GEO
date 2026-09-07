@@ -167,7 +167,11 @@ class GeoKnowledgeService:
                 # 避免多个 query 各等一个超时周期把后端线程池耗尽。
                 consecutive_failures += 1
                 if consecutive_failures >= 2:
-                    logger.warning("RAGFlow 连续 %d 次检索失败,跳过剩余 %d 个查询", consecutive_failures, len(queries) - len(all_chunks))
+                    logger.warning(
+                        "RAGFlow 连续 %d 次检索失败,跳过剩余 %d 个查询",
+                        consecutive_failures,
+                        len(queries) - len(all_chunks),
+                    )
                     break
                 continue
             consecutive_failures = 0

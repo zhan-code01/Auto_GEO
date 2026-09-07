@@ -154,10 +154,7 @@ async def list_projects(
 ):
     """获取活跃项目列表（按当前用户隔离）"""
     projects = (
-        scoped_query(db, Project, current_user)
-        .filter(Project.status != 0)
-        .order_by(Project.created_at.desc())
-        .all()
+        scoped_query(db, Project, current_user).filter(Project.status != 0).order_by(Project.created_at.desc()).all()
     )
     return projects
 
@@ -331,11 +328,7 @@ async def distill_keywords(
     if question_error:
         msg += f"\n（搜索问题生成失败: {question_error}）"
 
-    return ApiResponse(
-        success=True,
-        message=msg,
-        data=response_data
-    )
+    return ApiResponse(success=True, message=msg, data=response_data)
 
 
 @router.post("/generate-questions", response_model=ApiResponse)
@@ -367,9 +360,16 @@ async def get_keyword_questions(
     """获取关键词的问题变体列表"""
     _get_owned_keyword(db, keyword_id, current_user)
 
-    questions = db.query(QuestionVariant).filter(QuestionVariant.keyword_id == keyword_id).order_by(QuestionVariant.id).all()
+    questions = (
+        db.query(QuestionVariant).filter(QuestionVariant.keyword_id == keyword_id).order_by(QuestionVariant.id).all()
+    )
     return [
-        {"id": q.id, "keyword_id": q.keyword_id, "question": q.question, "created_at": q.created_at.isoformat() if q.created_at else None}
+        {
+            "id": q.id,
+            "keyword_id": q.keyword_id,
+            "question": q.question,
+            "created_at": q.created_at.isoformat() if q.created_at else None,
+        }
         for q in questions
     ]
 

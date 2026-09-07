@@ -87,9 +87,9 @@ from ragflow_integration import GeoRAGFlowIntegration
 
 # 配置RAGFlow连接参数
 ragflow_config = {
-    'base_url': 'http://your-ragflow-host:port',  # 您的RAGFlow服务地址
-    'api_key': 'your_api_key',                     # 您的API密钥
-    'dataset_id': 'your_dataset_id'                # 您的知识库ID
+    "base_url": "http://your-ragflow-host:port",  # 您的RAGFlow服务地址
+    "api_key": "your_api_key",  # 您的API密钥
+    "dataset_id": "your_dataset_id",  # 您的知识库ID
 }
 
 # 创建集成实例
@@ -99,8 +99,8 @@ geo_ragflow = GeoRAGFlowIntegration(ragflow_config)
 results = geo_ragflow.query_geospatial_knowledge("您的查询内容")
 
 # 检查结果
-if results['success']:
-    for result in results['results']:
+if results["success"]:
+    for result in results["results"]:
         print(f"内容: {result['content']}")
         print(f"相似度: {result['score']}")
         print(f"来源: {result['source']}")
@@ -112,8 +112,8 @@ else:
 
 ```python
 info = geo_ragflow.get_knowledge_base_info()
-if info['success']:
-    print(info['dataset_info'])
+if info["success"]:
+    print(info["dataset_info"])
 else:
     print(f"获取知识库信息失败: {info['error']}")
 ```
@@ -123,7 +123,7 @@ else:
 ```python
 from ragflow_integration import RAGFlowClient
 
-client = RAGFlowClient('http://your-ragflow-host:port', 'your_api_key')
+client = RAGFlowClient("http://your-ragflow-host:port", "your_api_key")
 datasets = client.list_datasets()
 for dataset in datasets:
     print(dataset)
@@ -173,9 +173,9 @@ from ragflow_integration import GeoRAGFlowIntegration
 
 # 配置参数
 config = {
-    'base_url': 'http://localhost:9380',
-    'api_key': 'your_ragflow_api_key',
-    'dataset_id': 'your_geo_knowledge_dataset_id'
+    "base_url": "http://localhost:9380",
+    "api_key": "your_ragflow_api_key",
+    "dataset_id": "your_geo_knowledge_dataset_id",
 }
 
 # 初始化
@@ -184,9 +184,9 @@ geo_integration = GeoRAGFlowIntegration(config)
 # 查询地理空间分析方法
 results = geo_integration.query_geospatial_knowledge("地理空间数据处理方法")
 
-if results['success']:
+if results["success"]:
     print("找到以下相关信息:")
-    for i, result in enumerate(results['results'], 1):
+    for i, result in enumerate(results["results"], 1):
         print(f"{i}. {result['content'][:100]}...")
 else:
     print(f"查询失败: {results['error']}")

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """PublishAdapter - 发布执行适配器。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -67,9 +68,9 @@ class PublishAdapter:
             "failed_count": task.failed_count,
         }
 
-    def list_publish_records(self, user, article_id: int | None = None,
-                             publish_status: int | None = None,
-                             page: int = 1, limit: int = 20) -> dict[str, Any]:
+    def list_publish_records(
+        self, user, article_id: int | None = None, publish_status: int | None = None, page: int = 1, limit: int = 20
+    ) -> dict[str, Any]:
         """查询发布记录。
 
         Args:
@@ -85,9 +86,7 @@ class PublishAdapter:
         if publish_status is not None:
             query = query.filter(PublishRecord.publish_status == publish_status)
         total = query.count()
-        rows = query.order_by(PublishRecord.created_at.desc()).offset(
-            (page - 1) * limit
-        ).limit(limit).all()
+        rows = query.order_by(PublishRecord.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
         return {
             "total": total,
             "items": [
@@ -105,8 +104,9 @@ class PublishAdapter:
             ],
         }
 
-    async def start_platform_auth(self, user, platform: str, account_name: str | None = None,
-                            account_id: int | None = None) -> dict[str, Any]:
+    async def start_platform_auth(
+        self, user, platform: str, account_name: str | None = None, account_id: int | None = None
+    ) -> dict[str, Any]:
         """发起平台登录授权（返回 task_id，前端打开浏览器登录窗口）。"""
         from backend.services.playwright_mgr import playwright_mgr
 

@@ -15,6 +15,7 @@ from backend.config import ADSPOWER_API_URL, ADSPOWER_ENABLED
 @dataclass
 class ProfileInfo:
     """AdsPower 配置文件信息"""
+
     user_id: str
     name: str
     group_id: str = ""
@@ -28,6 +29,7 @@ class ProfileInfo:
 @dataclass
 class ProfileConnection:
     """配置文件连接信息"""
+
     ws_endpoint: str
     debug_port: str
     driver_port: str
@@ -152,16 +154,18 @@ class AdsPowerManager:
             data = resp.json()
             profiles = []
             for item in data.get("data", {}).get("list", []):
-                profiles.append(ProfileInfo(
-                    user_id=item.get("user_id", ""),
-                    name=item.get("user_name", ""),
-                    group_id=item.get("group_id", ""),
-                    proxy_host=item.get("proxy_host", ""),
-                    proxy_port=item.get("proxy_port", 0),
-                    proxy_type=item.get("proxy_type", ""),
-                    ip_country=item.get("ip_country", ""),
-                    status="active" if item.get("status") == "Active" else "inactive",
-                ))
+                profiles.append(
+                    ProfileInfo(
+                        user_id=item.get("user_id", ""),
+                        name=item.get("user_name", ""),
+                        group_id=item.get("group_id", ""),
+                        proxy_host=item.get("proxy_host", ""),
+                        proxy_port=item.get("proxy_port", 0),
+                        proxy_type=item.get("proxy_type", ""),
+                        ip_country=item.get("ip_country", ""),
+                        status="active" if item.get("status") == "Active" else "inactive",
+                    )
+                )
             return profiles
 
         except Exception as e:

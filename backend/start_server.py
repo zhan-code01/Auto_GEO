@@ -36,4 +36,6 @@ if __name__ == "__main__":
     print(f"[RELOAD] {RELOAD}")
 
     # log_config=None：uvicorn 日志统一走 loguru 桥接；access_log=False：访问日志由 AccessLogMiddleware 统一记录
-    uvicorn.run("backend.main:app", host=HOST, port=PORT, reload=RELOAD, log_level="info", access_log=False, log_config=None)
+    uvicorn.run(
+        "backend.main:app", host=HOST, port=PORT, reload=RELOAD, log_level="info", access_log=False, log_config=None
+    )

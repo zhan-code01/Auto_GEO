@@ -19,8 +19,13 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 
 from backend.database.models import (
-    GeoEvaluationRun, GeoEvaluationRecord,
-    Account, GeoPromptSet, GeoPrompt, Project, Client,
+    GeoEvaluationRun,
+    GeoEvaluationRecord,
+    Account,
+    GeoPromptSet,
+    GeoPrompt,
+    Project,
+    Client,
 )
 from backend.services.geo_evaluation_prompt_service import GeoEvaluationPromptService
 from backend.services.geo_response_judge_service import GeoResponseJudgeService
@@ -88,9 +93,7 @@ def _resolve_evaluation_account(
         state = decrypt_storage_state(account.storage_state) if account.storage_state else {}
         marker = state.get("browser_verified_login") if isinstance(state, dict) else {}
         return bool(
-            isinstance(marker, dict)
-            and marker.get("platform") == "doubao"
-            and marker.get("method") in {"api", "dom"}
+            isinstance(marker, dict) and marker.get("platform") == "doubao" and marker.get("method") in {"api", "dom"}
         )
 
     query = db.query(Account).filter(
@@ -204,10 +207,7 @@ def _get_platform_cooldown_remaining(user_id: Optional[int], platform: str) -> f
 
 
 def _reject_platforms_in_cooldown(user_id: Optional[int], platforms: List[str]) -> Optional[Dict[str, Any]]:
-    blocked = [
-        (platform, _get_platform_cooldown_remaining(user_id, platform))
-        for platform in platforms
-    ]
+    blocked = [(platform, _get_platform_cooldown_remaining(user_id, platform)) for platform in platforms]
     blocked = [(platform, remaining) for platform, remaining in blocked if remaining > 0]
     if not blocked:
         return None
@@ -221,8 +221,7 @@ def _reject_platforms_in_cooldown(user_id: Optional[int], platforms: List[str]) 
         "message": message,
         "cooldown": True,
         "blocked_platforms": [
-            {"platform": platform, "remaining_seconds": int(remaining)}
-            for platform, remaining in blocked
+            {"platform": platform, "remaining_seconds": int(remaining)} for platform, remaining in blocked
         ],
     }
 
@@ -364,9 +363,7 @@ class _EvaluationRiskGuard:
         self.min_delay = EVALUATION_MIN_DELAY_SECONDS if min_delay is None else min_delay
         self.max_delay = EVALUATION_MAX_DELAY_SECONDS if max_delay is None else max_delay
         self.min_platform_interval = (
-            EVALUATION_MIN_PLATFORM_INTERVAL_SECONDS
-            if min_platform_interval is None
-            else min_platform_interval
+            EVALUATION_MIN_PLATFORM_INTERVAL_SECONDS if min_platform_interval is None else min_platform_interval
         )
         self.failure_limit = EVALUATION_CONSECUTIVE_FAILURE_LIMIT if failure_limit is None else failure_limit
         self.block_cooldown = EVALUATION_RISK_COOLDOWN_SECONDS if block_cooldown is None else block_cooldown
@@ -376,8 +373,12 @@ class _EvaluationRiskGuard:
 
     async def before_request(self, platform: str) -> None:
         delay_settings = _platform_delay_settings(platform)
-        configured_min_delay = delay_settings["min_delay"] if self.min_delay == EVALUATION_MIN_DELAY_SECONDS else self.min_delay
-        configured_max_delay = delay_settings["max_delay"] if self.max_delay == EVALUATION_MAX_DELAY_SECONDS else self.max_delay
+        configured_min_delay = (
+            delay_settings["min_delay"] if self.min_delay == EVALUATION_MIN_DELAY_SECONDS else self.min_delay
+        )
+        configured_max_delay = (
+            delay_settings["max_delay"] if self.max_delay == EVALUATION_MAX_DELAY_SECONDS else self.max_delay
+        )
         configured_min_interval = (
             delay_settings["min_platform_interval"]
             if self.min_platform_interval == EVALUATION_MIN_PLATFORM_INTERVAL_SECONDS
@@ -744,11 +745,7 @@ class GeoEvaluationRunService:
             .all()
         )
         successful_ids = {row[0] for row in successful}
-        return [
-            prompt_id
-            for prompt_id in self._active_prompt_ids(db, prompt_set_id)
-            if prompt_id in successful_ids
-        ]
+        return [prompt_id for prompt_id in self._active_prompt_ids(db, prompt_set_id) if prompt_id in successful_ids]
 
     def create_baseline(
         self,
@@ -1244,8 +1241,7 @@ class GeoEvaluationRunService:
         finally:
             db.close()
 
-
-# ── 后台执行 ──
+    # ── 后台执行 ──
 
     def get_latest_run_status(
         self,
@@ -1434,8 +1430,18 @@ def _start_background_run(
     _register_active_run(run_id)
     thread = threading.Thread(
         target=_execute_run_in_thread,
-        args=(run_id, client_id, project_id, company_name, official_domains,
-              prompt_set_id, platforms, rounds, user_id, prompt_ids),
+        args=(
+            run_id,
+            client_id,
+            project_id,
+            company_name,
+            official_domains,
+            prompt_set_id,
+            platforms,
+            rounds,
+            user_id,
+            prompt_ids,
+        ),
         daemon=True,
     )
     thread.start()
@@ -1463,7 +1469,9 @@ def _execute_run_in_thread(
             if run:
                 run.status = "failed"
                 run.finished_at = _beijing_now()
-                run.error_message = f"{', '.join(platforms)} 平台已有 GEO 测评任务正在执行，本任务已停止以避免同平台并发风控"
+                run.error_message = (
+                    f"{', '.join(platforms)} 平台已有 GEO 测评任务正在执行，本任务已停止以避免同平台并发风控"
+                )
                 db.commit()
         finally:
             db.close()
@@ -1473,10 +1481,20 @@ def _execute_run_in_thread(
     loop = asyncio.new_event_loop()
     install_asyncio_exception_filter(loop)
     try:
-        loop.run_until_complete(_execute_run_async(
-            run_id, client_id, project_id, company_name, official_domains,
-            prompt_set_id, platforms, rounds, user_id, prompt_ids,
-        ))
+        loop.run_until_complete(
+            _execute_run_async(
+                run_id,
+                client_id,
+                project_id,
+                company_name,
+                official_domains,
+                prompt_set_id,
+                platforms,
+                rounds,
+                user_id,
+                prompt_ids,
+            )
+        )
     except Exception as e:
         logger.error(f"[RunService] 后台任务 run={run_id} 异常: {e}")
     finally:
@@ -1488,6 +1506,7 @@ def _execute_run_in_thread(
 
 def _get_db_session():
     from backend.database import SessionLocal
+
     return SessionLocal()
 
 
@@ -1495,10 +1514,14 @@ def _get_client_domains(db: Session, client_id: int) -> List[str]:
     """获取公司关联的官网域名"""
     domains = []
     # 从项目获取域名
-    projects = db.query(Project).filter(
-        Project.client_id == client_id,
-        Project.status == 1,
-    ).all()
+    projects = (
+        db.query(Project)
+        .filter(
+            Project.client_id == client_id,
+            Project.status == 1,
+        )
+        .all()
+    )
     for p in projects:
         if p.domain_keyword:
             domains.append(p.domain_keyword)
@@ -1806,8 +1829,7 @@ async def _execute_run_async_parallel(
                         )
                         if existing_success:
                             logger.info(
-                                f"[RunService] Skip completed item: run={run_id} pf={pf} "
-                                f"rnd={rnd} prompt={prompt.id}"
+                                f"[RunService] Skip completed item: run={run_id} pf={pf} rnd={rnd} prompt={prompt.id}"
                             )
                             total_completed += 1
                             run.total_completed = total_completed
@@ -1860,7 +1882,9 @@ async def _execute_run_async_parallel(
                                     current_run.error_message = None
                                 elif event_type == "manual_timeout":
                                     current_run.status = "running"
-                                    current_run.error_message = "AI平台人工验证等待超时，当前问题将记录为失败，可稍后重试"
+                                    current_run.error_message = (
+                                        "AI平台人工验证等待超时，当前问题将记录为失败，可稍后重试"
+                                    )
                                 db.commit()
 
                             # ── 网页登录态提问，拿回 AI 原始回答 ──
@@ -1881,9 +1905,7 @@ async def _execute_run_async_parallel(
                                     raise RuntimeError(
                                         f"[manual_timeout] {check_result.get('error_msg') or 'AI平台人工验证等待超时'}"
                                     )
-                                raise RuntimeError(
-                                    f"网页提问失败: {check_result.get('error_msg') or '未知错误'}"
-                                )
+                                raise RuntimeError(f"网页提问失败: {check_result.get('error_msg') or '未知错误'}")
 
                             # 提取引用来源
                             if check_result.get("citations"):
@@ -1946,10 +1968,7 @@ async def _execute_run_async_parallel(
                             total_completed += 1
 
                         except Exception as e:
-                            logger.error(
-                                f"[RunService] 提问失败: run={run_id} pf={pf} rnd={rnd} "
-                                f"q={prompt.id} err={e}"
-                            )
+                            logger.error(f"[RunService] 提问失败: run={run_id} pf={pf} rnd={rnd} q={prompt.id} err={e}")
                             total_failed += 1
                             record_time = _beijing_now()
                             # 判断失败类型
@@ -2028,7 +2047,9 @@ async def _execute_run_async_parallel(
         if stopped_platform_reasons:
             run.error_message = "; ".join(stopped_platform_reasons[-3:])
         if run.status == "failed":
-            run.error_message = run.error_message or "所有平台网页提问或 LLM 评估均失败，请检查平台授权登录态和 LLM 评估配置"
+            run.error_message = (
+                run.error_message or "所有平台网页提问或 LLM 评估均失败，请检查平台授权登录态和 LLM 评估配置"
+            )
         db.commit()
 
         logger.info(
@@ -2116,7 +2137,7 @@ async def _execute_run_async_parallel_v2(
 
         logger.info(
             f"[RunService] run={run_id} parallel evaluation started: "
-                f"platforms={platforms} prompts={len(prompt_items)} rounds={rounds}"
+            f"platforms={platforms} prompts={len(prompt_items)} rounds={rounds}"
         )
 
         async def _commit_progress(
@@ -2154,9 +2175,7 @@ async def _execute_run_async_parallel_v2(
                 if event_type == "manual_required":
                     current_run.status = "manual_required"
                     current_run.error_message = (
-                        event.get("message")
-                        or event.get("matched_text")
-                        or "AI平台要求人工验证，请在浏览器中完成操作"
+                        event.get("message") or event.get("matched_text") or "AI平台要求人工验证，请在浏览器中完成操作"
                     )
                 elif event_type == "manual_resolved":
                     current_run.status = "running"
@@ -2261,9 +2280,7 @@ async def _execute_run_async_parallel_v2(
                                 raise RuntimeError(
                                     f"[manual_timeout] {check_result.get('error_msg') or 'AI平台人工验证等待超时'}"
                                 )
-                            raise RuntimeError(
-                                f"网页提问失败: {check_result.get('error_msg') or '未知错误'}"
-                            )
+                            raise RuntimeError(f"网页提问失败: {check_result.get('error_msg') or '未知错误'}")
 
                         if check_result.get("citations"):
                             citations = check_result["citations"]
@@ -2379,9 +2396,7 @@ async def _execute_run_async_parallel_v2(
                                 current_platform=platform,
                                 current_round=round_no,
                                 error_message=(
-                                    "; ".join(stopped_platform_reasons[-3:])
-                                    if stop_current_platform
-                                    else None
+                                    "; ".join(stopped_platform_reasons[-3:]) if stop_current_platform else None
                                 ),
                             )
 
@@ -2413,8 +2428,7 @@ async def _execute_run_async_parallel_v2(
                     run.error_message = "; ".join(stopped_platform_reasons[-3:])
                 if run.status == "failed":
                     run.error_message = (
-                        run.error_message
-                        or "所有平台网页提问或 LLM 评估均失败，请检查平台授权登录状态和 LLM 评估配置"
+                        run.error_message or "所有平台网页提问或 LLM 评估均失败，请检查平台授权登录状态和 LLM 评估配置"
                     )
                 db.commit()
 
@@ -2440,6 +2454,7 @@ async def _execute_run_async_parallel_v2(
 def _judge_model_label() -> str:
     """返回当前使用的评估模型标识"""
     from backend.config import AUTOGEO_CONVERSATION_LLM_MODEL
+
     return AUTOGEO_CONVERSATION_LLM_MODEL or "deepseek-v4-flash"
 
 
@@ -2530,19 +2545,12 @@ async def _ask_ai_platform_via_browser_once(
     is_valid, reason = await cookie_validator.validate_fast(platform=platform, storage_state=storage_state)
     if not is_valid:
         if platform in {"doubao", "deepseek"} and storage_state.get("cookies"):
-            logger.warning(
-                f"[RunService] {checker.name} 授权预检失败但存在本机Cookie，继续进入浏览器验证: {reason}"
-            )
+            logger.warning(f"[RunService] {checker.name} 授权预检失败但存在本机Cookie，继续进入浏览器验证: {reason}")
         else:
             return {"success": False, "answer": None, "error_msg": f"{checker.name} 授权已失效: {reason}"}
 
-
     fingerprint = storage_state.get("fingerprint") if storage_state else None
-    user_ua = (
-        fingerprint.get("user_agent")
-        if fingerprint and fingerprint.get("user_agent")
-        else DEFAULT_USER_AGENT
-    )
+    user_ua = fingerprint.get("user_agent") if fingerprint and fingerprint.get("user_agent") else DEFAULT_USER_AGENT
     viewport = None
     if fingerprint and fingerprint.get("viewport"):
         vp = fingerprint["viewport"]
@@ -2608,7 +2616,9 @@ async def _ask_ai_platform_via_browser_once(
                     updated_state["browser_verified_login"] = {
                         "platform": platform,
                         "verified_at": time.time(),
-                        "source": "geo_evaluation_browser_headed" if not headless else "geo_evaluation_browser_headless",
+                        "source": "geo_evaluation_browser_headed"
+                        if not headless
+                        else "geo_evaluation_browser_headless",
                     }
                 elif not headless:
                     updated_state["browser_verified_login"] = {

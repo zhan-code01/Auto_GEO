@@ -8,6 +8,7 @@
 
 对应 PRD 第七章 7.5 节 adapter 同步封装方案。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -90,19 +91,22 @@ class QuestionPoolAdapter:
 
             # 3. 重新查询批次状态
             db.expire_all()
-            batch = db.query(SmartArticleBatch).filter(
-                SmartArticleBatch.id == batch_id
-            ).first()
+            batch = db.query(SmartArticleBatch).filter(SmartArticleBatch.id == batch_id).first()
             if not batch:
                 raise RuntimeError(f"批次 {batch_id} 不存在")
             if batch.status == "failed":
                 raise RuntimeError(f"问题规划失败：{batch.note or '未知原因'}")
 
             # 4. 直接查 ORM 拿本批次的问题（避免 list_questions 混入历史问题）
-            questions = db.query(SmartArticleQuestion).filter(
-                SmartArticleQuestion.generation_batch_id == batch_id,
-                SmartArticleQuestion.is_deleted.is_(False),
-            ).order_by(SmartArticleQuestion.id.asc()).all()
+            questions = (
+                db.query(SmartArticleQuestion)
+                .filter(
+                    SmartArticleQuestion.generation_batch_id == batch_id,
+                    SmartArticleQuestion.is_deleted.is_(False),
+                )
+                .order_by(SmartArticleQuestion.id.asc())
+                .all()
+            )
             question_ids = [q.id for q in questions]
             logger.info(
                 f"[QuestionPoolAdapter] plan_batch_sync 完成，batch_id={batch_id}, "

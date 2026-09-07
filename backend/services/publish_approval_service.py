@@ -195,11 +195,13 @@ class QuotaCheck(BaseCheck):
         # 首次「开始写入」时扣减配额，后续步骤（填充正文/提交）只校验不扣减
         if ctx.request.checkpoint == "before_write":
             if quota.used_today >= quota.daily_limit:
-                return CheckResult(False, self.code,
-                                   f"今日发布次数已用完 ({quota.used_today}/{quota.daily_limit})")
+                return CheckResult(False, self.code, f"今日发布次数已用完 ({quota.used_today}/{quota.daily_limit})")
             if quota.used_this_month >= quota.monthly_limit:
-                return CheckResult(False, "MONTHLY_QUOTA_EXCEEDED",
-                                   f"本月发布次数已用完 ({quota.used_this_month}/{quota.monthly_limit})")
+                return CheckResult(
+                    False,
+                    "MONTHLY_QUOTA_EXCEEDED",
+                    f"本月发布次数已用完 ({quota.used_this_month}/{quota.monthly_limit})",
+                )
 
         return CheckResult(True)
 
@@ -219,8 +221,7 @@ class PlatformWhitelistCheck(BaseCheck):
             return CheckResult(True)
 
         if ctx.account.platform not in quota.platform_whitelist:
-            return CheckResult(False, self.code,
-                               f"账号平台 {ctx.account.platform} 不在白名单中")
+            return CheckResult(False, self.code, f"账号平台 {ctx.account.platform} 不在白名单中")
         return CheckResult(True)
 
 
@@ -234,8 +235,7 @@ class AccountActiveCheck(BaseCheck):
         if not ctx.account:
             return CheckResult(False, self.code, "账号不存在")
         if ctx.account.status != 1:
-            return CheckResult(False, self.code,
-                               f"账号状态异常: status={ctx.account.status}")
+            return CheckResult(False, self.code, f"账号状态异常: status={ctx.account.status}")
         return CheckResult(True)
 
 
@@ -258,9 +258,12 @@ DEFAULT_CHECK_CHAIN: List[BaseCheck] = [
 class PublishApprovalService:
     """发布审批服务 — 主入口"""
 
-    def __init__(self, check_chain: Optional[List[BaseCheck]] = None,
-                 token_ttl_seconds: int = 300,
-                 config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        check_chain: Optional[List[BaseCheck]] = None,
+        token_ttl_seconds: int = 300,
+        config: Optional[Dict[str, Any]] = None,
+    ):
         """
         Args:
             check_chain: 校验器链，默认使用 DEFAULT_CHECK_CHAIN
@@ -272,6 +275,7 @@ class PublishApprovalService:
         # 延迟导入避免循环依赖
         try:
             from backend.config import PUBLISH_APPROVAL_CONFIG
+
             self._config = config if config is not None else PUBLISH_APPROVAL_CONFIG
         except Exception:
             self._config = config or {}
@@ -311,10 +315,10 @@ class PublishApprovalService:
         # 校验器类名 → 配置 key 的映射
         # None 表示不可跳过（必须始终运行）
         name_to_key = {
-            "DeviceActiveCheck": None,      # 设备检查永远不跳
-            "TaskClaimedCheck": None,        # 任务领取检查永远不跳
-            "RecordValidCheck": None,        # 子记录检查永远不跳
-            "AccountActiveCheck": None,      # 账号检查永远不跳
+            "DeviceActiveCheck": None,  # 设备检查永远不跳
+            "TaskClaimedCheck": None,  # 任务领取检查永远不跳
+            "RecordValidCheck": None,  # 子记录检查永远不跳
+            "AccountActiveCheck": None,  # 账号检查永远不跳
             "PlatformWhitelistCheck": "platform_whitelist",
             "QuotaCheck": "quota_check",
         }
@@ -328,16 +332,13 @@ class PublishApprovalService:
                 filtered.append(check)
         return filtered
 
-    def _auto_approve(self, request: ApprovalRequest, db: Session,
-                      reason: str) -> "ApprovalResult":
+    def _auto_approve(self, request: ApprovalRequest, db: Session, reason: str) -> "ApprovalResult":
         """跳过校验，直接生成令牌并记录日志（用于总开关/旁路/检查点关闭场景）"""
         token = secrets.token_urlsafe(32)
         expires_at = datetime.now() + timedelta(seconds=self.token_ttl_seconds)
-        self._write_log(db, request, approved=True,
-                        approval_token=token, expires_at=expires_at)
+        self._write_log(db, request, approved=True, approval_token=token, expires_at=expires_at)
         logger.info(
-            f"[审批] ⚡ 自动同意（{reason}）用户 {request.user.id} "
-            f"设备 {request.device_id} 检查点 {request.checkpoint}"
+            f"[审批] ⚡ 自动同意（{reason}）用户 {request.user.id} 设备 {request.device_id} 检查点 {request.checkpoint}"
         )
         return ApprovalResult(
             approved=True,
@@ -375,7 +376,9 @@ class PublishApprovalService:
 
         if not self._is_checkpoint_enabled(request.checkpoint):
             return self._auto_approve(
-                request, db, reason=f"checkpoint_disabled:{request.checkpoint}",
+                request,
+                db,
+                reason=f"checkpoint_disabled:{request.checkpoint}",
             )
 
         # ---- 1. 加载上下文 ----
@@ -396,8 +399,7 @@ class PublishApprovalService:
                     f"任务 {request.task_id} 记录 {request.record_id} "
                     f"检查点 {request.checkpoint} → ❌ 拒绝 ({result.code}): {result.message}"
                 )
-                self._write_log(db, request, approved=False,
-                                reason_code=result.code, reason=result.message)
+                self._write_log(db, request, approved=False, reason_code=result.code, reason=result.message)
                 return ApprovalResult(
                     approved=False,
                     reason_code=result.code,
@@ -414,8 +416,7 @@ class PublishApprovalService:
             ctx.quota.used_this_month = (ctx.quota.used_this_month or 0) + 1
 
         # ---- 4. 写审计日志 ----
-        self._write_log(db, request, approved=True,
-                        approval_token=token, expires_at=expires_at)
+        self._write_log(db, request, approved=True, approval_token=token, expires_at=expires_at)
 
         logger.info(
             f"[审批] ✅ 用户 {request.user.id} 设备 {request.device_id} "
@@ -447,11 +448,7 @@ class PublishApprovalService:
             )
             .first()
         )
-        task = (
-            db.query(AutoPublishTask)
-            .filter(AutoPublishTask.id == request.task_id)
-            .first()
-        )
+        task = db.query(AutoPublishTask).filter(AutoPublishTask.id == request.task_id).first()
         record = (
             db.query(AutoPublishRecord)
             .filter(
@@ -465,11 +462,7 @@ class PublishApprovalService:
         if record:
             account = db.query(Account).filter(Account.id == record.account_id).first()
             article = db.query(GeoArticle).filter(GeoArticle.id == record.article_id).first()
-        quota = (
-            db.query(UserPublishQuota)
-            .filter(UserPublishQuota.user_id == request.user.id)
-            .first()
-        )
+        quota = db.query(UserPublishQuota).filter(UserPublishQuota.user_id == request.user.id).first()
 
         return ApprovalContext(
             request=request,
@@ -483,11 +476,17 @@ class PublishApprovalService:
             quota=quota,
         )
 
-    def _write_log(self, db: Session, request: ApprovalRequest, *,
-                   approved: bool, reason_code: Optional[str] = None,
-                   reason: Optional[str] = None,
-                   approval_token: Optional[str] = None,
-                   expires_at: Optional[datetime] = None) -> None:
+    def _write_log(
+        self,
+        db: Session,
+        request: ApprovalRequest,
+        *,
+        approved: bool,
+        reason_code: Optional[str] = None,
+        reason: Optional[str] = None,
+        approval_token: Optional[str] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> None:
         """写审批日志（异步安全：失败不影响主流程）"""
         try:
             log = PublishApprovalLog(

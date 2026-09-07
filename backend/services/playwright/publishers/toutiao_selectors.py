@@ -33,7 +33,7 @@ LOGIN_SUCCESS_ELEMENT = [
     '[class*="userName"]',
     '[class*="nickname"]',
     '[class*="account-info"]',
-    '.header-user',
+    ".header-user",
 ]
 
 # === 发布入口 ===
@@ -44,7 +44,7 @@ PUBLISH_URL = "https://mp.toutiao.com/profile_v4/graphic/publish?is_new_connect=
 # 头条图文编辑器：byte-input 标题 + ProseMirror 正文，任一出现即视为编辑器已加载
 EDITOR_READY_SELECTORS = [
     ".ProseMirror",
-    'textarea.byte-input__inner',
+    "textarea.byte-input__inner",
     'div[data-placeholder*="标题"]',
     'div[data-placeholder*="请输入标题"]',
     '[class*="article-editor"] [contenteditable="true"]',
@@ -73,7 +73,7 @@ INTERFERENCE_CLOSE_BTN = [
     'button:has-text("稍后再说")',
     'button:has-text("确定")',
     'button:has-text("关闭")',
-    '.byte-icon--close',
+    ".byte-icon--close",
     '[class*="modal"] [class*="close"]',
     '[aria-label="Close"]',
     '[aria-label="close"]',
@@ -86,8 +86,8 @@ TITLE_INPUT = [
     'textarea[placeholder*="文章标题"]',
     'input[placeholder*="文章标题"]',
     # 当前版 byte-input 组件
-    'textarea.byte-input__inner',
-    '.title-input textarea',
+    "textarea.byte-input__inner",
+    ".title-input textarea",
     'textarea[placeholder*="标题"]',
     'input[placeholder*="标题"]',
     # V4 后台 data-placeholder 写法
@@ -97,7 +97,7 @@ TITLE_INPUT = [
     # 通用兜底
     'div[class*="title"] textarea',
     'div[class*="title"] input',
-    '#title',
+    "#title",
     'input[name="title"]',
 ]
 
@@ -129,7 +129,7 @@ COVER_SINGLE_RADIO = [
     'div:has-text("展示封面") .byte-radio:has-text("单图")',
     '.byte-radio:has-text("单图")',
     '[class*="cover"] [class*="radio"]:has-text("单图")',
-    'text=单图',
+    "text=单图",
 ]
 # 封面添加入口（截图确认：预览区"+"图标 + 右下角"预览"文字，点击触发 file chooser）
 COVER_ADD = [
@@ -193,7 +193,7 @@ PUBLISH_CONFIRM = [
     'button:has-text("确定发布")',
     'button:has-text("继续发布")',
     '.byte-modal__footer button:has-text("确认发布")',
-    '.byte-modal__footer button.byte-btn-primary',
+    ".byte-modal__footer button.byte-btn-primary",
     'button:has-text("确认")',
     'button:has-text("确定")',
 ]

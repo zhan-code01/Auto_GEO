@@ -8,6 +8,7 @@
 工具签名统一：async def fn(slots: dict, user_id: int) -> ToolOutcome
 参数由 LLM 通过 Tool Calling 机制基于 tool_schemas.py 的 Pydantic schema 生成。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -68,11 +69,13 @@ async def create_client_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         return ToolOutcome.success(
             data={"client_id": client["id"], "company_name": client["company_name"]},
             reply=f"客户【{client['company_name']}】创建成功！",
-            facts_patch=[{
-                "company_name": client["company_name"],
-                "industry": industry,
-                "default_client_id": client["id"],
-            }],
+            facts_patch=[
+                {
+                    "company_name": client["company_name"],
+                    "industry": industry,
+                    "default_client_id": client["id"],
+                }
+            ],
         )
     except Exception as e:
         logger.error(f"[create_client] 失败: {e}", exc_info=True)
@@ -118,11 +121,13 @@ async def list_clients_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome:
         return ToolOutcome.success(
             data={"items": items, "total": result["total"]},
             reply=f"共 {result['total']} 个客户",
-            actions=[make_action(
-                "show_client_list",
-                "查看客户列表",
-                {"items": items, "total": result["total"]},
-            )],
+            actions=[
+                make_action(
+                    "show_client_list",
+                    "查看客户列表",
+                    {"items": items, "total": result["total"]},
+                )
+            ],
         )
     except Exception as e:
         logger.error(f"[list_clients] 失败: {e}", exc_info=True)

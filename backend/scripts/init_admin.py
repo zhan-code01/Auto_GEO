@@ -150,8 +150,9 @@ def generate_random_password(length: int = 12) -> str:
     """生成随机密码"""
     import secrets
     import string
+
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-    return ''.join(secrets.choice(alphabet) for _ in range(length))
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def hash_password(password: str) -> str:

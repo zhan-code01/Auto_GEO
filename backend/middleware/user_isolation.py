@@ -35,9 +35,7 @@ def register_model_for_auto_user_id(model_class):
         register_model_for_auto_user_id(GeoArticle)
     """
     if not hasattr(model_class, "user_id"):
-        logger.warning(
-            f"[Isolation] 模型 {model_class.__name__} 缺少 user_id 列，跳过注册"
-        )
+        logger.warning(f"[Isolation] 模型 {model_class.__name__} 缺少 user_id 列，跳过注册")
         return
 
     if model_class in AUTO_USER_ID_MODELS:
@@ -68,6 +66,7 @@ def register_model_for_auto_user_id(model_class):
 
 # ==================== 查询过滤辅助函数 ====================
 
+
 def filter_by_user(
     query: Query,
     model_class,
@@ -94,16 +93,12 @@ def filter_by_user(
         return query
 
     if not hasattr(model_class, "user_id"):
-        logger.warning(
-            f"[Isolation] 模型 {model_class.__name__} 没有 user_id 列，无法过滤"
-        )
+        logger.warning(f"[Isolation] 模型 {model_class.__name__} 没有 user_id 列，无法过滤")
         return query
 
     if allow_null_owner:
         # 允许看自己创建的 + 未归属的历史数据
-        return query.filter(
-            (model_class.user_id == user_id) | (model_class.user_id.is_(None))
-        )
+        return query.filter((model_class.user_id == user_id) | (model_class.user_id.is_(None)))
     else:
         # 严格模式：只看自己的
         return query.filter(model_class.user_id == user_id)
@@ -125,6 +120,7 @@ def get_owner_filter(model_class, user_id: int, *, is_admin: bool = False):
         return []
     # 允许 NULL（历史数据）
     from sqlalchemy import or_
+
     return [
         or_(
             model_class.user_id == user_id,

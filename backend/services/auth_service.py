@@ -20,6 +20,7 @@ if sys.platform == "win32":
         configure_windows_asyncio_policy()
     except AttributeError:
         import warnings
+
         warnings.warn("Python版本过低，Windows ProactorEventLoopPolicy不可用")
 # ==================== 修复结束 ====================
 
@@ -300,7 +301,9 @@ class AuthService:
                                             text = await el.inner_text()
                                             if text and len(text.strip()) < 10 and ("登录" in text or "Sign" in text):
                                                 has_login_elements = True
-                                                logger.info(f"检测到登录入口: {selector} ('{text}'), platform={platform}")
+                                                logger.info(
+                                                    f"检测到登录入口: {selector} ('{text}'), platform={platform}"
+                                                )
                                                 break
                                 else:
                                     element = await page.query_selector(selector)
@@ -392,7 +395,11 @@ class AuthService:
                                         for el in elements:
                                             if await el.is_visible():
                                                 text = await el.inner_text()
-                                                if text and len(text.strip()) < 10 and ("登录" in text or "Sign" in text):
+                                                if (
+                                                    text
+                                                    and len(text.strip()) < 10
+                                                    and ("登录" in text or "Sign" in text)
+                                                ):
                                                     double_check_login = True
                                                     break
                                     else:
@@ -421,7 +428,9 @@ class AuthService:
                             logger.info(f"根据页面状态判定登录成功(无登录按钮且无错误): platform={platform}")
                             login_successful = True
                     else:
-                        logger.debug(f"{platform}平台继续等待: 页面加载={page_loaded}, 登录元素={has_login_elements}, 成功元素={has_success_element}")
+                        logger.debug(
+                            f"{platform}平台继续等待: 页面加载={page_loaded}, 登录元素={has_login_elements}, 成功元素={has_success_element}"
+                        )
                         await asyncio.sleep(check_interval)
                         elapsed_time += check_interval
                         continue
@@ -540,7 +549,9 @@ class AuthService:
                 platform_info["error"] = None
                 return {"success": True, "platform": platform, "message": "授权成功"}
             else:
-                logger.warning(f"平台授权验证失败: auth_session_id={auth_session_id}, platform={platform}, status={session_status['status']}")
+                logger.warning(
+                    f"平台授权验证失败: auth_session_id={auth_session_id}, platform={platform}, status={session_status['status']}"
+                )
                 platform_info["status"] = "failed"
                 platform_info["error"] = f"授权验证失败: {session_status.get('reason', '未知错误')}"
                 return {"success": False, "error": "授权验证失败，请重新尝试", "error_code": "AUTH_VALIDATION_FAILED"}

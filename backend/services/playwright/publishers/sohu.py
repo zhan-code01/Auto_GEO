@@ -80,11 +80,15 @@ class SohuPublisher(BasePublisher):
                 # 拆分模糊判断：确认落到登录页 = 确定登出；其余（网络/安全验证/编辑器迟迟不出现）= 不确定
                 if self._is_on_login_page(page):
                     return await self._auth_failure(
-                        page, stage, definitive=True,
+                        page,
+                        stage,
+                        definitive=True,
                         message="无法进入搜狐号图文编辑器，已被重定向到登录页，登录态已失效，请重新授权",
                     )
                 return await self._auth_failure(
-                    page, stage, definitive=False,
+                    page,
+                    stage,
+                    definitive=False,
                     message="无法进入搜狐号图文编辑器，疑似网络异常或安全验证，未判定账号失效",
                 )
 
@@ -92,7 +96,9 @@ class SohuPublisher(BasePublisher):
             stage = "login_check"
             if not await self._ensure_logged_in(page):
                 return await self._auth_failure(
-                    page, stage, definitive=True,
+                    page,
+                    stage,
+                    definitive=True,
                     message="搜狐号登录态失效，请到账号管理重新授权搜狐号",
                 )
 
@@ -420,7 +426,8 @@ class SohuPublisher(BasePublisher):
                     document.body.style.overflow = 'auto';
                     document.body.style.pointerEvents = 'auto';
                     return count;
-                }""" % repr(sel.INTERFERENCE_REMOVE)
+                }"""
+                % repr(sel.INTERFERENCE_REMOVE)
             )
             if removed:
                 logger.info(f"[搜狐号] 清理遮罩/引导节点: {removed}")
@@ -450,9 +457,7 @@ class SohuPublisher(BasePublisher):
         logger.info("[搜狐号] 未找到文章自带封面，跳过发布阶段替代封面生成")
         return None
 
-    async def _prepare_content_images(
-        self, article: Any, title: str
-    ) -> tuple[List[str], List[str]]:
+    async def _prepare_content_images(self, article: Any, title: str) -> tuple[List[str], List[str]]:
         """正文配图：文章自带图片，默认不生成替代配图。返回 (image_paths, temp_files)。"""
         try:
             image_paths, temp_files = await materialize_images(article, limit=9)
@@ -539,7 +544,7 @@ class SohuPublisher(BasePublisher):
         )
         cursor = 0
         for match in pattern.finditer(content or ""):
-            text = self._deep_clean_content((content or "")[cursor:match.start()])
+            text = self._deep_clean_content((content or "")[cursor : match.start()])
             if text:
                 blocks.append({"type": "text", "content": text})
             if image_index < len(image_paths):
@@ -631,9 +636,7 @@ class SohuPublisher(BasePublisher):
     # 正文（Quill .ql-editor）
     # ═══════════════════════════════════════════════════════════
 
-    async def _fill_content(
-        self, page: Page, content: str, image_paths: Optional[List[str]] = None
-    ) -> bool:
+    async def _fill_content(self, page: Page, content: str, image_paths: Optional[List[str]] = None) -> bool:
         """正文：有配图走图文穿插；否则纯文字多级兜底。"""
         valid_images = [p for p in (image_paths or []) if p and os.path.exists(p)]
         if valid_images:
@@ -701,9 +704,7 @@ class SohuPublisher(BasePublisher):
             logger.info(f"✅ [搜狐号] 正文已填写 - L3 JS 注入 ({len(clean)} 字符)")
         return bool(ok)
 
-    async def _fill_content_with_images(
-        self, page: Page, content: str, image_paths: List[str]
-    ) -> bool:
+    async def _fill_content_with_images(self, page: Page, content: str, image_paths: List[str]) -> bool:
         """图文穿插：首块初始化 + 后续逐块追加（文字 paste / 图片 paste 到 Quill）。"""
         blocks = self._build_content_blocks(content, image_paths)
         if not blocks:
@@ -765,9 +766,7 @@ class SohuPublisher(BasePublisher):
             return False
         if inserted_images == 0 and image_paths:
             logger.warning("[搜狐号] 图文穿插：无图片插入成功（保留文字正文）")
-        logger.info(
-            f"✅ [搜狐号] 图文正文已写入（文字={wrote_text}, 图片={inserted_images}/{len(image_paths)}）"
-        )
+        logger.info(f"✅ [搜狐号] 图文正文已写入（文字={wrote_text}, 图片={inserted_images}/{len(image_paths)}）")
         return wrote_text
 
     async def _has_editor_loaded(self, page: Page) -> bool:

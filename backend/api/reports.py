@@ -9,6 +9,7 @@
 已下线的「数据报表」页面独占接口（收录诊断/平台对比/排行榜/手动检测等）
 随页面一并移除：其诊断能力已由「收录监控」页的 geo-evaluation 体系取代。
 """
+
 from typing import List, Optional
 from datetime import timedelta
 from fastapi import APIRouter, Depends, Query
@@ -116,7 +117,9 @@ async def get_article_stats(
 
     stats = (
         status_query.with_entities(GeoArticle.publish_status, func.count(GeoArticle.id).label("count"))
-        .filter(GeoArticle.publish_status.in_(["generating", "completed", "scheduled", "publishing", "published", "failed"]))
+        .filter(
+            GeoArticle.publish_status.in_(["generating", "completed", "scheduled", "publishing", "published", "failed"])
+        )
         .group_by(GeoArticle.publish_status)
         .all()
     )
@@ -128,11 +131,7 @@ async def get_article_stats(
     total = query.count()
 
     # 等待发布的文章：已生成、已定时、发布中
-    ready_to_publish = (
-        stats_dict.get("completed", 0)
-        + stats_dict.get("scheduled", 0)
-        + stats_dict.get("publishing", 0)
-    )
+    ready_to_publish = stats_dict.get("completed", 0) + stats_dict.get("scheduled", 0) + stats_dict.get("publishing", 0)
 
     logger.debug(
         f"[Reports] 文章统计: total={total} published={stats_dict.get('published', 0)} "

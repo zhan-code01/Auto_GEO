@@ -118,11 +118,7 @@ class SchedulerService:
             ]
             added = 0
             for default in defaults:
-                existing = (
-                    db.query(ScheduledTask)
-                    .filter(ScheduledTask.task_key == default.task_key)
-                    .first()
-                )
+                existing = db.query(ScheduledTask).filter(ScheduledTask.task_key == default.task_key).first()
                 if existing is None:
                     db.add(default)
                     added += 1
@@ -356,9 +352,7 @@ class SchedulerService:
         project_ids: list[tuple[int, int]] = []  # (project_id, user_id)
         try:
             rows = (
-                db.query(Project.id, Project.user_id)
-                .filter(Project.status == 1, Project.baseline_at.isnot(None))
-                .all()
+                db.query(Project.id, Project.user_id).filter(Project.status == 1, Project.baseline_at.isnot(None)).all()
             )
             project_ids = [(row[0], row[1]) for row in rows]
         except Exception as e:
@@ -382,16 +376,14 @@ class SchedulerService:
                     continue
 
                 from backend.services.index_check_service import IndexCheckService
+
                 service = IndexCheckService(db)
                 results = await service.check_project_keywords(
                     project_id=project_id,
                     user_id=user_id,
                     check_phase="ongoing",
                 )
-                log.info(
-                    f"✅ [AI收录复测] 项目 {project.name}(id={project_id}) 完成，"
-                    f"生成 {len(results)} 条记录"
-                )
+                log.info(f"✅ [AI收录复测] 项目 {project.name}(id={project_id}) 完成，生成 {len(results)} 条记录")
             except Exception as e:
                 log.error(f"❌ [AI收录复测] 项目 id={project_id} 复测失败: {e}")
             finally:

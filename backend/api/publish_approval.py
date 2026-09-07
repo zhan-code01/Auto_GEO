@@ -75,7 +75,7 @@ def _extract_client_meta(request: Request) -> Dict[str, Optional[str]]:
     elif real_ip:
         ip = real_ip.strip()
     else:
-        ip = (request.client.host if request.client else None)
+        ip = request.client.host if request.client else None
 
     ua = request.headers.get("user-agent")
     return {"client_ip": ip, "user_agent": (ua[:200] if ua else None)}
@@ -169,9 +169,7 @@ async def verify_approval_token(
         )
         return ApiResponse(success=False, message="令牌不存在", data={"valid": False})
     if not log.approved:
-        logger.warning(
-            f"[审批] 令牌校验失败（历史审批被拒绝）: task_id={body.task_id} record_id={body.record_id}"
-        )
+        logger.warning(f"[审批] 令牌校验失败（历史审批被拒绝）: task_id={body.task_id} record_id={body.record_id}")
         return ApiResponse(success=False, message="历史审批被拒绝", data={"valid": False})
     if log.expires_at and log.expires_at < datetime.now():
         logger.warning(
@@ -190,10 +188,14 @@ async def verify_approval_token(
         f"[审批] 令牌校验通过: task_id={body.task_id} record_id={body.record_id} "
         f"checkpoint={body.checkpoint} device={body.device_id}"
     )
-    return ApiResponse(success=True, message="令牌有效", data={
-        "valid": True,
-        "expires_at": log.expires_at.isoformat() if log.expires_at else None,
-    })
+    return ApiResponse(
+        success=True,
+        message="令牌有效",
+        data={
+            "valid": True,
+            "expires_at": log.expires_at.isoformat() if log.expires_at else None,
+        },
+    )
 
 
 @router.get("/logs", response_model=ApiResponse)
@@ -215,23 +217,25 @@ async def list_approval_logs(
         q = q.filter(PublishApprovalLog.approved == approved)
 
     logs = q.order_by(PublishApprovalLog.created_at.desc()).limit(limit).all()
-    return ApiResponse(data={
-        "items": [
-            {
-                "id": l.id,
-                "task_id": l.task_id,
-                "record_id": l.record_id,
-                "device_id": l.device_id,
-                "checkpoint": l.checkpoint,
-                "approved": l.approved,
-                "reason_code": l.reason_code,
-                "reason": l.reason,
-                "client_ip": l.client_ip,
-                "created_at": l.created_at.isoformat() if l.created_at else None,
-            }
-            for l in logs
-        ]
-    })
+    return ApiResponse(
+        data={
+            "items": [
+                {
+                    "id": l.id,
+                    "task_id": l.task_id,
+                    "record_id": l.record_id,
+                    "device_id": l.device_id,
+                    "checkpoint": l.checkpoint,
+                    "approved": l.approved,
+                    "reason_code": l.reason_code,
+                    "reason": l.reason,
+                    "client_ip": l.client_ip,
+                    "created_at": l.created_at.isoformat() if l.created_at else None,
+                }
+                for l in logs
+            ]
+        }
+    )
 
 
 @router.get("/quota", response_model=ApiResponse)
@@ -240,35 +244,35 @@ async def get_my_quota(
     current_user: User = Depends(get_current_user_from_token),
 ):
     """查询当前用户的发布配额。无记录视为无限制。"""
-    quota = (
-        db.query(UserPublishQuota)
-        .filter(UserPublishQuota.user_id == current_user.id)
-        .first()
-    )
+    quota = db.query(UserPublishQuota).filter(UserPublishQuota.user_id == current_user.id).first()
     if not quota:
-        return ApiResponse(data={
-            "exists": False,
-            "tier": "free",
-            "daily_limit": None,
-            "monthly_limit": None,
-            "used_today": 0,
-            "used_this_month": 0,
-            "platform_whitelist": None,
-        })
+        return ApiResponse(
+            data={
+                "exists": False,
+                "tier": "free",
+                "daily_limit": None,
+                "monthly_limit": None,
+                "used_today": 0,
+                "used_this_month": 0,
+                "platform_whitelist": None,
+            }
+        )
 
-    return ApiResponse(data={
-        "exists": True,
-        "tier": quota.tier,
-        "daily_limit": quota.daily_limit,
-        "monthly_limit": quota.monthly_limit,
-        "used_today": quota.used_today,
-        "used_this_month": quota.used_this_month,
-        "remaining_today": max(0, (quota.daily_limit or 0) - (quota.used_today or 0)),
-        "remaining_this_month": max(0, (quota.monthly_limit or 0) - (quota.used_this_month or 0)),
-        "platform_whitelist": quota.platform_whitelist,
-        "reset_date": quota.reset_date.isoformat() if quota.reset_date else None,
-        "month_reset_date": quota.month_reset_date.isoformat() if quota.month_reset_date else None,
-    })
+    return ApiResponse(
+        data={
+            "exists": True,
+            "tier": quota.tier,
+            "daily_limit": quota.daily_limit,
+            "monthly_limit": quota.monthly_limit,
+            "used_today": quota.used_today,
+            "used_this_month": quota.used_this_month,
+            "remaining_today": max(0, (quota.daily_limit or 0) - (quota.used_today or 0)),
+            "remaining_this_month": max(0, (quota.monthly_limit or 0) - (quota.used_this_month or 0)),
+            "platform_whitelist": quota.platform_whitelist,
+            "reset_date": quota.reset_date.isoformat() if quota.reset_date else None,
+            "month_reset_date": quota.month_reset_date.isoformat() if quota.month_reset_date else None,
+        }
+    )
 
 
 # ==================== 管理端：给用户设置配额 ====================
@@ -294,17 +298,15 @@ async def upsert_quota(
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="仅管理员可设置配额")
 
-    quota = (
-        db.query(UserPublishQuota)
-        .filter(UserPublishQuota.user_id == body.user_id)
-        .first()
-    )
+    quota = db.query(UserPublishQuota).filter(UserPublishQuota.user_id == body.user_id).first()
     today = datetime.now().date()
     if quota:
         quota.tier = body.tier or quota.tier
         quota.daily_limit = body.daily_limit or quota.daily_limit
         quota.monthly_limit = body.monthly_limit or quota.monthly_limit
-        quota.platform_whitelist = body.platform_whitelist if body.platform_whitelist is not None else quota.platform_whitelist
+        quota.platform_whitelist = (
+            body.platform_whitelist if body.platform_whitelist is not None else quota.platform_whitelist
+        )
     else:
         quota = UserPublishQuota(
             user_id=body.user_id,
@@ -321,10 +323,15 @@ async def upsert_quota(
 
     db.commit()
     db.refresh(quota)
-    logger.info(f"[审批] 管理员 {current_user.id} 设置用户 {body.user_id} 配额: daily={quota.daily_limit}, monthly={quota.monthly_limit}")
-    return ApiResponse(message="配额已更新", data={
-        "user_id": quota.user_id,
-        "tier": quota.tier,
-        "daily_limit": quota.daily_limit,
-        "monthly_limit": quota.monthly_limit,
-    })
+    logger.info(
+        f"[审批] 管理员 {current_user.id} 设置用户 {body.user_id} 配额: daily={quota.daily_limit}, monthly={quota.monthly_limit}"
+    )
+    return ApiResponse(
+        message="配额已更新",
+        data={
+            "user_id": quota.user_id,
+            "tier": quota.tier,
+            "daily_limit": quota.daily_limit,
+            "monthly_limit": quota.monthly_limit,
+        },
+    )

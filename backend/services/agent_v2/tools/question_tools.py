@@ -7,6 +7,7 @@
 工具签名统一：async def fn(slots: dict, user_id: int) -> ToolOutcome
 参数由 LLM 通过 Tool Calling 机制基于 tool_schemas.py 的 Pydantic schema 生成。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -61,9 +62,10 @@ async def generate_questions_tool(slots: dict[str, Any], user_id: int) -> ToolOu
     count_clamped = raw_count > MAX_QUESTION_COUNT
     count_int = min(raw_count, MAX_QUESTION_COUNT)
     limit_note = (
-        f"您请求生成 {raw_count} 个问题，超过单次上限 {MAX_QUESTION_COUNT} 个，"
-        f"已按 {MAX_QUESTION_COUNT} 个生成。\n"
-    ) if count_clamped else ""
+        (f"您请求生成 {raw_count} 个问题，超过单次上限 {MAX_QUESTION_COUNT} 个，已按 {MAX_QUESTION_COUNT} 个生成。\n")
+        if count_clamped
+        else ""
+    )
 
     fake_user = SimpleNamespace(id=user_id, role="user")
     db = SessionLocal()
@@ -74,10 +76,7 @@ async def generate_questions_tool(slots: dict[str, Any], user_id: int) -> ToolOu
             project_id=project_id_int,
             count=count_int,
         )
-        logger.info(
-            f"[generate_questions] project={project_id_int} "
-            f"batch={batch_id} planned={len(question_ids)}"
-        )
+        logger.info(f"[generate_questions] project={project_id_int} batch={batch_id} planned={len(question_ids)}")
 
         # plan_batch_sync 内部已 await 完成 LLM 规划，问题已入库。
         # 直接取出问题详情，写入返回结果，让前端能看到真实生成的问题（而非占位语）。
@@ -115,11 +114,13 @@ async def generate_questions_tool(slots: dict[str, Any], user_id: int) -> ToolOu
                 "planned_count": len(question_ids),
                 "questions": questions,
             },
-            async_task_refs=[{
-                "task_type": "question_generation",
-                "task_id": batch_id,
-                "query_tool": "list_questions",
-            }],
+            async_task_refs=[
+                {
+                    "task_type": "question_generation",
+                    "task_id": batch_id,
+                    "query_tool": "list_questions",
+                }
+            ],
             facts_patch=[{"default_project_id": project_id_int}],
         )
     except Exception as e:
@@ -192,20 +193,13 @@ async def list_questions_tool(slots: dict[str, Any], user_id: int) -> ToolOutcom
         project_ids = {q.get("project_id") for q in items if q.get("project_id")}
         project_map: dict[int, dict] = {}
         if project_ids:
-            proj_rows = db.query(Project.id, Project.name, Project.client_id).filter(
-                Project.id.in_(project_ids)
-            ).all()
+            proj_rows = db.query(Project.id, Project.name, Project.client_id).filter(Project.id.in_(project_ids)).all()
             client_ids = {p.client_id for p in proj_rows if p.client_id}
             client_map: dict[int, str] = {}
             if client_ids:
-                client_rows = db.query(Client.id, Client.company_name).filter(
-                    Client.id.in_(client_ids)
-                ).all()
+                client_rows = db.query(Client.id, Client.company_name).filter(Client.id.in_(client_ids)).all()
                 client_map = {c.id: c.company_name for c in client_rows}
-            project_map = {
-                p.id: {"name": p.name, "client_name": client_map.get(p.client_id, "")}
-                for p in proj_rows
-            }
+            project_map = {p.id: {"name": p.name, "client_name": client_map.get(p.client_id, "")} for p in proj_rows}
 
         items_simple = [
             {
@@ -224,15 +218,17 @@ async def list_questions_tool(slots: dict[str, Any], user_id: int) -> ToolOutcom
         return ToolOutcome.success(
             data={"items": items_simple, "total": total},
             reply=f"共 {total} 个问题",
-            actions=[make_action(
-                "show_question_list",
-                "查看问题列表",
-                {
-                    "project_id": project_id_int,
-                    "items": items_simple,
-                    "total": total,
-                },
-            )],
+            actions=[
+                make_action(
+                    "show_question_list",
+                    "查看问题列表",
+                    {
+                        "project_id": project_id_int,
+                        "items": items_simple,
+                        "total": total,
+                    },
+                )
+            ],
         )
     except Exception as e:
         logger.error(f"[list_questions] 失败: {e}", exc_info=True)

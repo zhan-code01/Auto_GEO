@@ -9,6 +9,7 @@
      普通用户不应在「我绑了哪些平台」里看到它们。
    所以 is_publish_platform(pid) 等价于 pid in PLATFORMS。
 """
+
 from __future__ import annotations
 
 from typing import Optional

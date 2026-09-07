@@ -16,7 +16,11 @@ from backend.services.smart_article.question_pool_service import (
     SmartArticleQuestionPoolService,
     run_smart_question_batch,
 )
-from backend.services.smart_article.service import SmartArticleService, run_smart_article_batch, process_smart_article_job
+from backend.services.smart_article.service import (
+    SmartArticleService,
+    run_smart_article_batch,
+    process_smart_article_job,
+)
 
 
 router = APIRouter(prefix="/api/smart-articles", tags=["智能文章生成"])
@@ -46,7 +50,8 @@ class SmartArticleSelectionBatchRequest(BaseModel):
 @router.get("/projects")
 async def list_projects(
     client_id: Optional[int] = Query(None),
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user_from_token)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_from_token),
 ):
     query = scoped_query(db, Project, current_user).filter(
         Project.status == 1,
@@ -61,9 +66,7 @@ async def list_projects(
             "client_id": project.client_id,
             "name": project.name,
             "company_name": (
-                project.client.company_name or project.client.name
-                if project.client
-                else project.company_name
+                project.client.company_name or project.client.name if project.client else project.company_name
             ),
             "domain_keyword": project.domain_keyword,
             "industry": project.industry,
@@ -134,7 +137,9 @@ async def generate_questions(
             f"[SmartArticle] 问题生成批次已提交: batch_id={batch.id} project_id={request.project_id} "
             f"count={request.question_count} user={current_user.username}"
         )
-        return ApiResponse(success=True, message="问题生成任务已提交", data={"batch_id": batch.id, "status": batch.status})
+        return ApiResponse(
+            success=True, message="问题生成任务已提交", data={"batch_id": batch.id, "status": batch.status}
+        )
     except ValueError as exc:
         logger.warning(f"[SmartArticle] 创建问题批次被拒绝: project_id={request.project_id} error={exc}")
         raise HTTPException(status_code=400, detail=str(exc)) from exc

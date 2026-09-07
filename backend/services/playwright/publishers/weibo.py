@@ -77,9 +77,7 @@ class WeiboPublisher(BasePublisher):
         editor_page = page
         start_time = time.time()
         article_id = getattr(article, "id", None)
-        logger.info(
-            f"[微博文章] 开始发布: article_id={article_id} title={getattr(article, 'title', '')[:20]!r}"
-        )
+        logger.info(f"[微博文章] 开始发布: article_id={article_id} title={getattr(article, 'title', '')[:20]!r}")
         try:
             title = (getattr(article, "title", "") or "未命名")[: self.MAX_TITLE_LENGTH]
             content = getattr(article, "content", "") or ""
@@ -87,7 +85,9 @@ class WeiboPublisher(BasePublisher):
             image_sources = [block.value for block in blocks if block.kind == "image"]
             if not image_sources:
                 raise RuntimeError("微博文章正文至少需要一张图片用于封面")
-            logger.debug(f"[微博文章] 解析完成: article_id={article_id} blocks={len(blocks)} images={len(image_sources)}")
+            logger.debug(
+                f"[微博文章] 解析完成: article_id={article_id} blocks={len(blocks)} images={len(image_sources)}"
+            )
 
             stage = "materialize_images"
             image_paths, image_temp_files = await materialize_image_sources(image_sources, limit=len(image_sources))

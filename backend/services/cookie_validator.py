@@ -81,24 +81,45 @@ PLATFORM_AUTH_POSITIVE_MARKERS = {
 
 # 关键认证 Cookie 名称（用于判断 cookie 类型）
 SESSION_COOKIE_NAMES = {
-    "session", "token", "auth", "sid", "sessionid", "connect.sid",
-    "access_token", "refresh_token", "jwt", "bearer",
-    "msToken", "passport", "csrf", "x-csrf",
+    "session",
+    "token",
+    "auth",
+    "sid",
+    "sessionid",
+    "connect.sid",
+    "access_token",
+    "refresh_token",
+    "jwt",
+    "bearer",
+    "msToken",
+    "passport",
+    "csrf",
+    "x-csrf",
 }
 
 # 各平台"只有登录后才会出现"的 cookie 名称
 # 这些 cookie 在未登录状态下绝对不存在，可作为快速判定依据
 PLATFORM_LOGIN_ONLY_COOKIES = {
     "doubao": [
-        "sessionid", "sessionid_ss", "uid_tt", "uid_tt_ss",
-        "odin_tt", "sid_guard", "sid_tt", "sid_ucp_v1",
-        "multi_sids", "has_biz_token", "is_staff_user",
+        "sessionid",
+        "sessionid_ss",
+        "uid_tt",
+        "uid_tt_ss",
+        "odin_tt",
+        "sid_guard",
+        "sid_tt",
+        "sid_ucp_v1",
+        "multi_sids",
+        "has_biz_token",
+        "is_staff_user",
     ],
     "deepseek": [
         # deepseek 登录/未登录 cookie 差异极小，无法用 cookie 名判断，走 API 探测
     ],
     "qianwen": [
-        "tongyi_sso_ticket", "tongyi_sso_ticket_hash", "login_aliyunid",
+        "tongyi_sso_ticket",
+        "tongyi_sso_ticket_hash",
+        "login_aliyunid",
     ],
 }
 
@@ -142,11 +163,15 @@ class CookieValidator:
 
         if platform in {"doubao", "deepseek"} and self._has_recent_browser_verified_login(storage_state, platform):
             platform_name = AI_PLATFORMS.get(platform, {}).get("name") or platform
-            return True, f"{platform_name}本机浏览器登录态近期已验证", {
-                "layer": 2,
-                "method": "browser_verified_login",
-                "conclusive": True,
-            }
+            return (
+                True,
+                f"{platform_name}本机浏览器登录态近期已验证",
+                {
+                    "layer": 2,
+                    "method": "browser_verified_login",
+                    "conclusive": True,
+                },
+            )
 
         # Layer 3: API 端点探测
         is_valid, reason, probe_info = await self._probe_auth_api(platform, storage_state)
@@ -167,9 +192,7 @@ class CookieValidator:
         # Layer 5: 无法判断
         return True, "HTTP检查无法判断", {"layer": 5, "method": "fallback"}
 
-    async def validate_fast(
-        self, platform: str, storage_state: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+    async def validate_fast(self, platform: str, storage_state: Dict[str, Any]) -> Tuple[bool, str]:
         """
         快速验证（Layer 1 + Layer 2），不进行 HTML 分析和 API 探测
         """
@@ -245,9 +268,7 @@ class CookieValidator:
 
     # ==================== Layer 2: 登录专有 Cookie 检查 ====================
 
-    def _check_login_only_cookies(
-        self, platform: str, cookies: list
-    ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    def _check_login_only_cookies(self, platform: str, cookies: list) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         检查是否存在"只有登录后才会出现"的 cookie。
         这些 cookie 在未登录状态下绝对不存在，可快速判定。
@@ -264,11 +285,15 @@ class CookieValidator:
         found = [name for name in required_names if name in cookie_names]
 
         if not found:
-            return False, f"缺少登录专有cookie（需{required_names[:3]}...）", {
-                "conclusive": True,
-                "found": found,
-                "required_count": len(required_names),
-            }
+            return (
+                False,
+                f"缺少登录专有cookie（需{required_names[:3]}...）",
+                {
+                    "conclusive": True,
+                    "found": found,
+                    "required_count": len(required_names),
+                },
+            )
 
         # 至少 1 个登录专有 cookie 即可确认
         if len(found) >= 1:
@@ -285,10 +310,14 @@ class CookieValidator:
                 logger.info(f"平台 {platform}: 找到登录专有cookie {found}，但 {expired_count} 个已过期")
                 return True, f"登录专有cookie存在但部分过期: {found}", None  # 无结论，继续后续检查
 
-            return True, f"检测到登录专有cookie: {found}", {
-                "conclusive": True,
-                "found": found,
-            }
+            return (
+                True,
+                f"检测到登录专有cookie: {found}",
+                {
+                    "conclusive": True,
+                    "found": found,
+                },
+            )
 
         return True, f"登录专有cookie不足: {found}", None  # 无结论
 
@@ -340,16 +369,22 @@ class CookieValidator:
             for probe_url in probes:
                 try:
                     response = await client.get(probe_url, cookies=cookie_kv, headers=headers)
-                    logger.debug(f"API探测 {probe_url}: status={response.status_code}, "
-                                 f"len={len(response.text)}, redirect={response.headers.get('location', 'none')}")
+                    logger.debug(
+                        f"API探测 {probe_url}: status={response.status_code}, "
+                        f"len={len(response.text)}, redirect={response.headers.get('location', 'none')}"
+                    )
 
                     # 401/403 → 明确未认证
                     if response.status_code in (401, 403):
-                        return False, f"API返回{response.status_code}", {
-                            "conclusive": True,
-                            "url": probe_url,
-                            "status": response.status_code,
-                        }
+                        return (
+                            False,
+                            f"API返回{response.status_code}",
+                            {
+                                "conclusive": True,
+                                "url": probe_url,
+                                "status": response.status_code,
+                            },
+                        )
 
                     # 200 → 检查响应体
                     if response.status_code == 200:
@@ -358,25 +393,39 @@ class CookieValidator:
 
                         # 包含用户数据 → 已登录
                         if self._is_api_user_response(body):
-                            return True, "API返回用户数据", {
-                                "conclusive": True,
-                                "url": probe_url,
-                                "status": 200,
-                            }
-
-                        # 包含认证失败标记 → 未登录
-                        auth_fail_markers = [
-                            "missing token", "unauthorized", "unauthenticated",
-                            "not logged in", "login required", "请先登录",
-                            "no auth", "invalid token", "token expired",
-                        ]
-                        for marker in auth_fail_markers:
-                            if marker in body_lower:
-                                return False, f"API返回认证失败: {marker}", {
+                            return (
+                                True,
+                                "API返回用户数据",
+                                {
                                     "conclusive": True,
                                     "url": probe_url,
                                     "status": 200,
-                                }
+                                },
+                            )
+
+                        # 包含认证失败标记 → 未登录
+                        auth_fail_markers = [
+                            "missing token",
+                            "unauthorized",
+                            "unauthenticated",
+                            "not logged in",
+                            "login required",
+                            "请先登录",
+                            "no auth",
+                            "invalid token",
+                            "token expired",
+                        ]
+                        for marker in auth_fail_markers:
+                            if marker in body_lower:
+                                return (
+                                    False,
+                                    f"API返回认证失败: {marker}",
+                                    {
+                                        "conclusive": True,
+                                        "url": probe_url,
+                                        "status": 200,
+                                    },
+                                )
 
                         logger.debug(f"API返回200但非用户数据: {body[:200]}")
                         continue
@@ -385,12 +434,16 @@ class CookieValidator:
                     if response.status_code in (301, 302, 303, 307, 308):
                         redirect = response.headers.get("location", "")
                         if self._is_login_redirect(platform, redirect):
-                            return False, f"重定向到登录页: {redirect}", {
-                                "conclusive": True,
-                                "url": probe_url,
-                                "status": response.status_code,
-                                "redirect": redirect,
-                            }
+                            return (
+                                False,
+                                f"重定向到登录页: {redirect}",
+                                {
+                                    "conclusive": True,
+                                    "url": probe_url,
+                                    "status": response.status_code,
+                                    "redirect": redirect,
+                                },
+                            )
                         continue
 
                 except httpx.TimeoutException:
@@ -430,11 +483,15 @@ class CookieValidator:
                 if response.status_code in (301, 302, 303, 307, 308):
                     redirect = response.headers.get("location", "")
                     if self._is_login_redirect(platform, redirect):
-                        return False, f"重定向到登录页: {redirect}", {
-                            "conclusive": True,
-                            "url": platform_url,
-                            "redirect": redirect,
-                        }
+                        return (
+                            False,
+                            f"重定向到登录页: {redirect}",
+                            {
+                                "conclusive": True,
+                                "url": platform_url,
+                                "redirect": redirect,
+                            },
+                        )
                     # 非登录重定向 → 不确定
                     return True, f"重定向到非登录URL: {redirect}", {"conclusive": False}
 
@@ -448,10 +505,14 @@ class CookieValidator:
                             found_markers.append(marker)
 
                     if found_markers:
-                        return True, f"检测到已登录标记: {found_markers}", {
-                            "conclusive": True,
-                            "markers_found": found_markers,
-                        }
+                        return (
+                            True,
+                            f"检测到已登录标记: {found_markers}",
+                            {
+                                "conclusive": True,
+                                "markers_found": found_markers,
+                            },
+                        )
 
                     # 如果有明确的"未登录"标记（如仅首页可见的登录入口）
                     # 注意：这里不检测"登录按钮"，只检测全局登录墙
@@ -497,9 +558,7 @@ class CookieValidator:
 
         return headers
 
-    def _extract_local_storage_value(
-        self, storage_state: Dict[str, Any], key: str
-    ) -> Optional[str]:
+    def _extract_local_storage_value(self, storage_state: Dict[str, Any], key: str) -> Optional[str]:
         """从 storage_state 的 origins 中提取指定 localStorage key 的值"""
         origins = storage_state.get("origins", [])
         for origin in origins:

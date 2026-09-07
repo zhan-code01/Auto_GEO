@@ -335,11 +335,7 @@ async def delete_article(
     # 删除文章时，同步重置问题池中指向该文章的问题标记。
     # 否则因外键 ON DELETE SET NULL，article_id 会变空，但 has_article 仍为 True，
     # 导致这些问题在界面上继续显示「已生成文章」而实际文章已不存在。
-    linked_questions = (
-        db.query(SmartArticleQuestion)
-        .filter(SmartArticleQuestion.article_id == article_id)
-        .all()
-    )
+    linked_questions = db.query(SmartArticleQuestion).filter(SmartArticleQuestion.article_id == article_id).all()
     for q in linked_questions:
         q.has_article = False
         q.article_id = None
@@ -367,9 +363,7 @@ async def batch_delete_articles(
         return ApiResponse(success=True, message="没有选择要删除的文章")
 
     # 查询当前用户有权限删除的文章（自动按 scoped_query 隔离）
-    query = scoped_query(db, GeoArticle, current_user).filter(
-        GeoArticle.id.in_(request.article_ids)
-    )
+    query = scoped_query(db, GeoArticle, current_user).filter(GeoArticle.id.in_(request.article_ids))
     articles = query.all()
 
     if not articles:
@@ -379,11 +373,7 @@ async def batch_delete_articles(
     for article in articles:
         article_id = article.id
         # 删除文章时，同步重置问题池中指向该文章的问题标记
-        linked_questions = (
-            db.query(SmartArticleQuestion)
-            .filter(SmartArticleQuestion.article_id == article_id)
-            .all()
-        )
+        linked_questions = db.query(SmartArticleQuestion).filter(SmartArticleQuestion.article_id == article_id).all()
         for q in linked_questions:
             q.has_article = False
             q.article_id = None

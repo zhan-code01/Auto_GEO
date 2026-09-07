@@ -11,6 +11,7 @@ LangGraph 通过 add_edge("tools", "agent") 自动路由回 agent 节点继续�
 - 让 LLM 在下一轮推理时能正确关联工具调用与结果（OpenAI 协议要求）
 - 工具结果同时回写到 tool_results / actions / async_task_refs / facts_patch
 """
+
 from __future__ import annotations
 
 import json
@@ -25,10 +26,14 @@ from backend.services.agent_v2.state import AgentState
 # 与 agent_node._TASK_TYPE_TOOLS 保持一致
 # 查询型工具（list_*/get_*）不改变 task_context
 _TASK_TYPE_TOOLS: set[str] = {
-    "create_client", "create_project",
-    "generate_questions", "generate_articles",
-    "publish_article", "bind_platform",
-    "create_baseline", "run_recheck",
+    "create_client",
+    "create_project",
+    "generate_questions",
+    "generate_articles",
+    "publish_article",
+    "bind_platform",
+    "create_baseline",
+    "run_recheck",
     "upload_documents",
 }
 
@@ -123,19 +128,24 @@ async def tools_node(state: AgentState) -> dict:
         # 把工具结果作为 ToolMessage 回写 messages
         # 让 LLM 在下一轮推理时能看到工具执行结果（ReAct 模式核心）
         # 关键：tool_call_id 必须与上一轮 AIMessage.tool_calls 中的 id 对应
-        tool_msg_content = json.dumps({
-            "tool": tool_name,
-            "status": status,
-            "data": result.get("data", {}),
-            "reply": reply,
-            "error_type": result.get("error_type"),
-            "suggestion": result.get("suggestion"),
-        }, ensure_ascii=False)
-        tool_messages.append({
-            "role": "tool",
-            "content": tool_msg_content,
-            "tool_call_id": tool_call_id,
-        })
+        tool_msg_content = json.dumps(
+            {
+                "tool": tool_name,
+                "status": status,
+                "data": result.get("data", {}),
+                "reply": reply,
+                "error_type": result.get("error_type"),
+                "suggestion": result.get("suggestion"),
+            },
+            ensure_ascii=False,
+        )
+        tool_messages.append(
+            {
+                "role": "tool",
+                "content": tool_msg_content,
+                "tool_call_id": tool_call_id,
+            }
+        )
 
     logger.info(
         f"[TOOLS] 完成 {len(tool_calls)} 个工具调用, status={final_status}, "

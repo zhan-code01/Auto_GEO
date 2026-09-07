@@ -294,7 +294,9 @@ class ArticleImageService:
             if not intent or intent in seen_intents:
                 continue
             section = h2_titles[min(len(result), len(h2_titles) - 1)] if h2_titles else ""
-            result.append(ImageSlot(index=len(result) + 1, kind=slot.kind or "section", intent=intent, section_title=section))
+            result.append(
+                ImageSlot(index=len(result) + 1, kind=slot.kind or "section", intent=intent, section_title=section)
+            )
             seen_intents.add(intent)
             if len(result) >= target_count:
                 return result
@@ -420,26 +422,52 @@ class ArticleImageService:
         if {"logistics", "transportation"} & token_set:
             return [tag for tag in ["warehouse", "logistics", "delivery", "transportation"] if tag in token_set]
         if {"energy", "solar", "power"} & token_set:
-            return [tag for tag in ["energy", "solar", "power", "engineering"] if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS]
+            return [
+                tag
+                for tag in ["energy", "solar", "power", "engineering"]
+                if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS
+            ]
         food_tags = {"food", "restaurant", "chef", "kitchen", "dish", "cooking"}
         if "food" in token_set and token_set & food_tags:
             return [tag for tag in ["food", "restaurant", "chef", "dish", "kitchen"] if tag in LOREMFLICKR_SAFE_TAGS]
         if {"factory", "production", "manufacturing", "industrial"} & token_set:
-            return [tag for tag in ["factory", "production", "manufacturing", "industrial", "machine"] if tag in token_set]
+            return [
+                tag for tag in ["factory", "production", "manufacturing", "industrial", "machine"] if tag in token_set
+            ]
         if {"technology", "software", "ai", "cloud", "data"} & token_set:
-            return [tag for tag in ["technology", "software", "computer", "office"] if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS]
+            return [
+                tag
+                for tag in ["technology", "software", "computer", "office"]
+                if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS
+            ]
         if {"education", "training", "classroom", "school"} & token_set:
             return [tag for tag in ["education", "training", "classroom", "school"] if tag in token_set]
         if {"finance", "banking", "investment"} & token_set:
-            return [tag for tag in ["finance", "banking", "investment", "office"] if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS]
+            return [
+                tag
+                for tag in ["finance", "banking", "investment", "office"]
+                if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS
+            ]
         if {"healthcare", "medical", "clinic", "hospital"} & token_set:
             return [tag for tag in ["healthcare", "medical", "clinic", "hospital"] if tag in token_set]
         if {"travel", "tourism", "hotel", "beach"} & token_set:
-            return [tag for tag in ["travel", "tourism", "hotel", "city"] if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS]
+            return [
+                tag
+                for tag in ["travel", "tourism", "hotel", "city"]
+                if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS
+            ]
         if {"construction", "engineering", "architecture", "building"} & token_set:
-            return [tag for tag in ["construction", "engineering", "architecture", "city"] if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS]
+            return [
+                tag
+                for tag in ["construction", "engineering", "architecture", "city"]
+                if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS
+            ]
         if {"city", "bar", "coffee"} & token_set:
-            return [tag for tag in ["city", "restaurant", "store", "coffee"] if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS]
+            return [
+                tag
+                for tag in ["city", "restaurant", "store", "coffee"]
+                if tag in token_set or tag in LOREMFLICKR_SAFE_TAGS
+            ]
         if {"retail", "store", "commerce", "shopping"} & token_set:
             return [tag for tag in ["retail", "store", "shopping", "commerce"] if tag in token_set]
         return tokens[:5]
@@ -481,10 +509,17 @@ class ArticleImageService:
                 continue
             digest = hashlib.sha256(content).hexdigest()
             if digest in seen_hashes:
-                logger.warning("duplicate article image skipped: article_id={}, slot={}, attempt={}", article_id, slot.index, attempt)
+                logger.warning(
+                    "duplicate article image skipped: article_id={}, slot={}, attempt={}",
+                    article_id,
+                    slot.index,
+                    attempt,
+                )
                 continue
             path = self._write_image(article_id, slot.index, digest, content, content_type)
-            return ResolvedImage(slot=slot, url=f"/static/uploads/article-images/{article_id}/{path.name}", path=path, digest=digest)
+            return ResolvedImage(
+                slot=slot, url=f"/static/uploads/article-images/{article_id}/{path.name}", path=path, digest=digest
+            )
         return None
 
     def _image_url(self, slot: ImageSlot, *, article_id: int, keyword: str, title: str, attempt: int) -> str:
@@ -563,7 +598,9 @@ class ArticleImageService:
     async def _download_image(self, url: str) -> tuple[bytes | None, str]:
         headers = {"User-Agent": "Mozilla/5.0 AutoGEO article image resolver"}
         try:
-            async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=self.DOWNLOAD_TIMEOUT) as client:
+            async with httpx.AsyncClient(
+                headers=headers, follow_redirects=True, timeout=self.DOWNLOAD_TIMEOUT
+            ) as client:
                 response = await client.get(url)
             content_type = response.headers.get("content-type", "").split(";", 1)[0]
             if response.status_code != 200 or len(response.content) < 2000 or not content_type.startswith("image/"):

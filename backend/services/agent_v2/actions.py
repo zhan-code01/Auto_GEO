@@ -9,6 +9,7 @@
 - 文件上传（upload_files）
 - 确认对话框（confirm）
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -134,10 +135,7 @@ def make_action(
     """
     spec = ACTION_TYPES.get(action_type)
     if spec is None:
-        raise ValueError(
-            f"未注册的 action 类型：{action_type}，"
-            f"合法类型：{list(ACTION_TYPES.keys())}"
-        )
+        raise ValueError(f"未注册的 action 类型：{action_type}，合法类型：{list(ACTION_TYPES.keys())}")
     return {
         "type": action_type,
         "label": label,

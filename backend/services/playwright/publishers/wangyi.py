@@ -49,7 +49,10 @@ class WangyiPublisher(BasePublisher):
         if self._publish_history:
             minutes = (now - self._publish_history[-1]).total_seconds() / 60
             if minutes < self.MIN_INTERVAL_MINUTES:
-                return {"allowed": False, "reason": f"距上次发布仅{int(minutes)}分钟，需≥{self.MIN_INTERVAL_MINUTES}分钟"}
+                return {
+                    "allowed": False,
+                    "reason": f"距上次发布仅{int(minutes)}分钟，需≥{self.MIN_INTERVAL_MINUTES}分钟",
+                }
 
         return {"allowed": True, "reason": "频率检查通过"}
 
@@ -69,11 +72,11 @@ class WangyiPublisher(BasePublisher):
             content = getattr(article, "content", "") or ""
 
             if len(title) > self.MAX_TITLE_LENGTH:
-                title = title[:self.MAX_TITLE_LENGTH]
+                title = title[: self.MAX_TITLE_LENGTH]
 
             if len(content) > self.MAX_CONTENT_LENGTH:
                 logger.warning(f"⚠️ [网易号] 正文{len(content)}字，超过限制{self.MAX_CONTENT_LENGTH}字，将截断")
-                content = content[:self.MAX_CONTENT_LENGTH]
+                content = content[: self.MAX_CONTENT_LENGTH]
 
             stage = "navigate"
             publish_url = self.config.get("publish_url", "https://mp.163.com/admin/article/publish")
@@ -147,7 +150,7 @@ class WangyiPublisher(BasePublisher):
 
     async def _close_popups(self, page: Page) -> None:
         """关闭弹窗"""
-        close_selectors = ['button:has-text("知道了")', 'button:has-text("关闭")', '.close-btn', '[class*="close"]']
+        close_selectors = ['button:has-text("知道了")', 'button:has-text("关闭")', ".close-btn", '[class*="close"]']
         for _ in range(3):
             for selector in close_selectors:
                 try:
@@ -160,7 +163,7 @@ class WangyiPublisher(BasePublisher):
 
     async def _fill_title(self, page: Page, title: str) -> bool:
         """填充标题"""
-        title_selectors = ['input[placeholder*="标题"]', 'input[name*="title"]', 'input.article-title', '#title']
+        title_selectors = ['input[placeholder*="标题"]', 'input[name*="title"]', "input.article-title", "#title"]
         for selector in title_selectors:
             try:
                 inp = page.locator(selector).first
@@ -177,12 +180,12 @@ class WangyiPublisher(BasePublisher):
     async def _fill_content_with_images(self, page: Page, content: str, image_paths: List[str]) -> bool:
         """填充正文内容（支持图片）"""
         content_selectors = [
-            '.article-content textarea',
+            ".article-content textarea",
             'textarea[name*="content"]',
-            '.ql-editor',
+            ".ql-editor",
             '[contenteditable="true"]',
-            '#content',
-            '.article-editor',
+            "#content",
+            ".article-editor",
         ]
 
         plain_content = self.markdown_to_plain_text(content, drop_first_h1=True)
@@ -221,12 +224,12 @@ class WangyiPublisher(BasePublisher):
             upload_selectors = [
                 'button[title*="图片"]',
                 'button[title*="上传"]',
-                '.upload-btn',
+                ".upload-btn",
                 'input[type="file"][accept*="image"]',
             ]
 
             for i, img_path in enumerate(image_paths[:20]):
-                logger.info(f"📷 [网易号] 上传第 {i+1}/{len(image_paths)} 张图片...")
+                logger.info(f"📷 [网易号] 上传第 {i + 1}/{len(image_paths)} 张图片...")
 
                 uploaded = False
                 for selector in upload_selectors:
@@ -235,7 +238,7 @@ class WangyiPublisher(BasePublisher):
                         if await file_input.count() > 0 and await file_input.is_visible(timeout=2000):
                             await file_input.set_input_files(img_path)
                             uploaded = True
-                            logger.success(f"✅ [网易号] 第 {i+1} 张图片上传成功")
+                            logger.success(f"✅ [网易号] 第 {i + 1} 张图片上传成功")
                             await asyncio.sleep(2)
                             break
                     except Exception as e:
@@ -245,10 +248,10 @@ class WangyiPublisher(BasePublisher):
                 if not uploaded:
                     try:
                         await self._paste_image_via_clipboard(page, img_path)
-                        logger.success(f"✅ [网易号] 第 {i+1} 张图片粘贴成功")
+                        logger.success(f"✅ [网易号] 第 {i + 1} 张图片粘贴成功")
                         await asyncio.sleep(2)
                     except Exception as e:
-                        logger.warning(f"⚠️ [网易号] 第 {i+1} 张图片上传失败: {e}")
+                        logger.warning(f"⚠️ [网易号] 第 {i + 1} 张图片上传失败: {e}")
 
         except Exception as e:
             logger.warning(f"⚠️ [网易号] 图片上传流程异常: {e}")
@@ -293,8 +296,8 @@ class WangyiPublisher(BasePublisher):
             'button:has-text("发布")',
             'button:has-text("立即发布")',
             'button:has-text("提交")',
-            '.publish-btn',
-            '.submit-btn',
+            ".publish-btn",
+            ".submit-btn",
         ]
 
         for selector in publish_selectors:
@@ -315,7 +318,7 @@ class WangyiPublisher(BasePublisher):
         """等待发布结果，最长120秒（60次×2秒）"""
         for i in range(60):  # 60次 × 2秒 = 120秒
             current_url = page.url
-            logger.debug(f"[网易号] 第{(i+1)*2}秒, URL: {current_url}")
+            logger.debug(f"[网易号] 第{(i + 1) * 2}秒, URL: {current_url}")
 
             try:
                 success_selectors = ["text=发布成功", "text=已发布", "text=提交成功"]

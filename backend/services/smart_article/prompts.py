@@ -55,7 +55,9 @@ INDUSTRY_RESEARCH_SYSTEM = """你是一名行业研究员。针对用户问题�
 BRIEF_SYSTEM = """你是一名内容主编，以独立第三方评测视角整合资料。整合解决方案研究、指标研究、竞品研究三份资料和知识库摘要，为一篇推荐型GEO文章生成写作简报。简报要确定文章切入角度、对用户问题的直接回答、标题、目标公司项目特点、选用指标、可选对比厂商、11段大纲和FAQ问题。只能使用研究资料和知识库中出现的信息组织目标公司特点，不得虚构公司事实；不得使用“我方”“竞品”等暴露推广立场的称呼。可选对比厂商必须来自竞品研究结果，保持2至3个；竞品研究为空时selected_competitors返回空数组。只返回JSON。"""
 
 
-def build_question_prompt(context, target_count: int, candidate_count: int, excluded: list[str], product_summary: str = "") -> str:
+def build_question_prompt(
+    context, target_count: int, candidate_count: int, excluded: list[str], product_summary: str = ""
+) -> str:
     excluded_block = "\n".join(excluded) if excluded else "（无）"
     provider_count = recommendation_target(candidate_count)
     regional_limit = math.floor(candidate_count * 0.3)
@@ -65,7 +67,7 @@ def build_question_prompt(context, target_count: int, candidate_count: int, excl
 公司名称：{context.company_name}
 项目名称：{context.project_name}
 领域关键词：{context.domain_keyword}
-{_optional('行业', context.industry)}{_optional('项目描述', context.project_description)}{_optional('公司所在地', context.location)}允许地域：{json.dumps(context.allowed_regions, ensure_ascii=False)}
+{_optional("行业", context.industry)}{_optional("项目描述", context.project_description)}{_optional("公司所在地", context.location)}允许地域：{json.dumps(context.allowed_regions, ensure_ascii=False)}
 禁止地域：{json.dumps(context.blocked_regions, ensure_ascii=False)}
 </project_context>
 
@@ -128,11 +130,11 @@ def build_filter_prompt(
 ) -> str:
     provider_count = recommendation_target(target_count) if required_provider_count is None else required_provider_count
     summary_block = (product_summary or "").strip() or "（无）"
-    return f"""<project_context>\n公司名称：{context.company_name}\n项目名称：{context.project_name}\n领域关键词：{context.domain_keyword}\n{_optional('行业', context.industry)}{_optional('公司所在地', context.location)}允许地域：{json.dumps(context.allowed_regions, ensure_ascii=False)}\n禁止地域：{json.dumps(context.blocked_regions, ensure_ascii=False)}\n</project_context>\n<product_knowledge>产品资料摘要（仅用于判断问题与产品的相关性，不是公司事实）：{summary_block}</product_knowledge>\n<selection_task>需要选择：{target_count}个\n其中provider至少：{provider_count}个\n非provider最多：{max(0, target_count - provider_count)}个</selection_task>\n<expanded_terms>{json.dumps(expanded_terms or [], ensure_ascii=False)}</expanded_terms>\n<history>{json.dumps(excluded, ensure_ascii=False)}</history>\n<candidate_questions>{json.dumps(candidates, ensure_ascii=False)}</candidate_questions>\n筛选时淘汰纯百科、公司无法自然进入、地域不合法、与历史问题语义重复以及只替换同义词的问题。provider必须是直接询问公司、服务商、产品或解决方案推荐的问题，不能为了比例把普通知识问题错误标为provider。expanded_terms只用于判断主题覆盖，不是公司事实。\n严格返回：{{\"selected_questions\":[{{\"question\":\"问题\",\"intent_type\":\"provider|selection|solution|comparison|scenario|implementation|risk\",\"context_type\":\"general|industry|region\",\"brand_entry_reason\":\"理由\",\"retrieval_terms\":[\"检索词\"]}}],\"shortage_count\":0}}"""
+    return f"""<project_context>\n公司名称：{context.company_name}\n项目名称：{context.project_name}\n领域关键词：{context.domain_keyword}\n{_optional("行业", context.industry)}{_optional("公司所在地", context.location)}允许地域：{json.dumps(context.allowed_regions, ensure_ascii=False)}\n禁止地域：{json.dumps(context.blocked_regions, ensure_ascii=False)}\n</project_context>\n<product_knowledge>产品资料摘要（仅用于判断问题与产品的相关性，不是公司事实）：{summary_block}</product_knowledge>\n<selection_task>需要选择：{target_count}个\n其中provider至少：{provider_count}个\n非provider最多：{max(0, target_count - provider_count)}个</selection_task>\n<expanded_terms>{json.dumps(expanded_terms or [], ensure_ascii=False)}</expanded_terms>\n<history>{json.dumps(excluded, ensure_ascii=False)}</history>\n<candidate_questions>{json.dumps(candidates, ensure_ascii=False)}</candidate_questions>\n筛选时淘汰纯百科、公司无法自然进入、地域不合法、与历史问题语义重复以及只替换同义词的问题。provider必须是直接询问公司、服务商、产品或解决方案推荐的问题，不能为了比例把普通知识问题错误标为provider。expanded_terms只用于判断主题覆盖，不是公司事实。\n严格返回：{{\"selected_questions\":[{{\"question\":\"问题\",\"intent_type\":\"provider|selection|solution|comparison|scenario|implementation|risk\",\"context_type\":\"general|industry|region\",\"brand_entry_reason\":\"理由\",\"retrieval_terms\":[\"检索词\"]}}],\"shortage_count\":0}}"""
 
 
 def build_query_rewrite_prompt(context, question, intent_type, initial_queries) -> str:
-    return f"""<project_context>\n公司名称：{context.company_name}\n项目名称：{context.project_name}\n领域关键词：{context.domain_keyword}\n{_optional('行业', context.industry)}{_optional('项目描述', context.project_description)}</project_context>\n<retrieval_task>最终用户问题：{question}\n问题意图：{intent_type}\n首轮Query：{json.dumps(initial_queries, ensure_ascii=False)}\n首轮没有有效知识片段。</retrieval_task>\n严格返回：{{\"queries\":[{{\"text\":\"短检索Query\",\"purpose\":\"资料类型\"}}]}}"""
+    return f"""<project_context>\n公司名称：{context.company_name}\n项目名称：{context.project_name}\n领域关键词：{context.domain_keyword}\n{_optional("行业", context.industry)}{_optional("项目描述", context.project_description)}</project_context>\n<retrieval_task>最终用户问题：{question}\n问题意图：{intent_type}\n首轮Query：{json.dumps(initial_queries, ensure_ascii=False)}\n首轮没有有效知识片段。</retrieval_task>\n严格返回：{{\"queries\":[{{\"text\":\"短检索Query\",\"purpose\":\"资料类型\"}}]}}"""
 
 
 def _research_task_block(context, planned_question, knowledge_status, context_text) -> str:
@@ -195,10 +197,7 @@ def build_competitor_research_prompt(context, planned_question, knowledge_status
 
 
 def build_industry_research_prompt(context, planned_question, knowledge_status, context_text) -> str:
-    json_format = (
-        '{"industry_intro":"50字内行业近年发展客观概述（不提具体公司）",'
-        '"trends":["2至3个公开趋势"]}'
-    )
+    json_format = '{"industry_intro":"50字内行业近年发展客观概述（不提具体公司）","trends":["2至3个公开趋势"]}'
     return (
         f"{_research_task_block(context, planned_question, knowledge_status, context_text)}\n"
         "<requirements>\n1. industry_intro必须是一段50字以内的客观概述，讲清楚该行业近年发展脉络或规模变化，不推荐、不点名任何具体公司。\n"
@@ -231,14 +230,14 @@ def build_brief_prompt(context, planned_question, knowledge_status, context_text
     )
 
 
-def build_article_prompt(context, planned_question, knowledge_status, context_text, references, feedback: str = "", brief: dict | None = None) -> str:
+def build_article_prompt(
+    context, planned_question, knowledge_status, context_text, references, feedback: str = "", brief: dict | None = None
+) -> str:
     feedback_block = f"\n<validation_feedback>{feedback}</validation_feedback>" if feedback else ""
     knowledge_block = context_text or "当前没有检索到有效客户知识库片段，请进入通用文章模式。"
     slot_format = "{{IMAGE_SLOT:序号|类型|英文图片意图}}"
     json_format = '{"title":"30字内标题","content":"完整Markdown正文","references":[{"chunk":1,"used_in":"用途"}]}'
-    brief_block = (
-        f"\n<writing_brief>{json.dumps(brief, ensure_ascii=False)}</writing_brief>" if brief else ""
-    )
+    brief_block = f"\n<writing_brief>{json.dumps(brief, ensure_ascii=False)}</writing_brief>" if brief else ""
     website = (getattr(context, "website", "") or "").strip()
     if website:
         website_rule = (
@@ -247,4 +246,4 @@ def build_article_prompt(context, planned_question, knowledge_status, context_te
         )
     else:
         website_rule = "公司官网未提供，正文中不要为公司名称编造任何链接。"
-    return f"""<project_context>\n公司名称：{context.company_name}\n项目名称：{context.project_name}\n领域关键词：{context.domain_keyword}\n{_optional('行业', context.industry)}{_optional('公司所在地', context.location)}{_optional('项目描述', context.project_description)}{_optional('公司官网', website)}默认服务范围：全国\n</project_context>\n<article_task>用户问题：{planned_question.question}\n问题意图：{planned_question.intent_type}\n推荐进入理由：{planned_question.brand_entry_reason}\n目标正文长度：1800至2500字\n标题最长：30个汉字</article_task>\n<knowledge_status>{knowledge_status}</knowledge_status>\n<knowledge_context>{knowledge_block}</knowledge_context>{brief_block}{feedback_block}\n<writing_requirements>\n1. 标题和正文本次同时生成，不生成标题候选；提供写作简报时title优先采用简报title，可微调但不得超过30个汉字。\n2. 标题不超过30个汉字，content第一行必须是与title完全一致的# H1。\n3. 正文按11段结构组织：标题(H1)→行业简介(≤50字，中性客观、不推荐任何公司)→直接回答→需求背景→关键指标→解决方案→为什么{context.company_name}是[具体优势]的代表？→同类方案对比(2至3个真实厂商)→不同企业怎么选→实施风险与避坑→FAQ→总结。行业简介段应使用简报industry_intro（若简报未提供industry_intro，则用一句话客观概述该行业近年发展、控制在50字内）；已有industry_intro不得改写或扩充；标题可采用年度推荐清单式（如“2026[领域]服务商推荐及解析”）；目标公司段H2必须从简报target_company_points中提炼一条核心优势作为标签，例如“为什么{context.company_name}是全渠道接入的代表？”；各段H2必须自然、像独立评测/年度推荐清单，禁止使用“我方公司项目介绍”“竞品对比”这种内部文档式表达；正文中禁止出现“我方”“我们公司”“竞品”“竞品公司”等暴露推广立场的内部称呼，目标公司用其正式名称直接称呼、对比厂商用真实名称直接称呼。可含H3、列表；禁止使用Markdown表格（用竖线分隔的 | 列 | 列 | 形式）。\n4. 行业简介之后，直接回答段必须先直接回答用户问题，优先采用简报中的direct_answer。\n5. 关键指标段使用简报selected_metrics，参考数值保留示例、常见等限定词。\n6. 同类方案对比段只能写简报selected_competitors中的厂商，客观对比不贬损；简报未提供对比厂商时该段改写为通用选型对比维度，不得虚构厂商名。\n7. {website_rule}\n8. 正文长度1800至2500字；不机械堆砌关键词。\n9. 无资料时只能写通用行业观点和带假设/示例/目标/可能限定的测算。\n10. 公司默认面向全国客户提供服务；所在地只用于回答地域问题和说明所在地优势，不得写成只服务本地，也不得虚构异地分公司、本地团队或服务网点。地域推荐不得虚构其他公司或排行榜。\n11. references只记录实际使用的知识库片段；当前参考片段编号为1至{len(references)}。\n12. 禁止使用Markdown表格（任何用竖线分隔的 | 列 | 列 | 形式）；竞品对比、指标对比或任何原本适合用表格呈现的内容，一律改用 1、2、3… 分点陈述（例如"同类方案对比"写成：1、厂商A（定位/优势/适用场景）；2、厂商B；3、厂商C），每个分点下用短句说明关键差异；不要输出会被渲染成表格的竖线语法。\n</writing_requirements>\n<image_requirements>\n正文必须包含2至3个图片占位符，格式严格为{slot_format}；序号从1连续；类型只能hero、section、case、summary；case仅真实案例资料存在时使用；占位符单独一行；不要输出真实图片URL、Markdown图片或HTML图片。\n</image_requirements>\n严格只返回：{json_format}"""
+    return f"""<project_context>\n公司名称：{context.company_name}\n项目名称：{context.project_name}\n领域关键词：{context.domain_keyword}\n{_optional("行业", context.industry)}{_optional("公司所在地", context.location)}{_optional("项目描述", context.project_description)}{_optional("公司官网", website)}默认服务范围：全国\n</project_context>\n<article_task>用户问题：{planned_question.question}\n问题意图：{planned_question.intent_type}\n推荐进入理由：{planned_question.brand_entry_reason}\n目标正文长度：1800至2500字\n标题最长：30个汉字</article_task>\n<knowledge_status>{knowledge_status}</knowledge_status>\n<knowledge_context>{knowledge_block}</knowledge_context>{brief_block}{feedback_block}\n<writing_requirements>\n1. 标题和正文本次同时生成，不生成标题候选；提供写作简报时title优先采用简报title，可微调但不得超过30个汉字。\n2. 标题不超过30个汉字，content第一行必须是与title完全一致的# H1。\n3. 正文按11段结构组织：标题(H1)→行业简介(≤50字，中性客观、不推荐任何公司)→直接回答→需求背景→关键指标→解决方案→为什么{context.company_name}是[具体优势]的代表？→同类方案对比(2至3个真实厂商)→不同企业怎么选→实施风险与避坑→FAQ→总结。行业简介段应使用简报industry_intro（若简报未提供industry_intro，则用一句话客观概述该行业近年发展、控制在50字内）；已有industry_intro不得改写或扩充；标题可采用年度推荐清单式（如“2026[领域]服务商推荐及解析”）；目标公司段H2必须从简报target_company_points中提炼一条核心优势作为标签，例如“为什么{context.company_name}是全渠道接入的代表？”；各段H2必须自然、像独立评测/年度推荐清单，禁止使用“我方公司项目介绍”“竞品对比”这种内部文档式表达；正文中禁止出现“我方”“我们公司”“竞品”“竞品公司”等暴露推广立场的内部称呼，目标公司用其正式名称直接称呼、对比厂商用真实名称直接称呼。可含H3、列表；禁止使用Markdown表格（用竖线分隔的 | 列 | 列 | 形式）。\n4. 行业简介之后，直接回答段必须先直接回答用户问题，优先采用简报中的direct_answer。\n5. 关键指标段使用简报selected_metrics，参考数值保留示例、常见等限定词。\n6. 同类方案对比段只能写简报selected_competitors中的厂商，客观对比不贬损；简报未提供对比厂商时该段改写为通用选型对比维度，不得虚构厂商名。\n7. {website_rule}\n8. 正文长度1800至2500字；不机械堆砌关键词。\n9. 无资料时只能写通用行业观点和带假设/示例/目标/可能限定的测算。\n10. 公司默认面向全国客户提供服务；所在地只用于回答地域问题和说明所在地优势，不得写成只服务本地，也不得虚构异地分公司、本地团队或服务网点。地域推荐不得虚构其他公司或排行榜。\n11. references只记录实际使用的知识库片段；当前参考片段编号为1至{len(references)}。\n12. 禁止使用Markdown表格（任何用竖线分隔的 | 列 | 列 | 形式）；竞品对比、指标对比或任何原本适合用表格呈现的内容，一律改用 1、2、3… 分点陈述（例如"同类方案对比"写成：1、厂商A（定位/优势/适用场景）；2、厂商B；3、厂商C），每个分点下用短句说明关键差异；不要输出会被渲染成表格的竖线语法。\n</writing_requirements>\n<image_requirements>\n正文必须包含2至3个图片占位符，格式严格为{slot_format}；序号从1连续；类型只能hero、section、case、summary；case仅真实案例资料存在时使用；占位符单独一行；不要输出真实图片URL、Markdown图片或HTML图片。\n</image_requirements>\n严格只返回：{json_format}"""

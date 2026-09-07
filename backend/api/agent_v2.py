@@ -12,6 +12,7 @@
 - GET /api/agent-v2/facts
 - POST /api/agent-v2/ws/register（注册 WebSocket user_id 映射）
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -130,13 +131,16 @@ async def _invoke_tool_directly(tool_name: str, params: dict, user_id: int) -> t
     actions = getattr(result, "actions", None) or []
     async_task_refs = getattr(result, "async_task_refs", None) or []
     tool_data = getattr(result, "data", None) or {}
-    logger.info(f"[agent_v2/direct] 工具 {tool_name} 完成, reply_len={len(reply)}, actions={len(actions)}, async_tasks={len(async_task_refs)}")
+    logger.info(
+        f"[agent_v2/direct] 工具 {tool_name} 完成, reply_len={len(reply)}, actions={len(actions)}, async_tasks={len(async_task_refs)}"
+    )
     return reply, actions, async_task_refs, tool_data
 
 
 # ============================================================
 #  请求 / 响应 Schema
 # ============================================================
+
 
 class AgentMessageRequest(BaseModel):
     """智能体对话请求（响应是 SSE 流）。
@@ -147,6 +151,7 @@ class AgentMessageRequest(BaseModel):
 
     silent=true 时，action 正常处理但不创建用户消息气泡（用于弹窗内操作）。
     """
+
     message: str = Field(default="", max_length=4000)  # 允许空消息（仅 action 回调时）
     session_id: Optional[str] = None
     attachments: list[dict] = Field(default_factory=list)
@@ -156,6 +161,7 @@ class AgentMessageRequest(BaseModel):
 
 class PreferenceUpdate(BaseModel):
     """用户偏好更新。"""
+
     default_project_id: Optional[int] = None
     default_platforms: Optional[list[str]] = None
     default_publish_strategy: Optional[str] = None
@@ -165,6 +171,7 @@ class PreferenceUpdate(BaseModel):
 
 class WSRegisterRequest(BaseModel):
     """WebSocket 注册 user_id 映射。"""
+
     client_id: str
     user_id: int
 
@@ -172,6 +179,7 @@ class WSRegisterRequest(BaseModel):
 # ============================================================
 #  工具函数
 # ============================================================
+
 
 def _iso(dt: Optional[datetime]) -> Optional[str]:
     if dt is None:
@@ -242,6 +250,7 @@ def _message_to_dict(msg: ConversationMessage) -> dict:
 #  SSE 流式主端点
 # ============================================================
 
+
 @router.post("/message")
 async def send_message(
     payload: AgentMessageRequest,
@@ -278,9 +287,12 @@ async def send_message(
                 direct_async_task_refs: list[dict] = []
                 direct_tool_data: dict = {}
                 try:
-                    direct_reply, direct_actions, direct_async_task_refs, direct_tool_data = (
-                        await _invoke_tool_directly(tool_name, direct_params, user_id)
-                    )
+                    (
+                        direct_reply,
+                        direct_actions,
+                        direct_async_task_refs,
+                        direct_tool_data,
+                    ) = await _invoke_tool_directly(tool_name, direct_params, user_id)
                 except Exception as t_e:
                     logger.error(f"[agent_v2/direct] 工具 {tool_name} 执行失败: {t_e}", exc_info=True)
                     direct_status = "failed"
@@ -293,7 +305,9 @@ async def send_message(
                     yield events.error_event("tool_execution_error", str(t_e))
                 if direct_status == "completed":
                     # 发 tool_end + actions（如果有）+ text_delta + done
-                    yield events.tool_end_event(tool_name, {"ok": True, "reply": direct_reply, "actions": direct_actions}, direct_actions or [])
+                    yield events.tool_end_event(
+                        tool_name, {"ok": True, "reply": direct_reply, "actions": direct_actions}, direct_actions or []
+                    )
                     if direct_actions:
                         yield events.actions_event(direct_actions)
                     # 把 reply 作为 text_delta 推给前端（UI 上是助手消息）
@@ -308,17 +322,21 @@ async def send_message(
                         "user_id": user_id,
                         "session_id": session_id,
                         # 供 persist_mem 提取用户消息；silent=true 时跳过用户气泡
-                        "messages": [{
-                            "role": "user",
-                            "content": _build_effective_message(payload.message, payload.action),
-                        }],
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": _build_effective_message(payload.message, payload.action),
+                            }
+                        ],
                         "reply": direct_reply,
                         "actions": direct_actions,
                         "async_task_refs": direct_async_task_refs,
-                        "tool_results": [{
-                            "name": tool_name,
-                            "result": {"data": direct_tool_data, "status": direct_status},
-                        }],
+                        "tool_results": [
+                            {
+                                "name": tool_name,
+                                "result": {"data": direct_tool_data, "status": direct_status},
+                            }
+                        ],
                         "status": direct_status,
                         "facts_patch": [],
                         "silent": payload.silent,
@@ -333,10 +351,12 @@ async def send_message(
                     session_id=session_id,
                     actions=direct_actions,
                     async_task_refs=direct_async_task_refs,
-                    tool_results=[{
-                        "name": tool_name,
-                        "result": {"data": direct_tool_data, "status": direct_status},
-                    }],
+                    tool_results=[
+                        {
+                            "name": tool_name,
+                            "result": {"data": direct_tool_data, "status": direct_status},
+                        }
+                    ],
                 )
                 return
 
@@ -437,6 +457,7 @@ async def _heartbeat(start_time: float):
 #  会话管理端点
 # ============================================================
 
+
 @router.get("/sessions")
 async def list_sessions(
     status: Optional[str] = Query(None, description="按会话状态过滤"),
@@ -470,15 +491,17 @@ async def list_sessions(
         if last_msg and last_msg.content:
             _raw = last_msg.content
             last_text = (_raw[:60] + "…") if len(_raw) > 60 else _raw
-        items.append({
-            "id": s.id,
-            "title": s.title,
-            "status": s.status,
-            "current_intent": s.current_intent,
-            "last_message": last_text,
-            "last_message_role": last_msg.role if last_msg else None,
-            "updated_at": _iso(s.updated_at),
-        })
+        items.append(
+            {
+                "id": s.id,
+                "title": s.title,
+                "status": s.status,
+                "current_intent": s.current_intent,
+                "last_message": last_text,
+                "last_message_role": last_msg.role if last_msg else None,
+                "updated_at": _iso(s.updated_at),
+            }
+        )
     return {"total": total, "items": items}
 
 
@@ -490,10 +513,14 @@ async def get_session(
     current_user: User = Depends(get_current_active_user),
 ):
     """获取会话详情（含消息历史）。"""
-    session = db.query(ConversationSession).filter(
-        ConversationSession.id == session_id,
-        ConversationSession.system_user_id == current_user.id,
-    ).first()
+    session = (
+        db.query(ConversationSession)
+        .filter(
+            ConversationSession.id == session_id,
+            ConversationSession.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在或无权访问")
 
@@ -525,10 +552,14 @@ async def update_session(
     current_user: User = Depends(get_current_active_user),
 ):
     """更新会话（目前仅支持重命名）。"""
-    session = db.query(ConversationSession).filter(
-        ConversationSession.id == session_id,
-        ConversationSession.system_user_id == current_user.id,
-    ).first()
+    session = (
+        db.query(ConversationSession)
+        .filter(
+            ConversationSession.id == session_id,
+            ConversationSession.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在或无权访问")
     if "title" in body and body["title"]:
@@ -544,10 +575,14 @@ async def archive_session(
     current_user: User = Depends(get_current_active_user),
 ):
     """归档会话。"""
-    session = db.query(ConversationSession).filter(
-        ConversationSession.id == session_id,
-        ConversationSession.system_user_id == current_user.id,
-    ).first()
+    session = (
+        db.query(ConversationSession)
+        .filter(
+            ConversationSession.id == session_id,
+            ConversationSession.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在或无权访问")
     session.status = "archived"
@@ -562,10 +597,14 @@ async def delete_session(
     current_user: User = Depends(get_current_active_user),
 ):
     """删除会话（软删除）。"""
-    session = db.query(ConversationSession).filter(
-        ConversationSession.id == session_id,
-        ConversationSession.system_user_id == current_user.id,
-    ).first()
+    session = (
+        db.query(ConversationSession)
+        .filter(
+            ConversationSession.id == session_id,
+            ConversationSession.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在或无权访问")
     session.status = "deleted"
@@ -581,19 +620,29 @@ async def list_messages(
     current_user: User = Depends(get_current_active_user),
 ):
     """获取会话消息历史。"""
-    session = db.query(ConversationSession).filter(
-        ConversationSession.id == session_id,
-        ConversationSession.system_user_id == current_user.id,
-    ).first()
+    session = (
+        db.query(ConversationSession)
+        .filter(
+            ConversationSession.id == session_id,
+            ConversationSession.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在或无权访问")
 
-    rows = db.query(ConversationMessage).filter(
-        ConversationMessage.conversation_id == session_id,
-    ).order_by(
-        ConversationMessage.created_at.asc(),
-        ConversationMessage.id.asc(),
-    ).limit(limit).all()
+    rows = (
+        db.query(ConversationMessage)
+        .filter(
+            ConversationMessage.conversation_id == session_id,
+        )
+        .order_by(
+            ConversationMessage.created_at.asc(),
+            ConversationMessage.id.asc(),
+        )
+        .limit(limit)
+        .all()
+    )
     return {
         "total": len(rows),
         "items": [_message_to_dict(r) for r in rows],
@@ -604,15 +653,20 @@ async def list_messages(
 #  偏好与事实端点
 # ============================================================
 
+
 @router.get("/preferences")
 async def get_preferences(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
     """获取用户偏好。"""
-    record = db.query(UserAgentPreference).filter(
-        UserAgentPreference.system_user_id == current_user.id,
-    ).first()
+    record = (
+        db.query(UserAgentPreference)
+        .filter(
+            UserAgentPreference.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not record:
         return {
             "default_project_id": None,
@@ -637,9 +691,13 @@ async def update_preferences(
     current_user: User = Depends(get_current_active_user),
 ):
     """更新用户偏好。"""
-    record = db.query(UserAgentPreference).filter(
-        UserAgentPreference.system_user_id == current_user.id,
-    ).first()
+    record = (
+        db.query(UserAgentPreference)
+        .filter(
+            UserAgentPreference.system_user_id == current_user.id,
+        )
+        .first()
+    )
     if not record:
         record = UserAgentPreference(system_user_id=current_user.id)
         db.add(record)
@@ -661,9 +719,13 @@ async def get_facts(
 ):
     """获取用户事实（admin 可查任意用户）。"""
     target_user_id = user_id if (user_id and current_user.role == "admin") else current_user.id
-    record = db.query(UserAgentFact).filter(
-        UserAgentFact.system_user_id == target_user_id,
-    ).first()
+    record = (
+        db.query(UserAgentFact)
+        .filter(
+            UserAgentFact.system_user_id == target_user_id,
+        )
+        .first()
+    )
     if not record:
         return {
             "user_id": target_user_id,
@@ -713,6 +775,7 @@ async def dismiss_onboarding(
 # ============================================================
 #  WebSocket user_id 注册端点
 # ============================================================
+
 
 @router.post("/ws/register")
 async def register_ws_user(

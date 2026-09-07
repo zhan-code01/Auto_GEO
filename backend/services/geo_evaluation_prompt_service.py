@@ -292,11 +292,7 @@ class GeoEvaluationPromptService:
             )
             .all()
         }
-        next_order = (
-            self.db.query(GeoPrompt)
-            .filter(GeoPrompt.prompt_set_id == existing.id)
-            .count()
-        )
+        next_order = self.db.query(GeoPrompt).filter(GeoPrompt.prompt_set_id == existing.id).count()
         added = 0
         for question, project in questions:
             if question.id in linked_ids:
@@ -702,14 +698,15 @@ class GeoEvaluationPromptService:
             allowed = ["全国", "国内"]
         else:
             normalized = cleaned.replace("市", "").replace("省", "").strip()
-            matched_city = next((city for city in CITY_REGION_EXPANSIONS if city in cleaned or city == normalized), None)
+            matched_city = next(
+                (city for city in CITY_REGION_EXPANSIONS if city in cleaned or city == normalized), None
+            )
             matched_province = next(
                 (province for province in PROVINCE_REGION_EXPANSIONS if province in cleaned or province == normalized),
                 None,
             )
-            allowed = (
-                CITY_REGION_EXPANSIONS.get(matched_city or "")
-                or PROVINCE_REGION_EXPANSIONS.get(matched_province or "")
+            allowed = CITY_REGION_EXPANSIONS.get(matched_city or "") or PROVINCE_REGION_EXPANSIONS.get(
+                matched_province or ""
             )
             if not allowed:
                 allowed = [normalized, "全国"]
@@ -743,7 +740,9 @@ class GeoEvaluationPromptService:
             return random.choice(matching)
         return random.choice(templates)
 
-    def _filter_region_questions(self, questions: List[Dict[str, Any]], region_profile: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _filter_region_questions(
+        self, questions: List[Dict[str, Any]], region_profile: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         blocked = set(region_profile.get("blocked_regions") or [])
         if not blocked:
             return questions
@@ -789,11 +788,7 @@ class GeoEvaluationPromptService:
 
     def _candidate_distribution(self, distribution: Dict[str, int]) -> Dict[str, int]:
         """Build an oversized local candidate pool for LLM rewrite/fallback."""
-        return {
-            question_type: max(count + 5, count * 2)
-            for question_type, count in distribution.items()
-            if count > 0
-        }
+        return {question_type: max(count + 5, count * 2) for question_type, count in distribution.items() if count > 0}
 
     def _generate_questions(
         self,
@@ -822,54 +817,66 @@ class GeoEvaluationPromptService:
         project_budgets = self._split_project_term_budget(distribution, project_budget)
 
         # —— 供应商推荐类（60%） ——
-        questions.extend(self._generate_recommendation_questions(
-            company_name=company_name,
-            industry=industry,
-            count=distribution.get("recommendation", 0),
-            project_terms=project_terms,
-            project_count=project_budgets["recommendation"],
-            region_profile=region_profile,
-        ))
+        questions.extend(
+            self._generate_recommendation_questions(
+                company_name=company_name,
+                industry=industry,
+                count=distribution.get("recommendation", 0),
+                project_terms=project_terms,
+                project_count=project_budgets["recommendation"],
+                region_profile=region_profile,
+            )
+        )
 
         # —— 场景找供应商类（15%） ——
-        questions.extend(self._generate_scenario_questions(
-            industry=industry,
-            count=distribution.get("scenario", 0),
-            project_terms=project_terms,
-            project_count=project_budgets["scenario"],
-            region_profile=region_profile,
-        ))
+        questions.extend(
+            self._generate_scenario_questions(
+                industry=industry,
+                count=distribution.get("scenario", 0),
+                project_terms=project_terms,
+                project_count=project_budgets["scenario"],
+                region_profile=region_profile,
+            )
+        )
 
         # —— 采购选型类（15%） ——
-        questions.extend(self._generate_comparison_questions(
-            industry=industry,
-            count=distribution.get("comparison", 0),
-            competitors=competitors,
-            project_terms=project_terms,
-            project_count=project_budgets["comparison"],
-            region_profile=region_profile,
-        ))
+        questions.extend(
+            self._generate_comparison_questions(
+                industry=industry,
+                count=distribution.get("comparison", 0),
+                competitors=competitors,
+                project_terms=project_terms,
+                project_count=project_budgets["comparison"],
+                region_profile=region_profile,
+            )
+        )
 
         # —— 业务理解类（10%） ——
-        questions.extend(self._generate_business_understanding_questions(
-            industry=industry,
-            count=distribution.get("business_understanding", 0),
-            project_terms=project_terms,
-            project_count=project_budgets["business_understanding"],
-        ))
+        questions.extend(
+            self._generate_business_understanding_questions(
+                industry=industry,
+                count=distribution.get("business_understanding", 0),
+                project_terms=project_terms,
+                project_count=project_budgets["business_understanding"],
+            )
+        )
 
         # —— 品牌认知型（5%） ——
-        questions.extend(self._generate_brand_awareness_questions(
-            company_name=company_name,
-            count=distribution.get("brand_awareness", 0),
-        ))
+        questions.extend(
+            self._generate_brand_awareness_questions(
+                company_name=company_name,
+                count=distribution.get("brand_awareness", 0),
+            )
+        )
 
         # —— 口碑评价类（5%） ——
-        questions.extend(self._generate_reputation_questions(
-            company_name=company_name,
-            industry=industry,
-            count=distribution.get("reputation", 0),
-        ))
+        questions.extend(
+            self._generate_reputation_questions(
+                company_name=company_name,
+                industry=industry,
+                count=distribution.get("reputation", 0),
+            )
+        )
 
         return self._filter_region_questions(questions, region_profile)
 
@@ -928,22 +935,26 @@ class GeoEvaluationPromptService:
                     region=region,
                     industry=industry_name,
                 )
-                questions.append({
-                    "question": q,
-                    "question_type": "recommendation",
-                    "related_project_name": project_name,
-                    "intent_tags": ["推荐", "服务商", "业务咨询"],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "recommendation",
+                        "related_project_name": project_name,
+                        "intent_tags": ["推荐", "服务商", "业务咨询"],
+                    }
+                )
             else:
                 template = self._pick_template(generic_templates, use_region=use_region)
                 region = self._pick_region(region_profile)
                 q = template.format(region=region, industry=industry_name)
-                questions.append({
-                    "question": q,
-                    "question_type": "recommendation",
-                    "related_project_name": None,
-                    "intent_tags": ["推荐", "服务商"],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "recommendation",
+                        "related_project_name": None,
+                        "intent_tags": ["推荐", "服务商"],
+                    }
+                )
 
         return questions
 
@@ -993,26 +1004,30 @@ class GeoEvaluationPromptService:
                 template = self._pick_template(project_templates, use_region=use_region)
                 region = self._pick_region(region_profile)
                 q = template.format(project=project_name, region=region, industry=industry_name)
-                questions.append({
-                    "question": q,
-                    "question_type": "comparison",
-                    "related_project_name": project_name,
-                    "intent_tags": ["对比", "选型", "业务咨询"],
-                    "competitor_names": competitors[:3] if competitors else [],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "comparison",
+                        "related_project_name": project_name,
+                        "intent_tags": ["对比", "选型", "业务咨询"],
+                        "competitor_names": competitors[:3] if competitors else [],
+                    }
+                )
             else:
                 template = self._pick_template(templates, use_region=use_region)
                 region = self._pick_region(region_profile)
                 q = template.format(region=region, industry=industry_name)
                 if competitor_str:
                     q = q.replace("靠谱公司", f"靠谱公司（比如{competitor_str}）")
-                questions.append({
-                    "question": q,
-                    "question_type": "comparison",
-                    "related_project_name": None,
-                    "intent_tags": ["对比", "选型"],
-                    "competitor_names": competitors[:3] if competitors else [],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "comparison",
+                        "related_project_name": None,
+                        "intent_tags": ["对比", "选型"],
+                        "competitor_names": competitors[:3] if competitors else [],
+                    }
+                )
 
         return questions
 
@@ -1059,21 +1074,25 @@ class GeoEvaluationPromptService:
                 template = self._pick_template(project_templates, use_region=use_region)
                 region = self._pick_region(region_profile)
                 q = template.format(project=project_name, region=region, industry=industry_name)
-                questions.append({
-                    "question": q,
-                    "question_type": "scenario",
-                    "related_project_name": project_name,
-                    "intent_tags": ["场景", "解决方案", "业务咨询"],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "scenario",
+                        "related_project_name": project_name,
+                        "intent_tags": ["场景", "解决方案", "业务咨询"],
+                    }
+                )
             else:
                 template = self._pick_template(templates, use_region=use_region)
                 q = template.format(industry=industry_name, region=self._pick_region(region_profile))
-                questions.append({
-                    "question": q,
-                    "question_type": "scenario",
-                    "related_project_name": None,
-                    "intent_tags": ["场景", "解决方案"],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "scenario",
+                        "related_project_name": None,
+                        "intent_tags": ["场景", "解决方案"],
+                    }
+                )
 
         return questions
 
@@ -1104,12 +1123,14 @@ class GeoEvaluationPromptService:
         for i in range(count):
             template = random.choice(templates)
             q = template.format(company=company_name, industry=industry_name)
-            questions.append({
-                "question": q,
-                "question_type": "reputation",
-                "related_project_name": None,
-                "intent_tags": ["口碑", "评价"],
-            })
+            questions.append(
+                {
+                    "question": q,
+                    "question_type": "reputation",
+                    "related_project_name": None,
+                    "intent_tags": ["口碑", "评价"],
+                }
+            )
 
         return questions
 
@@ -1150,21 +1171,25 @@ class GeoEvaluationPromptService:
                 project_name = project_terms[i % len(project_terms)]
                 template = random.choice(project_templates)
                 q = template.format(project=project_name, industry=industry_name)
-                questions.append({
-                    "question": q,
-                    "question_type": "business_understanding",
-                    "related_project_name": project_name,
-                    "intent_tags": ["业务理解", "知识问答", "采购认知"],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "business_understanding",
+                        "related_project_name": project_name,
+                        "intent_tags": ["业务理解", "知识问答", "采购认知"],
+                    }
+                )
             else:
                 template = random.choice(templates)
                 q = template.format(industry=industry_name)
-                questions.append({
-                    "question": q,
-                    "question_type": "business_understanding",
-                    "related_project_name": None,
-                    "intent_tags": ["业务理解", "知识问答"],
-                })
+                questions.append(
+                    {
+                        "question": q,
+                        "question_type": "business_understanding",
+                        "related_project_name": None,
+                        "intent_tags": ["业务理解", "知识问答"],
+                    }
+                )
 
         return questions
 
@@ -1192,11 +1217,13 @@ class GeoEvaluationPromptService:
         for i in range(count):
             template = random.choice(templates)
             q = template.format(company=company_name)
-            questions.append({
-                "question": q,
-                "question_type": "brand_awareness",
-                "related_project_name": None,
-                "intent_tags": ["品牌认知", "公司介绍"],
-            })
+            questions.append(
+                {
+                    "question": q,
+                    "question_type": "brand_awareness",
+                    "related_project_name": None,
+                    "intent_tags": ["品牌认知", "公司介绍"],
+                }
+            )
 
         return questions

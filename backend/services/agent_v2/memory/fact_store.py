@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """用户长期事实存储 - 基于 user_agent_facts 表。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -11,13 +12,13 @@ from backend.database.models import UserAgentFact
 
 # 默认 facts 结构
 DEFAULT_FACTS: dict[str, Any] = {
-    "company_name": None,        # 常用公司名
-    "industry": None,            # 常用行业
-    "common_platforms": [],      # 常选发布平台
-    "default_client_id": None,   # 默认客户ID
+    "company_name": None,  # 常用公司名
+    "industry": None,  # 常用行业
+    "common_platforms": [],  # 常选发布平台
+    "default_client_id": None,  # 默认客户ID
     "default_project_id": None,  # 默认项目ID
-    "website": None,             # 公司官网
-    "location": None,            # 所在地
+    "website": None,  # 公司官网
+    "location": None,  # 所在地
 }
 
 
@@ -28,9 +29,7 @@ class FactStore:
         self.db = db
 
     def get_or_create(self, user_id: int) -> UserAgentFact:
-        record = self.db.query(UserAgentFact).filter(
-            UserAgentFact.system_user_id == user_id
-        ).first()
+        record = self.db.query(UserAgentFact).filter(UserAgentFact.system_user_id == user_id).first()
         if record:
             return record
         record = UserAgentFact(

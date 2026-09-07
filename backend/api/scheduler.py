@@ -77,8 +77,7 @@ async def update_job(task_id: int, data: TaskUpdate, db: Session = Depends(get_d
     if not scheduler.reload_task(task_id):
         db.rollback()
         logger.error(
-            f"[Scheduler] 任务配置已保存但热重载失败: task_id={task_id} "
-            f"name={task.name} cron={data.cron_expression}"
+            f"[Scheduler] 任务配置已保存但热重载失败: task_id={task_id} name={task.name} cron={data.cron_expression}"
         )
         return ApiResponse(success=False, message="任务配置已保存，但调度器热重载失败")
 

@@ -300,11 +300,13 @@ class AIEvaluationService:
                 if isinstance(raw_citations, list):
                     for cite in raw_citations:
                         if isinstance(cite, dict):
-                            citations.append({
-                                "url": cite.get("url", cite.get("link", "")),
-                                "title": cite.get("title", cite.get("text", "")[:100]),
-                                "source": cite.get("source", ""),
-                            })
+                            citations.append(
+                                {
+                                    "url": cite.get("url", cite.get("link", "")),
+                                    "title": cite.get("title", cite.get("text", "")[:100]),
+                                    "source": cite.get("source", ""),
+                                }
+                            )
                         elif isinstance(cite, str):
                             citations.append({"url": cite, "title": "", "source": ""})
 
@@ -316,11 +318,13 @@ class AIEvaluationService:
                         if isinstance(ann, dict):
                             url = ann.get("url", ann.get("link", ""))
                             if url:
-                                citations.append({
-                                    "url": url,
-                                    "title": ann.get("title", ann.get("text", "")[:100]),
-                                    "source": ann.get("source", ""),
-                                })
+                                citations.append(
+                                    {
+                                        "url": url,
+                                        "title": ann.get("title", ann.get("text", "")[:100]),
+                                        "source": ann.get("source", ""),
+                                    }
+                                )
 
             # 方式3：web_search 插件返回的搜索结果（豆包特有）
             search_results = message.get("plugin_search_results") or message.get("search_results")
@@ -329,11 +333,13 @@ class AIEvaluationService:
                     if isinstance(sr, dict):
                         url = sr.get("url", sr.get("link", sr.get("origin_url", "")))
                         if url:
-                            citations.append({
-                                "url": url,
-                                "title": sr.get("title", sr.get("content", "")[:100]),
-                                "source": sr.get("site_name", ""),
-                            })
+                            citations.append(
+                                {
+                                    "url": url,
+                                    "title": sr.get("title", sr.get("content", "")[:100]),
+                                    "source": sr.get("site_name", ""),
+                                }
+                            )
 
             # 去重
             seen = set()
@@ -358,36 +364,73 @@ class AIEvaluationService:
     def _extract_company_layers(self, company: str) -> List[str]:
         """从完整公司名提取分层匹配词"""
         locations = [
-            "北京", "上海", "深圳", "广州", "杭州", "南京", "成都", "武汉",
-            "重庆", "西安", "天津", "苏州", "东莞", "佛山", "合肥", "长沙",
-            "郑州", "济南", "青岛", "大连", "厦门", "福州", "无锡", "宁波",
+            "北京",
+            "上海",
+            "深圳",
+            "广州",
+            "杭州",
+            "南京",
+            "成都",
+            "武汉",
+            "重庆",
+            "西安",
+            "天津",
+            "苏州",
+            "东莞",
+            "佛山",
+            "合肥",
+            "长沙",
+            "郑州",
+            "济南",
+            "青岛",
+            "大连",
+            "厦门",
+            "福州",
+            "无锡",
+            "宁波",
         ]
         suffixes = [
-            "股份有限公司", "有限责任公司", "集团有限公司",
-            "科技有限公司", "信息技术有限公司", "网络技术有限公司",
-            "实业有限公司", "贸易有限公司", "投资有限公司", "控股有限公司",
-            "发展有限公司", "有限公司",
+            "股份有限公司",
+            "有限责任公司",
+            "集团有限公司",
+            "科技有限公司",
+            "信息技术有限公司",
+            "网络技术有限公司",
+            "实业有限公司",
+            "贸易有限公司",
+            "投资有限公司",
+            "控股有限公司",
+            "发展有限公司",
+            "有限公司",
         ]
         industries = [
-            "信息技术", "网络技术", "生物医药", "新能源",
-            "科技", "实业", "贸易", "投资", "控股", "发展",
+            "信息技术",
+            "网络技术",
+            "生物医药",
+            "新能源",
+            "科技",
+            "实业",
+            "贸易",
+            "投资",
+            "控股",
+            "发展",
         ]
 
         name = company.strip()
         core = name
         for loc in sorted(locations, key=len, reverse=True):
             if core.startswith(loc):
-                core = core[len(loc):]
+                core = core[len(loc) :]
                 break
         for suf in sorted(suffixes, key=len, reverse=True):
             if core.endswith(suf):
-                core = core[:-len(suf)]
+                core = core[: -len(suf)]
                 break
         industry_matched = ""
         for ind in sorted(industries, key=len, reverse=True):
             if core.endswith(ind):
                 industry_matched = ind
-                core = core[:-len(ind)]
+                core = core[: -len(ind)]
                 break
 
         core = core.strip()
@@ -405,9 +448,7 @@ class AIEvaluationService:
         add(name)
         return layers
 
-    def _check_keywords_in_text(
-        self, text: str, keyword: str, company: str
-    ) -> Dict[str, Any]:
+    def _check_keywords_in_text(self, text: str, keyword: str, company: str) -> Dict[str, Any]:
         """
         检查文本中是否包含关键词和公司名
         复用 base.py 的检测逻辑
@@ -431,9 +472,7 @@ class AIEvaluationService:
         keyword_lower = clean_str(keyword)
 
         keyword_count = text_lower.count(keyword_lower)
-        keyword_positions = [
-            m.start() for m in re.finditer(re.escape(keyword_lower), text_lower)
-        ]
+        keyword_positions = [m.start() for m in re.finditer(re.escape(keyword_lower), text_lower)]
 
         # 公司名分层匹配
         company_layers = self._extract_company_layers(company)
@@ -453,13 +492,8 @@ class AIEvaluationService:
                 company_found = True
                 company_count = count
                 company_matched = layer
-                company_positions = [
-                    m.start() for m in re.finditer(re.escape(layer_lower), text_lower)
-                ]
-                logger.debug(
-                    f"company hit: '{layer}' "
-                    f"(layer {company_layers.index(layer)+1}/{len(company_layers)})"
-                )
+                company_positions = [m.start() for m in re.finditer(re.escape(layer_lower), text_lower)]
+                logger.debug(f"company hit: '{layer}' (layer {company_layers.index(layer) + 1}/{len(company_layers)})")
                 break
 
         # 计算置信度

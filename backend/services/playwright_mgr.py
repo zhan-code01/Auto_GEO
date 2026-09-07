@@ -21,6 +21,7 @@ if sys.platform == "win32":
         configure_windows_asyncio_policy()
     except AttributeError:
         import warnings
+
         warnings.warn("Python版本过低，Windows ProactorEventLoopPolicy不可用，Playwright可能会失败")
 # ==================== 修复结束 ====================
 
@@ -251,13 +252,15 @@ class PlaywrightManager:
 
             # 使用全局后台任务管理器启动轮询任务（不会被 SSE 流取消）
             from backend.services.background_task_manager import background_task_manager
+
             logger.info(f"[Auth] 启动轮询任务: {task.task_id}")
-            
+
             # 直接创建任务，确保它能被调度
             import asyncio
+
             poll_task = asyncio.create_task(self._poll_login_status(task.task_id))
             logger.info(f"[Auth] 轮询任务已创建: {task.task_id}, task={poll_task}")
-            
+
             # 同时注册到后台任务管理器（防止被取消）
             background_task_manager.register_task(f"auth_poll_{task.task_id}", poll_task)
             logger.info(f"[Auth] 全局后台轮询任务已注册: {task.task_id}")
@@ -346,11 +349,10 @@ class PlaywrightManager:
                 if key_cookie_str:
                     required_keys = key_cookie_str.split("|")
                     cookie_names = [c["name"].lower() for c in cookies]
-                    has_auth = any(
-                        k.lower() in cookie_names
-                        for k in required_keys
+                    has_auth = any(k.lower() in cookie_names for k in required_keys)
+                    logger.debug(
+                        f"[Auth] 检查关键 Cookie: platform={task.platform}, required={required_keys}, found={[c['name'] for c in cookies if c['name'].lower() in [k.lower() for k in required_keys]]}"
                     )
-                    logger.debug(f"[Auth] 检查关键 Cookie: platform={task.platform}, required={required_keys}, found={[c['name'] for c in cookies if c['name'].lower() in [k.lower() for k in required_keys]]}")
 
                     # URL 负面排除：仍在登录页则拒绝
                     current_url = task.page.url if task.page else ""
@@ -444,10 +446,7 @@ class PlaywrightManager:
 
             if key_cookie_str:
                 required_keys = key_cookie_str.split("|")
-                has_auth = any(
-                    c["name"].lower() in [k.lower() for k in required_keys]
-                    for c in cookies
-                )
+                has_auth = any(c["name"].lower() in [k.lower() for k in required_keys] for c in cookies)
 
                 # URL 负面排除：仍在登录页则拒绝
                 current_url = task.page.url if task.page else ""
@@ -458,10 +457,7 @@ class PlaywrightManager:
                     logger.warning(f"[Auth] 仍在登录页: {current_url}")
 
                 if not has_auth:
-                    return json.dumps({
-                        "success": False,
-                        "message": "未检测到登录凭证，请确认已完成登录"
-                    })
+                    return json.dumps({"success": False, "message": "未检测到登录凭证，请确认已完成登录"})
 
             # 提取用户名
             try:
@@ -517,6 +513,7 @@ class PlaywrightManager:
                 if task.platform in ("doubao", "qianwen", "deepseek") and task.user_id:
                     try:
                         from backend.services.session_manager import secure_session_manager
+
                         await secure_session_manager.save_session(
                             user_id=task.user_id,
                             project_id=1,
@@ -529,12 +526,14 @@ class PlaywrightManager:
 
                 # WebSocket 通知
                 if self._ws_callback:
-                    await self._ws_callback({
-                        "type": "auth_complete",
-                        "task_id": task_id,
-                        "success": True,
-                        "platform": task.platform,
-                    })
+                    await self._ws_callback(
+                        {
+                            "type": "auth_complete",
+                            "task_id": task_id,
+                            "success": True,
+                            "platform": task.platform,
+                        }
+                    )
 
                 # 注意：不再立即延时关闭任务。
                 # 旧逻辑会在 status='success' 后 5 秒强制 close_auth_task，前端轮询
@@ -582,9 +581,11 @@ class PlaywrightManager:
         - success：前端从未 confirm、也没主动 cancel 的兜底清理，关闭浏览器上下文
         """
         from datetime import timedelta
+
         now = datetime.now()
         expired = [
-            tid for tid, task in self._auth_tasks.items()
+            tid
+            for tid, task in self._auth_tasks.items()
             if task.status in ("pending", "running", "success")
             and now - task.created_at > timedelta(minutes=timeout_minutes)
         ]
@@ -669,9 +670,7 @@ class PlaywrightManager:
                     if isinstance(state_data, dict) and "cookies" not in state_data and account.cookies:
                         state_data["cookies"] = decrypt_cookies(account.cookies)
                 except Exception as exc:
-                    logger.warning(
-                        f"[Publish] 账号 {account.account_name}(id={account_id}) Session解析失败: {exc}"
-                    )
+                    logger.warning(f"[Publish] 账号 {account.account_name}(id={account_id}) Session解析失败: {exc}")
 
             fallback_cookies = None
             if account.cookies:

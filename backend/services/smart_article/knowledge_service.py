@@ -48,13 +48,21 @@ class SmartArticleKnowledgeService:
         dataset_ids = self.geo_service.resolve_dataset_ids(context.client)
         if not dataset_ids:
             return KnowledgeResult(
-                status="empty", initial_queries=initial, retrieval_queries=initial, retrieval_rounds=0,
-                dataset_ids=[], warnings=["当前客户没有可用RAGFlow数据集"],
+                status="empty",
+                initial_queries=initial,
+                retrieval_queries=initial,
+                retrieval_rounds=0,
+                dataset_ids=[],
+                warnings=["当前客户没有可用RAGFlow数据集"],
             )
         if not self.geo_service.ragflow or not self.geo_service.ragflow.is_configured():
             return KnowledgeResult(
-                status="empty", initial_queries=initial, retrieval_queries=initial, retrieval_rounds=0,
-                dataset_ids=dataset_ids, warnings=["RAGFlow未配置"],
+                status="empty",
+                initial_queries=initial,
+                retrieval_queries=initial,
+                retrieval_rounds=0,
+                dataset_ids=dataset_ids,
+                warnings=["RAGFlow未配置"],
             )
 
         first_chunks = self._retrieve(dataset_ids, initial)
@@ -80,8 +88,27 @@ class SmartArticleKnowledgeService:
         valid_second = self.geo_service.dedupe_and_rank_chunks(second_chunks)
         all_queries = initial + second_queries
         if valid_second:
-            return self._result("available", initial, all_queries, valid_second, dataset_ids, 2, rewritten, len(first_chunks) + len(second_chunks))
-        return self._result("empty", initial, all_queries, [], dataset_ids, 2, rewritten, len(first_chunks) + len(second_chunks), ["两轮检索均无有效知识片段"])
+            return self._result(
+                "available",
+                initial,
+                all_queries,
+                valid_second,
+                dataset_ids,
+                2,
+                rewritten,
+                len(first_chunks) + len(second_chunks),
+            )
+        return self._result(
+            "empty",
+            initial,
+            all_queries,
+            [],
+            dataset_ids,
+            2,
+            rewritten,
+            len(first_chunks) + len(second_chunks),
+            ["两轮检索均无有效知识片段"],
+        )
 
     def _retrieve(self, dataset_ids: list[str], queries: list[QuerySpec]) -> list[dict]:
         try:

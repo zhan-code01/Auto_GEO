@@ -76,12 +76,8 @@ _FILE_FORMAT = (
 )
 
 # ==================== 请求上下文（contextvars，供 patcher 自动附带） ====================
-current_request_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "log_request_id", default=None
-)
-current_user: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "log_user", default=None
-)
+current_request_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("log_request_id", default=None)
+current_user: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("log_user", default=None)
 
 
 def _patch_extra(record: dict) -> None:
@@ -143,9 +139,7 @@ def reinstall_stdlib_bridge() -> None:
 
 
 def _handle_uncaught_exception(exc_type, exc_value, exc_tb) -> None:
-    logger.opt(exception=(exc_type, exc_value, exc_tb)).critical(
-        "未捕获的异常（进程级 excepthook）"
-    )
+    logger.opt(exception=(exc_type, exc_value, exc_tb)).critical("未捕获的异常（进程级 excepthook）")
 
 
 def _install_exception_hooks() -> None:
@@ -182,9 +176,7 @@ def resolve_today_log_path(level: Optional[str] = None) -> Path:
 def list_log_files(level: Optional[str] = None) -> list[Path]:
     """列出日志目录下全部日志文件（按名称倒序，新的在前）。"""
     try:
-        pattern = (
-            ERROR_LOG_FILE if (level or "").upper() in {"ERROR", "WARNING", "WARN"} else LOG_FILE
-        )
+        pattern = ERROR_LOG_FILE if (level or "").upper() in {"ERROR", "WARNING", "WARN"} else LOG_FILE
         files = sorted(LOG_DIR.glob(_glob_pattern_for(pattern)), reverse=True)
         return [f for f in files if f.is_file()]
     except Exception:
@@ -261,13 +253,13 @@ def _add_file_sink(
             path,
             level=level,
             format=_FILE_FORMAT,
-            rotation=LOG_ROTATION,   # "00:00" 每天午夜轮转
-            retention=retention,     # 仅保留最近 3 天
+            rotation=LOG_ROTATION,  # "00:00" 每天午夜轮转
+            retention=retention,  # 仅保留最近 3 天
             encoding="utf-8",
             enqueue=use_enqueue,
-            backtrace=True,          # 异常完整回溯
-            diagnose=False,          # 不展开变量值（安全 + 体积）
-            catch=True,              # sink 自身异常不致进程崩溃
+            backtrace=True,  # 异常完整回溯
+            diagnose=False,  # 不展开变量值（安全 + 体积）
+            catch=True,  # sink 自身异常不致进程崩溃
         )
     except Exception as exc:
         logger.warning(f"文件 sink 挂载失败 ({path}): {exc}")

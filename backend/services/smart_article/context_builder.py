@@ -18,7 +18,9 @@ def build_project_context(db: Session, project_id: int, current_user) -> Project
         raise SmartArticleContextError("项目不存在或无权访问")
 
     client = db.query(Client).filter(Client.id == project.client_id).first() if project.client_id else None
-    company_name = (project.company_name or (client.company_name if client else None) or (client.name if client else None) or "").strip()
+    company_name = (
+        project.company_name or (client.company_name if client else None) or (client.name if client else None) or ""
+    ).strip()
     project_name = (project.name or "").strip()
     domain_keyword = (project.domain_keyword or "").strip()
     if not project_name:

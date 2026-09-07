@@ -252,12 +252,16 @@ class JianshuProPublisher(BasePublisher):
             logger.warning("[简书Pro] 正文与图片均为空，跳过")
             return True
 
-        blocks = self.build_content_blocks_by_markers(raw_content or content, image_paths, max_chars=self.MAX_CONTENT_LENGTH)
+        blocks = self.build_content_blocks_by_markers(
+            raw_content or content, image_paths, max_chars=self.MAX_CONTENT_LENGTH
+        )
         if blocks is not None:
             inserted_images = await self._fill_body_from_blocks(page, editor, blocks)
             logger.info(
                 "[简书Pro] 正文按原文位置写入完成：{} 个文本/图片块，{}/{} 张图片已插入",
-                len(blocks), inserted_images, len(image_paths),
+                len(blocks),
+                inserted_images,
+                len(image_paths),
             )
 
             # 文字自检：首段内容能在编辑器里读到最好；读不到只告警不判失败——
@@ -270,14 +274,17 @@ class JianshuProPublisher(BasePublisher):
                 if norm_needle and norm_needle not in norm_text:
                     logger.warning(
                         "[简书Pro] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，"
-                        "继续走 verify 阶段复核", needle[:20],
+                        "继续走 verify 阶段复核",
+                        needle[:20],
                     )
             return True
 
         plan = self._distribute_image_positions(len(paragraphs), len(image_paths))
         logger.info(
             "[简书Pro] 图文混排：{} 段文字 / {} 张图 → 段后插图计划 {}",
-            len(paragraphs), len(image_paths), plan,
+            len(paragraphs),
+            len(image_paths),
+            plan,
         )
 
         img_cursor = 0
@@ -320,7 +327,9 @@ class JianshuProPublisher(BasePublisher):
 
         logger.info(
             "[简书Pro] 正文写入完成：{} 段文字，{}/{} 张图片已插入",
-            len(paragraphs), inserted_images, len(image_paths),
+            len(paragraphs),
+            inserted_images,
+            len(image_paths),
         )
 
         # 文字自检：首段内容能在编辑器里读到最好；读不到只告警不判失败——
@@ -332,8 +341,8 @@ class JianshuProPublisher(BasePublisher):
             norm_needle = re.sub(r"\s+", "", needle[:20])
             if norm_needle and norm_needle not in norm_text:
                 logger.warning(
-                    "[简书Pro] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，"
-                    "继续走 verify 阶段复核", needle[:20],
+                    "[简书Pro] 正文自检未读到首段（needle={}），可能是编辑器虚拟滚动/读取偶发，继续走 verify 阶段复核",
+                    needle[:20],
                 )
         return True
 
@@ -714,9 +723,7 @@ class JianshuProPublisher(BasePublisher):
         try:
             expected_title = title.strip()
             editor_text = await self._editor_text(page)
-            first_para = next(
-                (p.strip() for p in self._split_paragraphs(content) if p.strip()), ""
-            )
+            first_para = next((p.strip() for p in self._split_paragraphs(content) if p.strip()), "")
             needle = re.sub(r"\s+", "", first_para)[:40]
             title_ok = bool(expected_title) and await page.evaluate(
                 """(expectedTitle) => {
@@ -746,7 +753,8 @@ class JianshuProPublisher(BasePublisher):
                 return True
             logger.warning(
                 "[简书Pro] verify 未读到标题也未读到首段（title_ok={} content_ok={}），判失败",
-                title_ok, content_ok,
+                title_ok,
+                content_ok,
             )
             return False
         except Exception:

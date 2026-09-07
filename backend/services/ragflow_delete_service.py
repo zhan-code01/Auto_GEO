@@ -58,7 +58,10 @@ def delete_ragflow_datasets(dataset_ids: Iterable[str | None]) -> list[RagflowDe
     ragflow_client = get_ragflow_client()
     if not ragflow_client.is_configured():
         raise RagflowDatasetDeleteError(
-            [RagflowDeleteResult(dataset_id=dataset_id, success=False, message="RAGFlow is not configured") for dataset_id in ids]
+            [
+                RagflowDeleteResult(dataset_id=dataset_id, success=False, message="RAGFlow is not configured")
+                for dataset_id in ids
+            ]
         )
 
     results: list[RagflowDeleteResult] = []

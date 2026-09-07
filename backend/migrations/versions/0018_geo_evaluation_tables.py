@@ -36,7 +36,9 @@ def upgrade():
     op.create_table(
         "geo_prompts",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("prompt_set_id", sa.Integer(), sa.ForeignKey("geo_prompt_sets.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "prompt_set_id", sa.Integer(), sa.ForeignKey("geo_prompt_sets.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("project_id", sa.Integer(), sa.ForeignKey("projects.id", ondelete="CASCADE"), nullable=False),
         sa.Column("question", sa.Text(), nullable=False),
         sa.Column("question_type", sa.String(length=30), server_default="recommendation", nullable=False),
@@ -54,7 +56,9 @@ def upgrade():
         "geo_evaluation_runs",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("project_id", sa.Integer(), sa.ForeignKey("projects.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("prompt_set_id", sa.Integer(), sa.ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "prompt_set_id", sa.Integer(), sa.ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"), nullable=True
+        ),
         sa.Column("phase", sa.String(length=20), nullable=False),
         sa.Column("platforms", sa.JSON(), nullable=True),
         sa.Column("rounds", sa.Integer(), server_default="1", nullable=True),
@@ -73,14 +77,18 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=True),
     )
     op.create_index("ix_geo_evaluation_runs_project_id", "geo_evaluation_runs", ["project_id"], if_not_exists=True)
-    op.create_index("ix_geo_evaluation_runs_prompt_set_id", "geo_evaluation_runs", ["prompt_set_id"], if_not_exists=True)
+    op.create_index(
+        "ix_geo_evaluation_runs_prompt_set_id", "geo_evaluation_runs", ["prompt_set_id"], if_not_exists=True
+    )
 
     op.create_table(
         "geo_evaluation_records",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("run_id", sa.Integer(), sa.ForeignKey("geo_evaluation_runs.id", ondelete="CASCADE"), nullable=False),
         sa.Column("project_id", sa.Integer(), sa.ForeignKey("projects.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("prompt_set_id", sa.Integer(), sa.ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "prompt_set_id", sa.Integer(), sa.ForeignKey("geo_prompt_sets.id", ondelete="SET NULL"), nullable=True
+        ),
         sa.Column("prompt_id", sa.Integer(), sa.ForeignKey("geo_prompts.id", ondelete="SET NULL"), nullable=True),
         sa.Column("platform", sa.String(length=50), nullable=False),
         sa.Column("phase", sa.String(length=20), nullable=False),
@@ -112,8 +120,12 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=True),
     )
     op.create_index("ix_geo_evaluation_records_run_id", "geo_evaluation_records", ["run_id"], if_not_exists=True)
-    op.create_index("ix_geo_evaluation_records_project_id", "geo_evaluation_records", ["project_id"], if_not_exists=True)
-    op.create_index("ix_geo_evaluation_records_prompt_set_id", "geo_evaluation_records", ["prompt_set_id"], if_not_exists=True)
+    op.create_index(
+        "ix_geo_evaluation_records_project_id", "geo_evaluation_records", ["project_id"], if_not_exists=True
+    )
+    op.create_index(
+        "ix_geo_evaluation_records_prompt_set_id", "geo_evaluation_records", ["prompt_set_id"], if_not_exists=True
+    )
     op.create_index("ix_geo_evaluation_records_prompt_id", "geo_evaluation_records", ["prompt_id"], if_not_exists=True)
     op.create_index("ix_geo_evaluation_records_platform", "geo_evaluation_records", ["platform"], if_not_exists=True)
 

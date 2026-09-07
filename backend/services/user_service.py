@@ -19,7 +19,9 @@ class UserService:
     """用户服务"""
 
     def __init__(self):
-        self.secret_key = ENCRYPTION_KEY[:32].decode() if isinstance(ENCRYPTION_KEY, bytes) else str(ENCRYPTION_KEY)[:32]
+        self.secret_key = (
+            ENCRYPTION_KEY[:32].decode() if isinstance(ENCRYPTION_KEY, bytes) else str(ENCRYPTION_KEY)[:32]
+        )
 
     def _hash_password(self, password: str) -> str:
         """哈希密码"""
@@ -181,7 +183,9 @@ class UserService:
             logger.error(f"更新用户状态失败: {e}")
             return {"success": False, "error": str(e)}
 
-    async def create_admin(self, db: Session, username: str, password: str, email: Optional[str] = None) -> Dict[str, Any]:
+    async def create_admin(
+        self, db: Session, username: str, password: str, email: Optional[str] = None
+    ) -> Dict[str, Any]:
         """创建管理员用户"""
         try:
             # 检查用户名是否已存在

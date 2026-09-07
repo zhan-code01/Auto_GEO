@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 # ==================== 椤圭洰璺緞 ====================
 # PyInstaller 打包环境下，__file__ 指向临时解压目录，需要用 sys.executable 定位真实路径
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # exe 在 resources/backend/scripts/dist/ 中，向上三级到 resources/backend/（即项目根）
     BASE_DIR = Path(sys.executable).resolve().parent.parent.parent
 else:
@@ -20,7 +20,7 @@ else:
 
 # 鍔犺浇鐜鍙橀
 # PyInstaller 环境下 .env 不在打包资源中，load_dotenv 静默失败即可
-if not getattr(sys, 'frozen', False):
+if not getattr(sys, "frozen", False):
     load_dotenv(BASE_DIR / ".env")
 DATA_DIR = BASE_DIR / ".cookies"
 
@@ -31,7 +31,7 @@ _DOCKER_DB_DIR = Path("/app/database")
 if _DOCKER_DB_DIR.exists() or os.getenv("ENVIRONMENT") == "production":
     # Docker 鐜锛氫娇鐢ㄧ嫭绔嬬殑鏁版鐩綍
     DATABASE_DIR = _DOCKER_DB_DIR
-elif getattr(sys, 'frozen', False):
+elif getattr(sys, "frozen", False):
     # PyInstaller 打包环境：使用 exe 所在目录下的 database
     DATABASE_DIR = BASE_DIR / "database"
 else:
@@ -96,9 +96,9 @@ if _RUNNING_UNDER_PYTEST and DATABASE_URL:
 # DATABASE_URL 校验：worker 进程（exe 打包或 Python 模式）不需要数据库连接，
 # 只通过 HTTP API 与后端通信，跳过校验
 _is_worker_process = (
-    getattr(sys, 'frozen', False)
-    or os.getenv('AUTOGEO_WORKER_TOKEN') is not None
-    or any('geo_evaluation_worker' in a for a in sys.argv)
+    getattr(sys, "frozen", False)
+    or os.getenv("AUTOGEO_WORKER_TOKEN") is not None
+    or any("geo_evaluation_worker" in a for a in sys.argv)
 )
 if not DATABASE_URL and not _is_worker_process:
     raise ValueError(
@@ -107,10 +107,7 @@ if not DATABASE_URL and not _is_worker_process:
     )
 
 if DATABASE_URL and not DATABASE_URL.lower().startswith(("postgresql://", "postgresql+")):
-    raise ValueError(
-        "Only PostgreSQL DATABASE_URL values are supported. "
-        "Use postgresql://user:password@host:5432/db."
-    )
+    raise ValueError("Only PostgreSQL DATABASE_URL values are supported. Use postgresql://user:password@host:5432/db.")
 
 # Database connection pool configuration.
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
@@ -118,10 +115,12 @@ DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
 DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
 DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "3600"))
 
+
 # Runtime database type is fixed to PostgreSQL.
 def get_database_type():
     """Return the configured runtime database type."""
     return "postgresql"
+
 
 # ==================== 鍔犲瘑閰嶇疆 ====================
 # AES-256鍔犲瘑瀵嗛挜锛?2瀛楄妭锛? 鐢熶骇鐜蹇呴』浠庣幆澧冨彉閲忚鍙
@@ -129,19 +128,15 @@ _encryption_key = os.getenv("AUTO_GEO_ENCRYPTION_KEY")
 # worker 进程（exe 打包或 Python 模式回退）不需要加解密 Cookie/storage_state，
 # 只通过 HTTP API 与后端通信，跳过校验（与 DATABASE_URL 一致）
 if not _encryption_key and not _is_worker_process:
-    raise ValueError(
-        "AUTO_GEO_ENCRYPTION_KEY environment variable is required. "
-        "Please set a 32-byte encryption key."
-    )
-ENCRYPTION_KEY = _encryption_key.encode()[:32] if _encryption_key else b''  # 纭繚鏄?2瀛楄妭
+    raise ValueError("AUTO_GEO_ENCRYPTION_KEY environment variable is required. Please set a 32-byte encryption key.")
+ENCRYPTION_KEY = _encryption_key.encode()[:32] if _encryption_key else b""  # 纭繚鏄?2瀛楄妭
 
 # ==================== JWT 认证配置 ====================
 # 登录/鉴权使用的 JWT 签名密钥，生产环境必须设置
 _jwt_secret = os.getenv("JWT_SECRET_KEY")
 if not _jwt_secret and not _is_worker_process:
     raise ValueError(
-        "JWT_SECRET_KEY environment variable is required. "
-        "Please set a strong random secret in your .env file."
+        "JWT_SECRET_KEY environment variable is required. Please set a strong random secret in your .env file."
     )
 JWT_SECRET_KEY = _jwt_secret
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -739,9 +734,7 @@ VOLCENGINE_ARK_DEEPSEEK_ENDPOINT = os.getenv(
 VOLCENGINE_ARK_DOUBAO_ENDPOINT = os.getenv("VOLCENGINE_ARK_DOUBAO_ENDPOINT", "doubao-seed-1.6")
 # GEO 鏀跺綍娴嬭瘎浣跨敤鐨?API 骞冲彴鍒楄〃
 GEO_EVALUATION_API_PLATFORMS = [
-    p.strip()
-    for p in os.getenv("GEO_EVALUATION_API_PLATFORMS", "doubao,deepseek").split(",")
-    if p.strip()
+    p.strip() for p in os.getenv("GEO_EVALUATION_API_PLATFORMS", "doubao,deepseek").split(",") if p.strip()
 ]
 
 # 鍚庡彴鏅鸿兘浣撳ぇ妯″瀷瑙ｆ瀽寮€鍏?# 榛樿寮€鍚細鎰忓浘/鍏抽敭璇嶈瘑鍒€佸瓧娈垫娊鍙栥€佹憳瑕佷紭鍏堣蛋 LLM锛堟洿鐏垫椿锛岃兘澶勭悊銆屾瘡涓」鐩彂15涓枃绔犮€?# 杩欑被瑙勫垯闅捐鐩栫殑鑷劧璇█锛夈€傛棤 API key 鏃?_llm_enabled() 杩斿洖 False锛屽叏绋嬩紭闆呭洖閫€鍒拌鍒欒矾鐢憋紝
@@ -770,10 +763,7 @@ RAGFLOW_BASE_URL = os.getenv("RAGFLOW_BASE_URL", "https://ragflow.xinzhixietong.
 RAGFLOW_API_KEY = os.getenv("RAGFLOW_API_KEY")
 # worker 进程不需要 RAGFlow（只跑 Playwright + HTTP 回传），跳过校验
 if not RAGFLOW_API_KEY and not _is_worker_process:
-    raise ValueError(
-        "RAGFLOW_API_KEY environment variable is required. "
-        "Please set your RAGFlow API key."
-    )
+    raise ValueError("RAGFLOW_API_KEY environment variable is required. Please set your RAGFlow API key.")
 # RAGFlow 鐭ヨ瘑搴揑D锛堢敤浜庡瓨鍌ㄩ噰闆嗙殑鏂囩珷
 RAGFLOW_DATASET_ID = os.getenv("RAGFLOW_DATASET_ID", "dff2935cfc2011f0b36f0e3309b7ec55")
 # RAGFlow 鐭ヨ瘑搴撳悕绉帮紙鑷姩鍒涘缓鏃朵娇鐢級

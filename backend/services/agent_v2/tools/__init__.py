@@ -6,6 +6,7 @@ Pydantic schema 自动生成结构化调用。
 
 导入本包即触发所有工具的注册。严格对齐 PRD §8.4 共 18 个工具。
 """
+
 # 导入所有工具模块以触发 @register_tool 装饰器注册
 from backend.services.agent_v2.tools import (  # noqa: F401
     account_tools,

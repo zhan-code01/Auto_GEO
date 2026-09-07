@@ -117,10 +117,12 @@ class GeoEvaluationAnalyticsService:
         if prompt_set:
             active_prompt_ids = {
                 row[0]
-                for row in self.db.query(GeoPrompt.id).filter(
+                for row in self.db.query(GeoPrompt.id)
+                .filter(
                     GeoPrompt.prompt_set_id == prompt_set.id,
                     GeoPrompt.status == "active",
-                ).all()
+                )
+                .all()
             }
             active_prompt_set = {
                 "id": prompt_set.id,
@@ -145,9 +147,7 @@ class GeoEvaluationAnalyticsService:
             )
             attempted_ids = {r.prompt_id for r in records if r.prompt_id in active_prompt_ids}
             successful_ids = {
-                r.prompt_id
-                for r in records
-                if r.prompt_id in active_prompt_ids and r.success and r.answer
+                r.prompt_id for r in records if r.prompt_id in active_prompt_ids and r.success and r.answer
             }
             baseline_at = None
             if records:
@@ -228,14 +228,8 @@ class GeoEvaluationAnalyticsService:
         missing_baseline_platforms = []
 
         paired_keys = {
-            (r.platform, r.prompt_id)
-            for r in baseline_records
-            if r.prompt_id is not None and r.success and r.answer
-        } & {
-            (r.platform, r.prompt_id)
-            for r in current_records
-            if r.prompt_id is not None and r.success and r.answer
-        }
+            (r.platform, r.prompt_id) for r in baseline_records if r.prompt_id is not None and r.success and r.answer
+        } & {(r.platform, r.prompt_id) for r in current_records if r.prompt_id is not None and r.success and r.answer}
 
         for platform in all_platforms:
             has_baseline = any(r.platform == platform and r.success and r.answer for r in baseline_records)
@@ -856,11 +850,7 @@ class GeoEvaluationAnalyticsService:
 
         for r in records:
             names = {n.strip() for n in (r.matched_names or []) if isinstance(n, str) and n.strip()}
-            domains = {
-                d.strip().lower()
-                for d in (r.cited_domains or [])
-                if isinstance(d, str) and d.strip()
-            }
+            domains = {d.strip().lower() for d in (r.cited_domains or []) if isinstance(d, str) and d.strip()}
             brand_counter.update(names)
             domain_counter.update(domains)
             if r.own_source_cited:
@@ -879,11 +869,7 @@ class GeoEvaluationAnalyticsService:
         def _brand_row(name: str, count: int) -> Dict[str, Any]:
             norm = self._normalize_brand_text(name)
             # 公司全称与回答中的简称互为包含即视为我方（如「XX有限公司」vs「XX」）
-            is_own = (
-                bool(own_key)
-                and bool(norm)
-                and (own_key in norm or norm in own_key)
-            )
+            is_own = bool(own_key) and bool(norm) and (own_key in norm or norm in own_key)
             return {
                 "name": name,
                 "mentions": count,
@@ -917,10 +903,7 @@ class GeoEvaluationAnalyticsService:
                     "own_source_cited": stat["own_cited"],
                     "own_source_rate": round(stat["own_cited"] / stat["total"] * 100, 1) if stat["total"] else 0,
                     "top_names": [_brand_row(n, c) for n, c in stat["mentions"].most_common(5)],
-                    "top_domains": [
-                        {"domain": d, "citations": c}
-                        for d, c in stat["domains"].most_common(8)
-                    ],
+                    "top_domains": [{"domain": d, "citations": c} for d, c in stat["domains"].most_common(8)],
                 }
             )
 

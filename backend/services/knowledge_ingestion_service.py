@@ -182,7 +182,11 @@ def _sanitize_basic_info(info: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     for field, raw in info.items():
         if raw is None:
             continue
-        value = "、".join(str(item).strip() for item in raw if str(item).strip()) if isinstance(raw, list) else str(raw).strip()
+        value = (
+            "、".join(str(item).strip() for item in raw if str(item).strip())
+            if isinstance(raw, list)
+            else str(raw).strip()
+        )
         if not value or not _is_valid_basic_info_value(field, value):
             continue
         cleaned[field] = value
@@ -257,8 +261,7 @@ class KnowledgeIngestionService:
             check = ragflow_client.get_dataset(cat.ragflow_dataset_id)
             if check.get("code") != 0:
                 logger.warning(
-                    f"客户知识库在 RAGFlow 中不存在，将重建: client={client.id}, "
-                    f"dataset_id={cat.ragflow_dataset_id}"
+                    f"客户知识库在 RAGFlow 中不存在，将重建: client={client.id}, dataset_id={cat.ragflow_dataset_id}"
                 )
                 cat.ragflow_dataset_id = None
                 cat.sync_status = "missing"
@@ -627,6 +630,7 @@ class KnowledgeIngestionService:
         tags = _client_tags(cid)
         # 两条路径 OR 查询：client_id 字段 或 标准 tags
         from sqlalchemy import or_
+
         cats = (
             scoped_query(self.db, KnowledgeCategory, user)
             .filter(
@@ -642,11 +646,7 @@ class KnowledgeIngestionService:
         if not cats:
             return False
         cat_ids = [c.id for c in cats]
-        count = (
-            self.db.query(Knowledge)
-            .filter(Knowledge.category_id.in_(cat_ids), Knowledge.status == 1)
-            .count()
-        )
+        count = self.db.query(Knowledge).filter(Knowledge.category_id.in_(cat_ids), Knowledge.status == 1).count()
         return count > 0
 
     # ---------- 状态查询 ----------

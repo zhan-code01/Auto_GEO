@@ -18,6 +18,7 @@
 LangGraph 通过 PostgresSaver 自动持久化 AGENT↔TOOLS 循环中的 State，
 支持中断恢复和跨请求保持上下文（thread_id = session_id）。
 """
+
 from __future__ import annotations
 
 import time
@@ -128,9 +129,7 @@ async def get_checkpointer() -> Any:
             logger.info("[AgentGraph] Checkpointer=AsyncPostgresSaver (异步生产持久化, 连接池)")
             return _checkpointer
         except Exception as e:
-            logger.warning(
-                f"[AgentGraph] AsyncPostgresSaver 初始化失败，回退到 MemorySaver: {e}"
-            )
+            logger.warning(f"[AgentGraph] AsyncPostgresSaver 初始化失败，回退到 MemorySaver: {e}")
             _checkpointer = None
 
     # 回退 MemorySaver（MemorySaver 同时支持 sync/async 接口）
@@ -139,9 +138,7 @@ async def get_checkpointer() -> Any:
 
         _checkpointer = MemorySaver()
         _checkpointer_kind = "memory"
-        logger.warning(
-            "[AgentGraph] Checkpointer=MemorySaver（仅开发环境，重启后状态丢失）"
-        )
+        logger.warning("[AgentGraph] Checkpointer=MemorySaver（仅开发环境，重启后状态丢失）")
         return _checkpointer
     except Exception as e:
         logger.error(f"[AgentGraph] MemorySaver 也初始化失败: {e}")
@@ -192,9 +189,7 @@ async def build_graph() -> Any:
 
     checkpointer = await get_checkpointer()
     compiled = builder.compile(checkpointer=checkpointer)
-    logger.info(
-        f"[AgentGraph] StateGraph 编译完成 checkpointer={_checkpointer_kind}"
-    )
+    logger.info(f"[AgentGraph] StateGraph 编译完成 checkpointer={_checkpointer_kind}")
     return compiled
 
 
@@ -224,6 +219,7 @@ async def get_graph() -> Any:
 #  中断恢复检查
 # ------------------------------------------------------------------
 
+
 async def _check_and_clean_interrupted_state(config: dict) -> None:
     """检查并清理中断恢复场景下的遗留状态。
 
@@ -240,14 +236,14 @@ async def _check_and_clean_interrupted_state(config: dict) -> None:
     try:
         snapshot = await graph.aget_state(config)
         if snapshot and snapshot.next:
-            logger.warning(
-                f"[AGENT] 检测到中断恢复，next={snapshot.next}，"
-                f"清理遗留 tool_calls 避免误执行"
+            logger.warning(f"[AGENT] 检测到中断恢复，next={snapshot.next}，清理遗留 tool_calls 避免误执行")
+            await graph.aupdate_state(
+                config,
+                {
+                    "tool_calls": [],
+                    "status": "completed",
+                },
             )
-            await graph.aupdate_state(config, {
-                "tool_calls": [],
-                "status": "completed",
-            })
     except Exception as e:
         # 某些 Checkpointer 可能不支持 aget_state，忽略错误
         logger.warning(f"[AGENT] 检查中断恢复失败（忽略，继续执行）: {e}")
@@ -256,6 +252,7 @@ async def _check_and_clean_interrupted_state(config: dict) -> None:
 # ------------------------------------------------------------------
 #  Graph 入口：run_agent（同步版本）
 # ------------------------------------------------------------------
+
 
 async def run_agent(state: AgentState) -> AgentState:
     """运行 Agent 主流程（同步，整图执行完才返回）。
@@ -284,10 +281,7 @@ async def run_agent(state: AgentState) -> AgentState:
         elif isinstance(last_msg, dict):
             message_preview = (last_msg.get("content") or "")[:60]
 
-    logger.info(
-        f"[AGENT_V2_METRIC] start user={user_id} session={session_id} "
-        f"msg_preview={message_preview!r}"
-    )
+    logger.info(f"[AGENT_V2_METRIC] start user={user_id} session={session_id} msg_preview={message_preview!r}")
 
     # ===== 1. LOAD_CONTEXT：注入 user_facts 和 preferences =====
     try:
@@ -371,6 +365,7 @@ async def run_agent(state: AgentState) -> AgentState:
 # ------------------------------------------------------------------
 #  Graph 入口：run_agent_stream（流式，供 SSE 端点调用）
 # ------------------------------------------------------------------
+
 
 async def run_agent_stream(state: AgentState) -> AsyncIterator[str]:
     """流式运行 Agent，yield SSE 事件字符串。
@@ -537,6 +532,7 @@ async def run_agent_stream(state: AgentState) -> AsyncIterator[str]:
     # ===== 5. PERSIST_MEM =====
     try:
         from backend.services.agent_v2.nodes.persist_mem import persist_mem
+
         await persist_mem(final_state)
     except Exception as e:
         logger.error(f"[PERSIST_MEM] 失败（不影响主流程）: {e}", exc_info=True)
@@ -606,9 +602,7 @@ async def _emit_node_events(node_name: str, update: dict) -> AsyncIterator[str]:
             # 直接回复 → 流式推送 reply
             reply = update.get("reply", "")
             if reply:
-                async for delta_event in events.stream_text_deltas(
-                    reply, chunk_size=12, delay_ms=15
-                ):
+                async for delta_event in events.stream_text_deltas(reply, chunk_size=12, delay_ms=15):
                     yield delta_event
 
             # 追问场景：agent 不调用工具但更新了 task_context 且仍有 missing_slots

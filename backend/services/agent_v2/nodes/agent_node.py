@@ -15,6 +15,7 @@
 3. 防跳步第三层：Agent 推理时根据业务规则判断是否调用工具
 4. messages 直接用 LangChain BaseMessage 对象，保留消息角色边界
 """
+
 from __future__ import annotations
 
 import json
@@ -135,21 +136,21 @@ _TASK_CONTEXT_PATTERN = re.compile(
 
 # 匹配回复中的内部 ID 模式（用于清理后处理）
 _ID_PATTERNS = [
-    re.compile(r'(客户\s*ID[：:]\s*\d+)', re.IGNORECASE),
-    re.compile(r'(项目\s*ID[：:]\s*\d+)', re.IGNORECASE),
-    re.compile(r'(问题\s*ID[：:]\s*\d+)', re.IGNORECASE),
-    re.compile(r'(文章\s*ID[：:]\s*\d+)', re.IGNORECASE),
-    re.compile(r'(ID[：:]\s*\d+)', re.IGNORECASE),
-    re.compile(r'\(ID[：:]\s*\d+\)', re.IGNORECASE),
-    re.compile(r'（ID[：:]\s*\d+）', re.IGNORECASE),
+    re.compile(r"(客户\s*ID[：:]\s*\d+)", re.IGNORECASE),
+    re.compile(r"(项目\s*ID[：:]\s*\d+)", re.IGNORECASE),
+    re.compile(r"(问题\s*ID[：:]\s*\d+)", re.IGNORECASE),
+    re.compile(r"(文章\s*ID[：:]\s*\d+)", re.IGNORECASE),
+    re.compile(r"(ID[：:]\s*\d+)", re.IGNORECASE),
+    re.compile(r"\(ID[：:]\s*\d+\)", re.IGNORECASE),
+    re.compile(r"（ID[：:]\s*\d+）", re.IGNORECASE),
 ]
 
 # 匹配连续空行（3 个及以上换行符）
-_MULTI_NEWLINE_PATTERN = re.compile(r'\n{3,}')
+_MULTI_NEWLINE_PATTERN = re.compile(r"\n{3,}")
 
 # 匹配 bullet/数字列表项之间的空行（•/-/* 或 1. 等标记开头的列表）
 _LIST_ITEM_BLANK_PATTERN = re.compile(
-    r'((?:^|\n)[ \t]*(?:[•\-\*]|\d+\.)[ \t]+[^\n]+)\n+(?=[ \t]*(?:[•\-\*]|\d+\.)[ \t]+)',
+    r"((?:^|\n)[ \t]*(?:[•\-\*]|\d+\.)[ \t]+[^\n]+)\n+(?=[ \t]*(?:[•\-\*]|\d+\.)[ \t]+)",
     re.MULTILINE,
 )
 
@@ -170,6 +171,7 @@ _REQUIRED_SLOTS: dict[str, list[str]] = {
 # ================================================================
 #  Agent 节点
 # ================================================================
+
 
 async def agent_node(state: AgentState) -> dict:
     """ReAct Agent 推理节点。
@@ -242,6 +244,7 @@ async def agent_node(state: AgentState) -> dict:
 
     # 第三层防护：检查工具是否合法
     from backend.services.agent_v2.tools import VALID_TOOLS
+
     valid_tool_calls: list[dict] = []
     for tc in tool_calls_raw:
         tool_name = tc.get("name", "")
@@ -254,11 +257,13 @@ async def agent_node(state: AgentState) -> dict:
             continue
 
         logger.info(f"[AGENT] 调用工具: {tool_name} args={tool_args}")
-        valid_tool_calls.append({
-            "name": tool_name,
-            "args": tool_args,
-            "id": tool_call_id,
-        })
+        valid_tool_calls.append(
+            {
+                "name": tool_name,
+                "args": tool_args,
+                "id": tool_call_id,
+            }
+        )
 
     # 维护 task_context：
     # - 优先使用 LLM 通过 <task_context> 标签显式输出的（多轮追问场景）
@@ -305,6 +310,7 @@ async def agent_node(state: AgentState) -> dict:
 #  辅助函数
 # ================================================================
 
+
 def _to_langchain_messages(messages: list) -> list[BaseMessage]:
     """把消息列表转换成 LangChain BaseMessage 列表。
 
@@ -337,28 +343,32 @@ def _to_langchain_messages(messages: list) -> list[BaseMessage]:
             # AIMessage 可能带 tool_calls（用于多轮 Tool Calling 上下文）
             tool_calls = msg.get("tool_calls")
             if tool_calls:
-                result.append(AIMessage(
-                    content=content,
-                    tool_calls=[
-                        {
-                            "name": tc.get("name", ""),
-                            "args": tc.get("args", {}) or {},
-                            "id": tc.get("id", ""),
-                            "type": "tool_call",
-                        }
-                        for tc in tool_calls
-                    ],
-                ))
+                result.append(
+                    AIMessage(
+                        content=content,
+                        tool_calls=[
+                            {
+                                "name": tc.get("name", ""),
+                                "args": tc.get("args", {}) or {},
+                                "id": tc.get("id", ""),
+                                "type": "tool_call",
+                            }
+                            for tc in tool_calls
+                        ],
+                    )
+                )
             else:
                 result.append(AIMessage(content=content))
         elif role == "system":
             result.append(SystemMessage(content=content))
         elif role == "tool":
             # ToolMessage 需要 tool_call_id 关联到对应的 AIMessage.tool_calls
-            result.append(ToolMessage(
-                content=content,
-                tool_call_id=msg.get("tool_call_id", ""),
-            ))
+            result.append(
+                ToolMessage(
+                    content=content,
+                    tool_call_id=msg.get("tool_call_id", ""),
+                )
+            )
     return result
 
 
@@ -440,10 +450,14 @@ def _format_task_context(task_context: dict) -> str:
 # 任务型工具集合：调用这些工具意味着开始一个新任务
 # 查询型工具（list_*/get_*）不改变 task_context，因为它们是辅助查询
 _TASK_TYPE_TOOLS: set[str] = {
-    "create_client", "create_project",
-    "generate_questions", "generate_articles",
-    "publish_article", "bind_platform",
-    "create_baseline", "run_recheck",
+    "create_client",
+    "create_project",
+    "generate_questions",
+    "generate_articles",
+    "publish_article",
+    "bind_platform",
+    "create_baseline",
+    "run_recheck",
     "upload_documents",
 }
 

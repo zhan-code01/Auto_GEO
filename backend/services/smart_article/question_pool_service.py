@@ -22,7 +22,9 @@ class SmartArticleQuestionPoolService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_batch(self, current_user, project_id: int, question_count: int, custom_question: str | None) -> SmartArticleBatch:
+    def create_batch(
+        self, current_user, project_id: int, question_count: int, custom_question: str | None
+    ) -> SmartArticleBatch:
         if question_count < 1 or question_count > MAX_QUESTION_COUNT:
             raise ValueError(f"生成问题数量必须在1到{MAX_QUESTION_COUNT}之间")
         value = str(custom_question or "").strip() or None
@@ -46,10 +48,14 @@ class SmartArticleQuestionPoolService:
         return batch
 
     async def run_batch(self, batch_id: int) -> None:
-        batch = self.db.query(SmartArticleBatch).filter(
-            SmartArticleBatch.id == batch_id,
-            SmartArticleBatch.batch_type == "question_generation",
-        ).first()
+        batch = (
+            self.db.query(SmartArticleBatch)
+            .filter(
+                SmartArticleBatch.id == batch_id,
+                SmartArticleBatch.batch_type == "question_generation",
+            )
+            .first()
+        )
         if not batch:
             return
         try:
@@ -72,32 +78,40 @@ class SmartArticleQuestionPoolService:
                 normalized = normalize_question(item.question)
                 if not normalized:
                     continue
-                existing = self.db.query(SmartArticleQuestion).filter(
-                    SmartArticleQuestion.project_id == context.project_id,
-                    SmartArticleQuestion.normalized_question == normalized,
-                ).first()
+                existing = (
+                    self.db.query(SmartArticleQuestion)
+                    .filter(
+                        SmartArticleQuestion.project_id == context.project_id,
+                        SmartArticleQuestion.normalized_question == normalized,
+                    )
+                    .first()
+                )
                 if existing:
                     if batch.mode == "manual":
                         raise QuestionPlanningError("该问题已经存在于当前项目的问题历史中")
                     continue
-                self.db.add(SmartArticleQuestion(
-                    user_id=batch.user_id,
-                    project_id=context.project_id,
-                    generation_batch_id=batch.id,
-                    question=item.question,
-                    normalized_question=normalized,
-                    source="manual" if batch.mode == "manual" else "ai",
-                    intent_type=item.intent_type,
-                    context_type=item.context_type,
-                    brand_entry_reason=item.brand_entry_reason,
-                    retrieval_terms=item.retrieval_terms,
-                ))
+                self.db.add(
+                    SmartArticleQuestion(
+                        user_id=batch.user_id,
+                        project_id=context.project_id,
+                        generation_batch_id=batch.id,
+                        question=item.question,
+                        normalized_question=normalized,
+                        source="manual" if batch.mode == "manual" else "ai",
+                        intent_type=item.intent_type,
+                        context_type=item.context_type,
+                        brand_entry_reason=item.brand_entry_reason,
+                        retrieval_terms=item.retrieval_terms,
+                    )
+                )
                 added += 1
             batch.queued_count = added
             batch.success_count = added
             batch.status = "completed"
             batch.completed_at = datetime.now()
-            batch.note = None if added == len(planned) else f"筛选结果中有 {len(planned) - added} 条已存在，已跳过重复问题"
+            batch.note = (
+                None if added == len(planned) else f"筛选结果中有 {len(planned) - added} 条已存在，已跳过重复问题"
+            )
             self.db.commit()
         except (SmartArticleContextError, QuestionPlanningError, ValueError, RuntimeError) as exc:
             self._fail_batch(batch, f"阶段=问题规划/保存：{exc}")
@@ -105,8 +119,15 @@ class SmartArticleQuestionPoolService:
             self._fail_batch(batch, f"阶段=问题规划/保存：{exc}")
             logger.exception("智能问题批次 {} 未知失败", batch_id)
 
-    def list_questions(self, current_user, project_id: int, has_article: bool | None, page: int, limit: int,
-                       generation_batch_id: int | None = None) -> dict[str, Any]:
+    def list_questions(
+        self,
+        current_user,
+        project_id: int,
+        has_article: bool | None,
+        page: int,
+        limit: int,
+        generation_batch_id: int | None = None,
+    ) -> dict[str, Any]:
         """列出项目下的问题。支持 has_article / generation_batch_id 过滤。
 
         Args:
@@ -127,10 +148,14 @@ class SmartArticleQuestionPoolService:
     def soft_delete(self, current_user, question_ids: list[int]) -> int:
         if not question_ids:
             return 0
-        rows = scoped_query(self.db, SmartArticleQuestion, current_user).filter(
-            SmartArticleQuestion.id.in_(question_ids),
-            SmartArticleQuestion.is_deleted.is_(False),
-        ).all()
+        rows = (
+            scoped_query(self.db, SmartArticleQuestion, current_user)
+            .filter(
+                SmartArticleQuestion.id.in_(question_ids),
+                SmartArticleQuestion.is_deleted.is_(False),
+            )
+            .all()
+        )
         now = datetime.now()
         for row in rows:
             row.is_deleted = True
@@ -139,10 +164,14 @@ class SmartArticleQuestionPoolService:
         return len(rows)
 
     def get_batch(self, batch_id: int, current_user) -> dict[str, Any]:
-        batch = scoped_query(self.db, SmartArticleBatch, current_user).filter(
-            SmartArticleBatch.id == batch_id,
-            SmartArticleBatch.batch_type == "question_generation",
-        ).first()
+        batch = (
+            scoped_query(self.db, SmartArticleBatch, current_user)
+            .filter(
+                SmartArticleBatch.id == batch_id,
+                SmartArticleBatch.batch_type == "question_generation",
+            )
+            .first()
+        )
         if not batch:
             raise LookupError("问题生成批次不存在或无权访问")
         return {

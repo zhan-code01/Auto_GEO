@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 # ==================== Pydantic模型 ====================
 class SystemConfigUpdate(BaseModel):
     """系统配置更新请求"""
+
     app_name: Optional[str] = Field(None, description="应用名称")
     debug: Optional[bool] = Field(None, description="调试模式")
     jwt_expire_minutes: Optional[int] = Field(None, ge=1, description="JWT过期时间(分钟)")
@@ -39,6 +40,7 @@ class SystemConfigUpdate(BaseModel):
 
 class SystemConfigResponse(BaseModel):
     """系统配置响应"""
+
     app_name: str
     version: str
     debug: bool
@@ -52,6 +54,7 @@ class SystemConfigResponse(BaseModel):
 
 class ServiceStatus(BaseModel):
     """服务状态"""
+
     name: str
     status: str  # running, stopped, error
     message: Optional[str] = None
@@ -60,6 +63,7 @@ class ServiceStatus(BaseModel):
 
 class SystemStatusResponse(BaseModel):
     """系统状态响应"""
+
     status: str
     timestamp: str
     uptime: Optional[str] = None
@@ -70,6 +74,7 @@ class SystemStatusResponse(BaseModel):
 
 class RestartRequest(BaseModel):
     """重启请求"""
+
     delay_seconds: int = Field(5, ge=0, le=300, description="延迟重启秒数")
     reason: Optional[str] = Field(None, description="重启原因")
 
@@ -100,17 +105,11 @@ def check_database_connection(db: Session) -> ServiceStatus:
     try:
         db.execute(text("SELECT 1"))
         return ServiceStatus(
-            name="database",
-            status="running",
-            message="数据库连接正常",
-            last_check=datetime.now().isoformat()
+            name="database", status="running", message="数据库连接正常", last_check=datetime.now().isoformat()
         )
     except Exception as e:
         return ServiceStatus(
-            name="database",
-            status="error",
-            message=f"数据库连接失败: {str(e)}",
-            last_check=datetime.now().isoformat()
+            name="database", status="error", message=f"数据库连接失败: {str(e)}", last_check=datetime.now().isoformat()
         )
 
 
@@ -118,6 +117,7 @@ def check_scheduler_service() -> ServiceStatus:
     """检查调度器服务状态"""
     try:
         from backend.services.scheduler_service import get_scheduler_service
+
         scheduler = get_scheduler_service()
         is_running = scheduler.is_running()
 
@@ -125,14 +125,11 @@ def check_scheduler_service() -> ServiceStatus:
             name="scheduler",
             status="running" if is_running else "stopped",
             message="调度器服务运行正常" if is_running else "调度器服务已停止",
-            last_check=datetime.now().isoformat()
+            last_check=datetime.now().isoformat(),
         )
     except Exception as e:
         return ServiceStatus(
-            name="scheduler",
-            status="error",
-            message=f"调度器检查失败: {str(e)}",
-            last_check=datetime.now().isoformat()
+            name="scheduler", status="error", message=f"调度器检查失败: {str(e)}", last_check=datetime.now().isoformat()
         )
 
 
@@ -144,38 +141,27 @@ def check_ragflow_connection() -> ServiceStatus:
 
         if not RAGFLOW_API_KEY:
             return ServiceStatus(
-                name="ragflow",
-                status="stopped",
-                message="RAGFlow未配置",
-                last_check=datetime.now().isoformat()
+                name="ragflow", status="stopped", message="RAGFlow未配置", last_check=datetime.now().isoformat()
             )
 
         response = httpx.get(
-            f"{RAGFLOW_BASE_URL}/api/v1/user",
-            headers={"Authorization": f"Bearer {RAGFLOW_API_KEY}"},
-            timeout=5.0
+            f"{RAGFLOW_BASE_URL}/api/v1/user", headers={"Authorization": f"Bearer {RAGFLOW_API_KEY}"}, timeout=5.0
         )
 
         if response.status_code == 200:
             return ServiceStatus(
-                name="ragflow",
-                status="running",
-                message="RAGFlow连接正常",
-                last_check=datetime.now().isoformat()
+                name="ragflow", status="running", message="RAGFlow连接正常", last_check=datetime.now().isoformat()
             )
         else:
             return ServiceStatus(
                 name="ragflow",
                 status="error",
                 message=f"RAGFlow返回错误: {response.status_code}",
-                last_check=datetime.now().isoformat()
+                last_check=datetime.now().isoformat(),
             )
     except Exception as e:
         return ServiceStatus(
-            name="ragflow",
-            status="error",
-            message=f"RAGFlow连接失败: {str(e)}",
-            last_check=datetime.now().isoformat()
+            name="ragflow", status="error", message=f"RAGFlow连接失败: {str(e)}", last_check=datetime.now().isoformat()
         )
 
 
@@ -188,8 +174,13 @@ async def get_system_config(current_user: User = Depends(require_admin)):
     """
     try:
         from backend.config import (
-            APP_NAME, APP_VERSION, DEBUG, DATABASE_URL,
-            MAX_CONCURRENT_PUBLISH, PUBLISH_TIMEOUT, MAX_RETRY_COUNT
+            APP_NAME,
+            APP_VERSION,
+            DEBUG,
+            DATABASE_URL,
+            MAX_CONCURRENT_PUBLISH,
+            PUBLISH_TIMEOUT,
+            MAX_RETRY_COUNT,
         )
         from backend.database import get_database_type
 
@@ -211,25 +202,15 @@ async def get_system_config(current_user: User = Depends(require_admin)):
             "max_retry_count": MAX_RETRY_COUNT,
         }
 
-        return ApiResponse(
-            success=True,
-            message="获取成功",
-            data=config
-        )
+        return ApiResponse(success=True, message="获取成功", data=config)
 
     except Exception as e:
         logger.error(f"获取系统配置失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取配置失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"获取配置失败: {str(e)}")
 
 
 @router.put("/config", response_model=ApiResponse)
-async def update_system_config(
-    request: SystemConfigUpdate,
-    current_user: User = Depends(require_admin)
-):
+async def update_system_config(request: SystemConfigUpdate, current_user: User = Depends(require_admin)):
     """
     更新系统配置（仅管理员）
 
@@ -254,28 +235,34 @@ async def update_system_config(
         if request.debug is not None:
             # 仅支持运行时修改
             from backend import config
+
             config.DEBUG = request.debug
             updated_fields.append("debug")
 
         if request.jwt_expire_minutes is not None:
             from backend.api.user import JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+
             # 修改模块级别的变量
             import backend.api.user as user_module
+
             user_module.JWT_ACCESS_TOKEN_EXPIRE_MINUTES = request.jwt_expire_minutes
             updated_fields.append("jwt_expire_minutes")
 
         if request.max_concurrent_publish is not None:
             from backend import config
+
             config.MAX_CONCURRENT_PUBLISH = request.max_concurrent_publish
             updated_fields.append("max_concurrent_publish")
 
         if request.publish_timeout is not None:
             from backend import config
+
             config.PUBLISH_TIMEOUT = request.publish_timeout
             updated_fields.append("publish_timeout")
 
         if request.max_retry_count is not None:
             from backend import config
+
             config.MAX_RETRY_COUNT = request.max_retry_count
             updated_fields.append("max_retry_count")
 
@@ -283,8 +270,12 @@ async def update_system_config(
 
         # 返回更新后的配置
         from backend.config import (
-            APP_NAME, APP_VERSION, DEBUG,
-            MAX_CONCURRENT_PUBLISH, PUBLISH_TIMEOUT, MAX_RETRY_COUNT
+            APP_NAME,
+            APP_VERSION,
+            DEBUG,
+            MAX_CONCURRENT_PUBLISH,
+            PUBLISH_TIMEOUT,
+            MAX_RETRY_COUNT,
         )
         from backend.database import get_database_type
         from backend.api.user import JWT_ACCESS_TOKEN_EXPIRE_MINUTES
@@ -304,23 +295,17 @@ async def update_system_config(
                     "max_concurrent_publish": MAX_CONCURRENT_PUBLISH,
                     "publish_timeout": PUBLISH_TIMEOUT,
                     "max_retry_count": MAX_RETRY_COUNT,
-                }
-            }
+                },
+            },
         )
 
     except Exception as e:
         logger.error(f"更新系统配置失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新配置失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"更新配置失败: {str(e)}")
 
 
 @router.get("/status", response_model=ApiResponse)
-async def get_system_status(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
+async def get_system_status(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """
     获取系统状态（仅管理员）
     返回服务运行状态、数据库统计等信息
@@ -356,35 +341,26 @@ async def get_system_status(
                 "platform": platform_info,
                 "uptime": get_system_uptime(),
                 "services": {
-                    name: {
-                        "status": s.status,
-                        "message": s.message,
-                        "last_check": s.last_check
-                    } for name, s in services.items()
+                    name: {"status": s.status, "message": s.message, "last_check": s.last_check}
+                    for name, s in services.items()
                 },
                 "stats": {
                     "users": user_count,
                     "active_users": active_users,
                     "projects": project_count,
                     "accounts": account_count,
-                    "articles": article_count
-                }
-            }
+                    "articles": article_count,
+                },
+            },
         )
 
     except Exception as e:
         logger.error(f"获取系统状态失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取系统状态失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"获取系统状态失败: {str(e)}")
 
 
 @router.post("/restart", response_model=ApiResponse)
-async def restart_service(
-    request: RestartRequest,
-    current_user: User = Depends(require_admin)
-):
+async def restart_service(request: RestartRequest, current_user: User = Depends(require_admin)):
     """
     重启服务（仅管理员）
 
@@ -398,8 +374,10 @@ async def restart_service(
 
         # 使用延迟重启策略
         import threading
+
         def delayed_restart():
             import time
+
             time.sleep(request.delay_seconds)
             # 使用os.execv重启进程
             os.execv(sys.executable, [sys.executable] + sys.argv)
@@ -411,19 +389,12 @@ async def restart_service(
         return ApiResponse(
             success=True,
             message=f"服务将在 {request.delay_seconds} 秒后重启",
-            data={
-                "restart_scheduled": True,
-                "delay_seconds": request.delay_seconds,
-                "reason": request.reason
-            }
+            data={"restart_scheduled": True, "delay_seconds": request.delay_seconds, "reason": request.reason},
         )
 
     except Exception as e:
         logger.error(f"重启服务失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"重启失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"重启失败: {str(e)}")
 
 
 @router.post("/config/test-db", response_model=ApiResponse)
@@ -473,7 +444,9 @@ async def get_service_status_compat(current_user: User = Depends(require_admin))
 @router.post("/service/restart", response_model=ApiResponse)
 async def restart_service_compat(current_user: User = Depends(require_admin)):
     """Compatibility alias for /api/admin/restart."""
-    return await restart_service(RestartRequest(delay_seconds=5, reason="admin service compatibility endpoint"), current_user)
+    return await restart_service(
+        RestartRequest(delay_seconds=5, reason="admin service compatibility endpoint"), current_user
+    )
 
 
 @router.post("/service/stop", response_model=ApiResponse)
@@ -524,10 +497,7 @@ async def clear_system_logs(current_user: User = Depends(require_admin)):
 
 
 @router.get("/stats", response_model=ApiResponse)
-async def get_detailed_stats(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
+async def get_detailed_stats(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """
     获取详细统计数据（仅管理员）
     返回各种业务数据的详细统计
@@ -553,7 +523,9 @@ async def get_detailed_stats(
         total_articles = db.query(GeoArticle).count()
 
         # 文章发布状态统计
-        article_by_status = db.query(GeoArticle.publish_status, db.func.count(GeoArticle.id)).group_by(GeoArticle.publish_status).all()
+        article_by_status = (
+            db.query(GeoArticle.publish_status, db.func.count(GeoArticle.id)).group_by(GeoArticle.publish_status).all()
+        )
         status_counts = {status: count for status, count in article_by_status}
 
         # 最近7天数据
@@ -570,38 +542,22 @@ async def get_detailed_stats(
                     "active": active_users,
                     "disabled": disabled_users,
                     "admins": admin_users,
-                    "new_7d": new_users_7d
+                    "new_7d": new_users_7d,
                 },
-                "projects": {
-                    "total": total_projects,
-                    "active": active_projects
-                },
-                "accounts": {
-                    "total": total_accounts,
-                    "active": active_accounts
-                },
-                "articles": {
-                    "total": total_articles,
-                    "by_status": status_counts,
-                    "new_7d": new_articles_7d
-                },
-                "generated_at": datetime.now().isoformat()
-            }
+                "projects": {"total": total_projects, "active": active_projects},
+                "accounts": {"total": total_accounts, "active": active_accounts},
+                "articles": {"total": total_articles, "by_status": status_counts, "new_7d": new_articles_7d},
+                "generated_at": datetime.now().isoformat(),
+            },
         )
 
     except Exception as e:
         logger.error(f"获取统计数据失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取统计数据失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"获取统计数据失败: {str(e)}")
 
 
 @router.post("/cleanup", response_model=ApiResponse)
-async def cleanup_system(
-    days: int = 30,
-    current_user: User = Depends(require_admin)
-):
+async def cleanup_system(days: int = 30, current_user: User = Depends(require_admin)):
     """
     系统清理（仅管理员）
     清理过期数据和临时文件
@@ -635,16 +591,9 @@ async def cleanup_system(
         return ApiResponse(
             success=True,
             message="系统清理完成",
-            data={
-                "cutoff_date": cutoff_date.isoformat(),
-                "days": days,
-                "cleaned_items": cleaned_items
-            }
+            data={"cutoff_date": cutoff_date.isoformat(), "days": days, "cleaned_items": cleaned_items},
         )
 
     except Exception as e:
         logger.error(f"系统清理失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"清理失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"清理失败: {str(e)}")

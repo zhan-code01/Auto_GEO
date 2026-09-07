@@ -175,12 +175,16 @@ class ProjectQuestionService:
             if not kw_id or kw_id in seen_ids:
                 continue
             seen_ids.add(kw_id)
-            kw = self.db.query(Keyword).filter(
-                Keyword.id == kw_id,
-                Keyword.project_id == project.id,
-                Keyword.keyword_type == "question",
-                Keyword.status == "active",
-            ).first()
+            kw = (
+                self.db.query(Keyword)
+                .filter(
+                    Keyword.id == kw_id,
+                    Keyword.project_id == project.id,
+                    Keyword.keyword_type == "question",
+                    Keyword.status == "active",
+                )
+                .first()
+            )
             if kw:
                 saved.append(kw)
         logger.info(f"[question] 项目 {project.id} 蒸馏落库 {len(saved)} 个搜索问题")
@@ -223,9 +227,7 @@ class ProjectQuestionService:
 
     # ---------- 对外：准备指定数量的未使用问题（含自动补蒸馏）----------
 
-    async def prepare_questions(
-        self, project_id: int, needed: int
-    ) -> Tuple[List[Keyword], Optional[str]]:
+    async def prepare_questions(self, project_id: int, needed: int) -> Tuple[List[Keyword], Optional[str]]:
         """为本项目准备 ``needed`` 个未使用搜索问题；不足时后台自动补蒸馏（不打断用户）。
 
         返回 (questions, note)。note 非空表示未能凑齐，附带原因。

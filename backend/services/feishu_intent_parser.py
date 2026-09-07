@@ -273,6 +273,7 @@ class FeishuIntentParser:
         # 检测数量
         quantity = 1
         import re
+
         num_match = re.search(r"(\d+)\s*[篇个条]", message)
         if num_match:
             quantity = int(num_match.group(1))

@@ -131,11 +131,7 @@ class BasePublisher(ABC):
         except Exception as exc:  # 快照失败不阻断主流程
             logger.warning("[BasePublisher] 保存鉴权失败快照失败: {}", exc)
 
-        result = (
-            self.login_expired_result(message, page)
-            if definitive
-            else self.unknown_auth_result(message, page)
-        )
+        result = self.login_expired_result(message, page) if definitive else self.unknown_auth_result(message, page)
         if snapshot:
             result["debug_path"] = snapshot
         return result

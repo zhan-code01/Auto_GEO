@@ -689,9 +689,7 @@ class ToutiaoProPublisher(BasePublisher):
             # 避免预览弹窗延迟渲染时漏掉发布动作导致进入人工接管。
             # 仅匹配明确的发布确认文案，不使用宽泛的『确认』以防误点失败弹窗。
             try:
-                await self._click_button_by_text(
-                    page, ["确认发布", "确定发布", "继续发布"], timeout=1200
-                )
+                await self._click_button_by_text(page, ["确认发布", "确定发布", "继续发布"], timeout=1200)
             except Exception:
                 pass
 

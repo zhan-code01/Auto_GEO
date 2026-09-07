@@ -359,11 +359,12 @@ class AccountCheckSummary(BaseModel):
 # ==================== 分页相关 ====================
 from typing import TypeVar, Generic
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
     """统一分页响应格式"""
+
     total: int = Field(..., description="总记录数")
     items: List[T] = Field(..., description="当前页数据")
     page: int = Field(..., description="当前页码")
@@ -371,6 +372,8 @@ class PaginatedResponse(BaseModel, Generic[T]):
     pages: int = Field(..., description="总页数")
     has_next: bool = Field(..., description="是否有下一页")
     has_prev: bool = Field(..., description="是否有上一页")
+
+
 class AutoPublishTarget(BaseModel):
     """One independently executable publish target (article + account)."""
 

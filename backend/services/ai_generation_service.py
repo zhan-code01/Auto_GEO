@@ -42,8 +42,7 @@ class AIGenerationService:
         deepseek_url = os.getenv("DEEPSEEK_API_URL", "").strip()
         conversation_key = os.getenv("AUTOGEO_CONVERSATION_LLM_API_KEY", "").strip() or AUTOGEO_CONVERSATION_LLM_API_KEY
         conversation_url = (
-            os.getenv("AUTOGEO_CONVERSATION_LLM_BASE_URL", "").strip()
-            or AUTOGEO_CONVERSATION_LLM_BASE_URL
+            os.getenv("AUTOGEO_CONVERSATION_LLM_BASE_URL", "").strip() or AUTOGEO_CONVERSATION_LLM_BASE_URL
         )
 
         if deepseek_key:
@@ -51,12 +50,12 @@ class AIGenerationService:
             self.api_url = (deepseek_url or DEEPSEEK_API_URL or "https://api.deepseek.com/v1").rstrip("/")
         else:
             self.api_key = conversation_key
-            self.api_url = (conversation_url or deepseek_url or DEEPSEEK_API_URL or "https://api.deepseek.com/v1").rstrip("/")
+            self.api_url = (
+                conversation_url or deepseek_url or DEEPSEEK_API_URL or "https://api.deepseek.com/v1"
+            ).rstrip("/")
 
         self.model = (
-            os.getenv("AUTOGEO_CONVERSATION_LLM_MODEL", "").strip()
-            or AUTOGEO_CONVERSATION_LLM_MODEL
-            or "deepseek-chat"
+            os.getenv("AUTOGEO_CONVERSATION_LLM_MODEL", "").strip() or AUTOGEO_CONVERSATION_LLM_MODEL or "deepseek-chat"
         )
         self._client: Optional[httpx.AsyncClient] = None
 
@@ -105,9 +104,7 @@ class AIGenerationService:
             payload["response_format"] = {"type": "json_object"}
 
         url = f"{self.api_url}/chat/completions"
-        logger.info(
-            f"🛰️ DeepSeek API 调用: model={selected_model}, msgs={len(messages)}, max_tokens={max_tokens}"
-        )
+        logger.info(f"🛰️ DeepSeek API 调用: model={selected_model}, msgs={len(messages)}, max_tokens={max_tokens}")
 
         try:
             resp = await self.client.post(url, json=payload)
@@ -388,7 +385,9 @@ class AIGenerationService:
             try:
                 full_content = ""
                 async for delta in self.chat_stream(
-                    messages, temperature=temperature, max_tokens=max_tokens,
+                    messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
                 ):
                     full_content += delta
                     yield delta  # 转发给上层
@@ -526,7 +525,10 @@ class AIGenerationService:
         try:
             result = await self._chat_with_retry(
                 messages=[
-                    {"role": "system", "content": "你是真实用户搜索行为分析专家。只输出问题，每行一个，不要编号、不要多余文字。"},
+                    {
+                        "role": "system",
+                        "content": "你是真实用户搜索行为分析专家。只输出问题，每行一个，不要编号、不要多余文字。",
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.9,
@@ -567,8 +569,7 @@ class AIGenerationService:
         logger.info(f"📝 开始生成文章: keyword={keyword}, company={company_name}, article_id={article_id}")
 
         knowledge_text = requirements or (
-            "当前未提供客户知识库资料，请按通用行业知识写作，"
-            "但不要编造具体资质、客户案例、价格或承诺。"
+            "当前未提供客户知识库资料，请按通用行业知识写作，但不要编造具体资质、客户案例、价格或承诺。"
         )
 
         # ========== Step 1: 生成标题候选 ==========
@@ -610,15 +611,16 @@ class AIGenerationService:
         logger.info(f"📋 标题候选: {titles[:3]}... → 选定: {best_title}")
 
         # ========== Step 2: 写完整文章 ==========
-        article_prompt = self._build_article_prompt(
-            best_title, keyword, company_name, knowledge_text, word_count
-        )
+        article_prompt = self._build_article_prompt(best_title, keyword, company_name, knowledge_text, word_count)
 
         self._print_prompt_to_terminal("Article generation prompt", article_prompt, article_id=article_id)
 
         article_result = await self._chat_with_retry(
             messages=[
-                {"role": "system", "content": "你是拥有10年经验的SEO营销专家，撰写风格稳重专业，适合B2B企业发布。严格按JSON格式输出。"},
+                {
+                    "role": "system",
+                    "content": "你是拥有10年经验的SEO营销专家，撰写风格稳重专业，适合B2B企业发布。严格按JSON格式输出。",
+                },
                 {"role": "user", "content": article_prompt},
             ],
             temperature=0.7,
@@ -644,8 +646,7 @@ class AIGenerationService:
         cited_chunks = [ref.get("chunk") for ref in references if isinstance(ref, dict)]
 
         logger.info(
-            f"📄 文章生成完成: {len(final_content)} chars, "
-            f"引用知识库片段 {citation_count} 个 (chunks: {cited_chunks})"
+            f"📄 文章生成完成: {len(final_content)} chars, 引用知识库片段 {citation_count} 个 (chunks: {cited_chunks})"
         )
 
         # ========== Step 3: SEO 检测 ==========
@@ -672,9 +673,7 @@ class AIGenerationService:
             "timestamp": __import__("datetime").datetime.now().isoformat(),
         }
 
-    def _build_article_prompt(
-        self, title: str, keyword: str, company: str, knowledge: str, word_count: int
-    ) -> str:
+    def _build_article_prompt(self, title: str, keyword: str, company: str, knowledge: str, word_count: int) -> str:
         return f"""请以标题「{title}」为关键词「{keyword}」为公司「{company}」撰写一篇深度、专业的SEO优化文章。
 
 ### 核心要求：
@@ -813,8 +812,5 @@ def get_chat_model():
         timeout=60,
         max_retries=2,
     )
-    logger.info(
-        f"[get_chat_model] LangChain ChatOpenAI 初始化: model={service.model} "
-        f"base_url={service.api_url}"
-    )
+    logger.info(f"[get_chat_model] LangChain ChatOpenAI 初始化: model={service.model} base_url={service.api_url}")
     return _chat_model_instance

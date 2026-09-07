@@ -29,7 +29,7 @@ PUBLISH_DESC_INPUT = [
     '[class*="description"] textarea',
     'textarea[placeholder*="描述"]',
     'textarea[placeholder*="添加"]',
-    '.ql-editor',
+    ".ql-editor",
     'div[contenteditable="true"]',
 ]
 
@@ -70,7 +70,7 @@ IMAGE_MODE_SWITCH = [
     'span:has-text("发布图文")',
     'button:has-text("图文")',
     'div:has-text("图文")',
-    '.image-mode-btn',
+    ".image-mode-btn",
     'span:has-text("图文")',
     '[class*="mode"] >> text=图文',
 ]

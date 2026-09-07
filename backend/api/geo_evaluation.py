@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 GEO 五指标测评 API
 
@@ -132,6 +132,7 @@ class RetryRecordsRequest(BaseModel):
 
 
 # ==================== 辅助工厂 ====================
+
 
 def _get_run_service() -> GeoEvaluationRunService:
     """获取 run_service（使用 SessionLocal 工厂，支持后台线程）"""
@@ -449,7 +450,9 @@ async def batch_delete_client_records(
         db.rollback()
         raise
 
-    return ApiResponse(success=True, message=f"已删除 {deleted_count} 条证据明细", data={"deleted_records": deleted_count})
+    return ApiResponse(
+        success=True, message=f"已删除 {deleted_count} 条证据明细", data={"deleted_records": deleted_count}
+    )
 
 
 @router.post("/clients/{client_id}/records/retry")
@@ -486,9 +489,7 @@ async def clear_client_records(
             .delete(synchronize_session=False)
         )
         run_count = (
-            db.query(GeoEvaluationRun)
-            .filter(GeoEvaluationRun.client_id == client_id)
-            .delete(synchronize_session=False)
+            db.query(GeoEvaluationRun).filter(GeoEvaluationRun.client_id == client_id).delete(synchronize_session=False)
         )
         db.commit()
     except (OperationalError, ProgrammingError) as exc:
@@ -737,9 +738,7 @@ async def resume_interrupted_run(
     )
     occupied = sorted(
         target_platforms.intersection(
-            platform
-            for active_run in active_runs
-            for platform in (active_run.platforms or [])
+            platform for active_run in active_runs for platform in (active_run.platforms or [])
         )
     )
     if occupied:

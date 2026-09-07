@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ArticleAdapter - 文章管理适配器（查询/删除/批次状态）。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,8 +18,15 @@ class ArticleAdapter:
     def __init__(self, db: Session):
         self.db = db
 
-    def list_articles(self, user, project_id: int | None = None, keyword: str | None = None,
-                      publish_status: int | None = None, page: int = 1, limit: int = 20) -> dict[str, Any]:
+    def list_articles(
+        self,
+        user,
+        project_id: int | None = None,
+        keyword: str | None = None,
+        publish_status: int | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> dict[str, Any]:
         """列出文章。"""
         query = scoped_query(self.db, GeoArticle, user)
         if project_id:

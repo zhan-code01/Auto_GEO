@@ -10,6 +10,7 @@ import os
 # 解决 Windows GBK/GB2312 控制台输出中文乱码问题
 if sys.platform == "win32":
     import io
+
     if getattr(sys.stdout, "buffer", None):
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     if getattr(sys.stderr, "buffer", None):
@@ -63,7 +64,17 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 # 导入配置和数据库
-from backend.config import APP_NAME, APP_VERSION, DEBUG, HOST, PORT, RELOAD, CORS_ORIGINS, CORS_ALLOW_ORIGIN_REGEX, PLATFORMS
+from backend.config import (
+    APP_NAME,
+    APP_VERSION,
+    DEBUG,
+    HOST,
+    PORT,
+    RELOAD,
+    CORS_ORIGINS,
+    CORS_ALLOW_ORIGIN_REGEX,
+    PLATFORMS,
+)
 from backend.config import DATABASE_URL, get_database_type
 from backend.database import SessionLocal
 
@@ -120,6 +131,7 @@ async def lifespan(app: FastAPI):
     install_asyncio_exception_filter(asyncio.get_running_loop())
     # 所有模块导入完成后，重新断言 stdlib logging -> loguru 桥接（清除 basicConfig 残留）
     from backend.log_setup import reinstall_stdlib_bridge
+
     reinstall_stdlib_bridge()
     # ---------------- 启动阶段 ----------------
     logger.info(f"🚀 {APP_NAME} v{APP_VERSION} 正在启动...")
@@ -147,6 +159,7 @@ async def lifespan(app: FastAPI):
             SmartArticleJob,
             SmartArticleQuestion,
         )
+
         register_model_for_auto_user_id(GeoArticle)
         register_model_for_auto_user_id(Project)
         register_model_for_auto_user_id(SiteProject)
@@ -184,6 +197,7 @@ async def lifespan(app: FastAPI):
 
     # 6. 初始化飞书机器人客户端
     from backend.services.feishu_client import get_feishu_client
+
     feishu_client = get_feishu_client()
     if feishu_client.is_configured:
         logger.bind(module="飞书机器人").success("飞书机器人已就绪")
@@ -292,6 +306,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str = None, token:
     if token:
         try:
             from backend.api.user import decode_token
+
             payload = decode_token(token)
             if payload:
                 user_id = payload.get("user_id")
@@ -335,16 +350,18 @@ async def health():
         "services": {
             "database": {"status": "unknown"},
             "ragflow": {"status": "unknown"},
-        }
+        },
     }
 
     # 导入时间模块
     from datetime import datetime
+
     health_status["timestamp"] = datetime.now().isoformat()
 
     # 1. 数据库连接检测
     try:
         from backend.database import SessionLocal, get_engine_info
+
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db.close()
@@ -356,6 +373,7 @@ async def health():
             try:
                 from alembic.config import Config as AlembicConfig
                 from alembic.script import ScriptDirectory
+
                 alembic_cfg = AlembicConfig()
                 alembic_cfg.set_main_option("script_location", "migrations")
                 alembic_cfg.set_main_option(
@@ -365,6 +383,7 @@ async def health():
                 # 从数据库读取当前版本
                 from backend.database import engine as db_engine
                 from alembic.runtime.migration import MigrationContext
+
                 with db_engine.connect() as conn:
                     context = MigrationContext.configure(conn)
                     db_health["alembic_revision"] = context.get_current_revision()
@@ -373,20 +392,17 @@ async def health():
 
         health_status["services"]["database"] = db_health
     except Exception as e:
-        health_status["services"]["database"] = {
-            "status": "error",
-            "message": str(e)[:100]
-        }
+        health_status["services"]["database"] = {"status": "error", "message": str(e)[:100]}
         health_status["status"] = "degraded"
 
     # 2. RAGFlow 连接检测
     try:
         from backend.config import RAGFLOW_BASE_URL, RAGFLOW_API_KEY
+
         if RAGFLOW_API_KEY and RAGFLOW_BASE_URL:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(
-                    f"{RAGFLOW_BASE_URL}/api/v1/datasets",
-                    headers={"Authorization": f"Bearer {RAGFLOW_API_KEY}"}
+                    f"{RAGFLOW_BASE_URL}/api/v1/datasets", headers={"Authorization": f"Bearer {RAGFLOW_API_KEY}"}
                 )
                 if response.status_code == 200:
                     result = response.json()
@@ -395,20 +411,14 @@ async def health():
                     else:
                         health_status["services"]["ragflow"] = {
                             "status": "error",
-                            "message": result.get("message", "unknown error")[:100]
+                            "message": result.get("message", "unknown error")[:100],
                         }
                 else:
-                    health_status["services"]["ragflow"] = {
-                        "status": "error",
-                        "code": response.status_code
-                    }
+                    health_status["services"]["ragflow"] = {"status": "error", "code": response.status_code}
         else:
             health_status["services"]["ragflow"] = {"status": "not_configured"}
     except Exception as e:
-        health_status["services"]["ragflow"] = {
-            "status": "error",
-            "message": str(e)[:100]
-        }
+        health_status["services"]["ragflow"] = {"status": "error", "message": str(e)[:100]}
         health_status["status"] = "degraded"
 
     return health_status
@@ -424,6 +434,7 @@ async def get_platforms():
 async def global_exception_handler(request, exc):
     logger.exception(f"未处理的异常: {exc}")
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         status_code=500,
         content={"success": False, "message": f"服务器内部错误: {str(exc)}", "detail": str(exc)},
@@ -442,6 +453,8 @@ if __name__ == "__main__":
 
     if RELOAD:
         # log_config=None：uvicorn 日志统一走 loguru 桥接；access_log=False：访问日志由 AccessLogMiddleware 统一记录
-        uvicorn.run("backend.main:app", host=HOST, port=PORT, reload=True, log_level="info", access_log=False, log_config=None)
+        uvicorn.run(
+            "backend.main:app", host=HOST, port=PORT, reload=True, log_level="info", access_log=False, log_config=None
+        )
     else:
         uvicorn.run(app, host=HOST, port=PORT, reload=False, log_level="info", access_log=False, log_config=None)

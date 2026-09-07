@@ -20,6 +20,7 @@ if sys.platform == "win32":
         configure_windows_asyncio_policy()
     except AttributeError:
         import warnings
+
         warnings.warn("Python版本过低，Windows ProactorEventLoopPolicy不可用")
 # ==================== 修复结束 ====================
 
@@ -219,8 +220,12 @@ class SecureSessionManager:
                 raw_same_site = c.get("sameSite", "Lax")
                 # Chrome API 返回值可能是小写或 unspecified，统一转成 Playwright 要求的格式
                 same_site_map = {
-                    "strict": "Strict", "lax": "Lax", "none": "None",
-                    "no_restriction": "None", "unspecified": "Lax", "": "Lax",
+                    "strict": "Strict",
+                    "lax": "Lax",
+                    "none": "None",
+                    "no_restriction": "None",
+                    "unspecified": "Lax",
+                    "": "Lax",
                 }
                 same_site = same_site_map.get(
                     raw_same_site.lower() if isinstance(raw_same_site, str) else "lax",
@@ -286,6 +291,7 @@ class SecureSessionManager:
         """从 URL 提取 origin（scheme + host）"""
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(url)
             return f"{parsed.scheme}://{parsed.netloc}"
         except Exception:
@@ -410,22 +416,15 @@ class SecureSessionManager:
             layer = probe_info.get("layer", "?") if probe_info else "?"
 
             if not is_valid:
-                logger.warning(
-                    f"Cookie验证失败(Layer {layer}): platform={platform}, reason={reason}"
-                )
+                logger.warning(f"Cookie验证失败(Layer {layer}): platform={platform}, reason={reason}")
                 return "invalid"
 
             # Layer 5 = 所有层都无法判断 → 不假定有效，标记为即将过期
             if probe_info and probe_info.get("layer") == 5:
-                logger.info(
-                    f"Cookie验证无结论(Layer 5)，标记为expiring: "
-                    f"platform={platform}, reason={reason}"
-                )
+                logger.info(f"Cookie验证无结论(Layer 5)，标记为expiring: platform={platform}, reason={reason}")
                 return "expiring"
             else:
-                logger.info(
-                    f"Cookie验证成功(Layer {layer}): platform={platform}, reason={reason}"
-                )
+                logger.info(f"Cookie验证成功(Layer {layer}): platform={platform}, reason={reason}")
 
             # 更新会话时间
             storage_state["last_modified"] = datetime.now().isoformat()
@@ -886,9 +885,7 @@ class SecureSessionManager:
             # 项目级残留，否则取消授权后次新的老文件又会被 _migrate_legacy_session 迁回。
             new_path = self._get_session_file_path(user_id, None, platform)
             safe_user_id = str(user_id).zfill(8)
-            targets = [new_path] + list(
-                self._session_dir.glob(f"session_{safe_user_id}_*_{platform}.enc")
-            )
+            targets = [new_path] + list(self._session_dir.glob(f"session_{safe_user_id}_*_{platform}.enc"))
             removed = 0
             for fp in targets:
                 try:

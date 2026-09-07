@@ -7,6 +7,7 @@
 工具签名统一：async def fn(slots: dict, user_id: int) -> ToolOutcome
 参数由 LLM 通过 Tool Calling 机制基于 tool_schemas.py 的 Pydantic schema 生成。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -81,19 +82,17 @@ async def publish_article_tool(slots: dict[str, Any], user_id: int) -> ToolOutco
     try:
         publish_adapter = PublishAdapter(db)
         result = publish_adapter.publish_articles(
-            fake_user, [article_id_int], [account_id_int],
+            fake_user,
+            [article_id_int],
+            [account_id_int],
         )
         task_id = result.get("task_id")
         logger.info(
-            f"[publish_article] task={task_id} article={article_id_int} "
-            f"account={account_id_int} user={user_id}"
+            f"[publish_article] task={task_id} article={article_id_int} account={account_id_int} user={user_id}"
         )
 
         return ToolOutcome.running(
-            reply=(
-                f"已提交发布任务，文章ID: {article_id_int}，账号ID: {account_id_int}。"
-                f"完成后会通知您。"
-            ),
+            reply=(f"已提交发布任务，文章ID: {article_id_int}，账号ID: {account_id_int}。完成后会通知您。"),
             data={
                 "task_id": task_id,
                 "article_id": article_id_int,
@@ -158,7 +157,8 @@ async def list_publish_records_tool(slots: dict[str, Any], user_id: int) -> Tool
     try:
         adapter = PublishAdapter(db)
         result = adapter.list_publish_records(
-            fake_user, article_id=article_id_int,
+            fake_user,
+            article_id=article_id_int,
         )
         items = result.get("items", [])
 

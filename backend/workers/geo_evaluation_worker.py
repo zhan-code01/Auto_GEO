@@ -91,9 +91,7 @@ class WorkerApi:
                 break
             except httpx.TransportError as exc:
                 if attempt >= 3:
-                    raise RuntimeError(
-                        f"本地后端请求失败 {method} {path}: {type(exc).__name__}: {exc!r}"
-                    ) from exc
+                    raise RuntimeError(f"本地后端请求失败 {method} {path}: {type(exc).__name__}: {exc!r}") from exc
                 emit(
                     "backend_request_retry",
                     method=method,
@@ -226,8 +224,7 @@ class GeoEvaluationWorker:
         self.storage_state = (payload.get("platform_sessions") or {}).get(self.platform)
         # 判断服务器 session 是否有效：必须有 cookies 或 origins
         server_session_valid = bool(
-            self.storage_state
-            and (self.storage_state.get("cookies") or self.storage_state.get("origins"))
+            self.storage_state and (self.storage_state.get("cookies") or self.storage_state.get("origins"))
         )
         if not server_session_valid:
             emit(
@@ -253,9 +250,7 @@ class GeoEvaluationWorker:
                     emit("session_local_file_empty", path=str(self.local_session_path))
             except Exception as exc:
                 emit("session_local_load_failed", path=str(self.local_session_path), error=str(exc))
-        if not self.storage_state or not (
-            self.storage_state.get("cookies") or self.storage_state.get("origins")
-        ):
+        if not self.storage_state or not (self.storage_state.get("cookies") or self.storage_state.get("origins")):
             emit("session_missing", platform=self.platform, reason="server_and_local_both_empty")
         timing = payload.get("timing") or {}
         completed = set(payload.get("completed_keys") or [])
@@ -263,7 +258,13 @@ class GeoEvaluationWorker:
         rounds = max(1, int((payload.get("run") or {}).get("rounds") or 1))
         total = len(prompts) * rounds
         done = len(completed)
-        emit("worker_started", platform=self.platform, mode=self.default_mode, total=total, session_loaded=bool(self.storage_state))
+        emit(
+            "worker_started",
+            platform=self.platform,
+            mode=self.default_mode,
+            total=total,
+            session_loaded=bool(self.storage_state),
+        )
 
         self.playwright = await async_playwright().start()
         heartbeat = asyncio.create_task(self._heartbeat_loop())
@@ -407,9 +408,7 @@ class GeoEvaluationWorker:
             # DeepSeek的 ds-button 是全站通用类，侧栏搜索、模式按钮和发送按钮都会匹配。
             # 输入框保持焦点后直接按Enter，避免误点“搜索对话内容”。
             submit_selector = (
-                None
-                if self.platform == "deepseek"
-                else (self.checker.SELECTORS.get("submit_button") or [None])[0]
+                None if self.platform == "deepseek" else (self.checker.SELECTORS.get("submit_button") or [None])[0]
             )
             if not await self.checker.submit_question(page, question, input_selector, submit_selector):
                 raise RuntimeError("发送问题失败")
@@ -529,7 +528,9 @@ class GeoEvaluationWorker:
                 int(before.get("messageCount") or 0),
             )
             final_text = (final_candidate.get("answer") or "").strip()
-            final_quality = self.checker.validate_answer_quality(final_text, question) if final_text else {"valid": False}
+            final_quality = (
+                self.checker.validate_answer_quality(final_text, question) if final_text else {"valid": False}
+            )
             if final_quality.get("valid") and final_text not in (before.get("bodyText") or ""):
                 if len(final_text) > len(text):
                     text = final_text
@@ -705,9 +706,7 @@ class GeoEvaluationWorker:
             emit("manual_replay_started", platform=self.platform, stage=stage)
             input_selector = await self._find_input(page)
             submit_selector = (
-                None
-                if self.platform == "deepseek"
-                else (self.checker.SELECTORS.get("submit_button") or [None])[0]
+                None if self.platform == "deepseek" else (self.checker.SELECTORS.get("submit_button") or [None])[0]
             )
             if await self.checker.submit_question(page, question, input_selector, submit_selector):
                 try:
@@ -907,8 +906,7 @@ def main() -> None:
     parser.add_argument("--session-path")
     args = parser.parse_args()
     log.info(
-        f"[worker] 进程启动: run_id={args.run_id} platform={args.platform} "
-        f"mode={args.mode} device={args.device_id}"
+        f"[worker] 进程启动: run_id={args.run_id} platform={args.platform} mode={args.mode} device={args.device_id}"
     )
     try:
         code = asyncio.run(async_main(args))

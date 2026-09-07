@@ -8,6 +8,7 @@
 工具签名统一：async def fn(slots: dict, user_id: int) -> ToolOutcome
 参数由 LLM 通过 Tool Calling 机制基于 tool_schemas.py 的 Pydantic schema 生成。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -71,11 +72,13 @@ async def create_project_tool(slots: dict[str, Any], user_id: int) -> ToolOutcom
                 f"项目【{project_name}】创建成功！"
                 f"接下来您可以上传客户资料（提升问题生成质量），或直接生成用户问题（默认生成 1 个）。"
             ),
-            facts_patch=[{
-                "project_name": project_name,
-                "default_project_id": project_id,
-                "default_client_id": client_id,
-            }],
+            facts_patch=[
+                {
+                    "project_name": project_name,
+                    "default_project_id": project_id,
+                    "default_client_id": client_id,
+                }
+            ],
         )
     except Exception as e:
         logger.error(f"[create_project] 失败: {e}", exc_info=True)
@@ -123,11 +126,13 @@ async def list_projects_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         return ToolOutcome.success(
             data={"items": items, "total": result["total"]},
             reply=f"共 {result['total']} 个项目",
-            actions=[make_action(
-                "show_project_list",
-                "查看项目列表",
-                {"items": items, "total": result["total"]},
-            )],
+            actions=[
+                make_action(
+                    "show_project_list",
+                    "查看项目列表",
+                    {"items": items, "total": result["total"]},
+                )
+            ],
         )
     except Exception as e:
         logger.error(f"[list_projects] 失败: {e}", exc_info=True)

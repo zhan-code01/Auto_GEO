@@ -12,6 +12,7 @@ Revises: 0033_user_agent_facts
 注意：PostgresSaver.setup() 也会自动创建这些表，此迁移脚本是为了
 显式化管理 schema，便于 alembic upgrade 一并部署。
 """
+
 from alembic import op
 import sqlalchemy as sa
 

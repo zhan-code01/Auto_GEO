@@ -65,7 +65,7 @@ def check_schema():
     for table_name in pg_tables:
         cols = set()
         for col_info in inspector.get_columns(table_name):
-            cols.add(col_info['name'])
+            cols.add(col_info["name"])
         pg_columns[table_name] = cols
 
     # ========== 3. 对比 ==========
@@ -102,8 +102,7 @@ def check_schema():
     matched_columns = total_orm_columns - len(missing_columns)
 
     logger.info(
-        f"Summary: {matched_tables}/{total_orm_tables} tables, "
-        f"{matched_columns}/{total_orm_columns} columns matched"
+        f"Summary: {matched_tables}/{total_orm_tables} tables, {matched_columns}/{total_orm_columns} columns matched"
     )
 
     # ========== 6. Alembic 版本检查 ==========

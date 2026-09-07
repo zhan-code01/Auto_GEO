@@ -73,9 +73,7 @@ async def wait_for_manual_resolution(
     timeout_seconds = manual_timeout_seconds() if timeout_seconds is None else timeout_seconds
     if timeout_seconds is not None and timeout_seconds <= 0:
         timeout_seconds = None
-    poll_interval_seconds = (
-        manual_poll_interval_seconds() if poll_interval_seconds is None else poll_interval_seconds
-    )
+    poll_interval_seconds = manual_poll_interval_seconds() if poll_interval_seconds is None else poll_interval_seconds
     first_detection = await risk_detector.detect(page, platform=platform, stage=stage)
     if not first_detection.manual_required:
         return ManualResolution(
@@ -128,8 +126,7 @@ async def wait_for_manual_resolution(
             )
 
     timeout_message = (
-        f"{platform or 'platform'} manual handling timed out after {timeout_seconds}s "
-        f"at {stage or 'current step'}"
+        f"{platform or 'platform'} manual handling timed out after {timeout_seconds}s at {stage or 'current step'}"
     )
     logger.warning(timeout_message)
     await _emit(
@@ -198,9 +195,7 @@ def manual_timeout_result(resolution: ManualResolution) -> dict[str, Any]:
         "error_code": detection.error_code or "MANUAL_TIMEOUT",
         "risk_type": detection.risk_type,
         "platform_url": detection.page_url,
-        "error_msg": (
-            "平台要求人工验证，当前任务已暂停，请人工处理后重试。"
-        ),
+        "error_msg": ("平台要求人工验证，当前任务已暂停，请人工处理后重试。"),
     }
 
 

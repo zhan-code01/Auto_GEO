@@ -49,7 +49,9 @@ class XiaohongshuPublisher(BasePublisher):
             if not await self._select_long_article(page):
                 return await self._fail(page, stage, "未能进入小红书“写长文/新的创作”编辑器")
 
-            logger.info("[xiaohongshu] skip markdown document import; use manual fill for title/content/image stability")
+            logger.info(
+                "[xiaohongshu] skip markdown document import; use manual fill for title/content/image stability"
+            )
             stage = "fill_title"
             if not await self._fill_text_field(page, self._title_selectors(), title):
                 return await self._fail(page, stage, "未找到小红书标题输入框")
@@ -183,7 +185,9 @@ class XiaohongshuPublisher(BasePublisher):
             blocks.append({"type": "text", "value": cleaned_tail})
             has_text_block = True
 
-        topic_line = " ".join(f"#{topic}" for topic in self._extract_topics(title, self.markdown_to_plain_text(content)))
+        topic_line = " ".join(
+            f"#{topic}" for topic in self._extract_topics(title, self.markdown_to_plain_text(content))
+        )
         if topic_line:
             if blocks and blocks[-1]["type"] == "text":
                 blocks[-1]["value"] = f"{blocks[-1]['value']}\n\n{topic_line}"
@@ -280,7 +284,9 @@ class XiaohongshuPublisher(BasePublisher):
                             with open(path, "wb") as file:
                                 file.write(response.content)
                             paths.append(path)
-                            logger.info(f"[xiaohongshu] downloaded article image {index + 1}: {len(response.content)} bytes")
+                            logger.info(
+                                f"[xiaohongshu] downloaded article image {index + 1}: {len(response.content)} bytes"
+                            )
                             break
                         logger.warning(
                             f"[xiaohongshu] image download rejected: status={response.status_code}, size={len(response.content)}"
@@ -329,7 +335,9 @@ class XiaohongshuPublisher(BasePublisher):
     async def _has_document_import_modal(self, page: Page) -> bool:
         try:
             body_text = await page.locator("body").inner_text(timeout=3000)
-            return "文档导入" in body_text and ("点击或拖拽上传" in body_text or "docx" in body_text or "md" in body_text)
+            return "文档导入" in body_text and (
+                "点击或拖拽上传" in body_text or "docx" in body_text or "md" in body_text
+            )
         except Exception:
             return False
 
@@ -892,7 +900,7 @@ class XiaohongshuPublisher(BasePublisher):
             'input[placeholder*="标题"]',
             'textarea[placeholder*="输入标题"]',
             'textarea[placeholder*="标题"]',
-            'input.max-title',
+            "input.max-title",
             ".title-input input",
             ".titleInput input",
             ".title textarea",
@@ -1326,7 +1334,9 @@ class XiaohongshuPublisher(BasePublisher):
                 await self._click_confirm_if_needed(page)
                 await self._wait_after_button_click(page)
                 return True
-            if await self._click_main_button_by_text(page, publish_texts, exclude_texts=["发布笔记", "暂存", "离开", "排版"]):
+            if await self._click_main_button_by_text(
+                page, publish_texts, exclude_texts=["发布笔记", "暂存", "离开", "排版"]
+            ):
                 logger.info("[xiaohongshu] clicked one-key publish")
                 await self._click_confirm_if_needed(page)
                 await self._wait_after_button_click(page)
@@ -1416,14 +1426,29 @@ class XiaohongshuPublisher(BasePublisher):
                     }"""
                 )
                 body_text = state.get("bodyText", "")
-                if any(marker in body_text for marker in ["发布中", "提交中", "发布成功", "提交成功", "已发布", "请上传", "请输入", "失败", "异常"]):
+                if any(
+                    marker in body_text
+                    for marker in [
+                        "发布中",
+                        "提交中",
+                        "发布成功",
+                        "提交成功",
+                        "已发布",
+                        "请上传",
+                        "请输入",
+                        "失败",
+                        "异常",
+                    ]
+                ):
                     logger.info("[xiaohongshu] publish click produced page feedback")
                     return True
                 for item in state.get("states", []):
                     text = str(item.get("text", ""))
                     disabled = str(item.get("disabled", ""))
                     if disabled == "true" or any(marker in text for marker in ["发布中", "提交中"]):
-                        logger.info(f"[xiaohongshu] publish button state changed after click: text={text}, disabled={disabled}")
+                        logger.info(
+                            f"[xiaohongshu] publish button state changed after click: text={text}, disabled={disabled}"
+                        )
                         return True
                 if int(state.get("buttonCount", 0) or 0) == 0:
                     logger.info("[xiaohongshu] publish button disappeared after click")
@@ -1754,7 +1779,9 @@ class XiaohongshuPublisher(BasePublisher):
 
             await page.wait_for_timeout(1000)
 
-        return await self._fail(page, "wait_result", "发布后 2 分钟内未检测到成功提示或跳转，请检查小红书后台是否已生成草稿/笔记")
+        return await self._fail(
+            page, "wait_result", "发布后 2 分钟内未检测到成功提示或跳转，请检查小红书后台是否已生成草稿/笔记"
+        )
 
     async def _fail(self, page: Page, stage: str, message: str) -> Dict[str, Any]:
         debug_path = await self._save_debug_snapshot(page, stage)

@@ -78,11 +78,15 @@ class BaijiahaoPublisher(BasePublisher):
                 # 拆分模糊判断：确认落到登录页 = 确定登出；其余（网络/安全验证/编辑器迟迟不出现）= 不确定
                 if self._is_on_login_page(page):
                     return await self._auth_failure(
-                        page, stage, definitive=True,
+                        page,
+                        stage,
+                        definitive=True,
                         message="无法进入百家号编辑器，已被重定向到登录页，登录态已失效，请重新授权",
                     )
                 return await self._auth_failure(
-                    page, stage, definitive=False,
+                    page,
+                    stage,
+                    definitive=False,
                     message="无法进入百家号编辑器，疑似网络异常或安全验证，未判定账号失效",
                 )
             manual_msg = await self.detect_manual_intervention(page)
@@ -93,7 +97,9 @@ class BaijiahaoPublisher(BasePublisher):
             stage = "login_check"
             if not await self._ensure_logged_in(page):
                 return await self._auth_failure(
-                    page, stage, definitive=True,
+                    page,
+                    stage,
+                    definitive=True,
                     message="百家号登录态失效，请到账号管理重新授权百家号",
                 )
             manual_msg = await self.detect_manual_intervention(page)
@@ -473,9 +479,9 @@ class BaijiahaoPublisher(BasePublisher):
 
         # 当前版 (2026): UEditor 容器
         ueditor_selectors = [
-            'iframe#ueditor_0',
-            '#ueditor',
-            '#edui1_iframeholder',
+            "iframe#ueditor_0",
+            "#ueditor",
+            "#edui1_iframeholder",
         ]
         for selector in ueditor_selectors:
             try:
@@ -863,7 +869,9 @@ class BaijiahaoPublisher(BasePublisher):
         for _ in range(18):
             handled = False
             try:
-                handled = bool(await page.evaluate("window.__autogeoBjhCloseGuides && window.__autogeoBjhCloseGuides()"))
+                handled = bool(
+                    await page.evaluate("window.__autogeoBjhCloseGuides && window.__autogeoBjhCloseGuides()")
+                )
                 if handled:
                     logger.info("[百家号] 已通过页面脚本处理引导控件")
                     await short_delay()
@@ -911,8 +919,18 @@ class BaijiahaoPublisher(BasePublisher):
     async def _click_guide_control(self, page: Page) -> bool:
         """Click non-button controls in Baijiahao's onboarding popovers."""
         guide_texts = [
-            "我知道了", "完成", "下一步", "知道了", "关闭", "跳过", "不用了",
-            "稍后再说", "确定", "开始体验", "立即体验", "收起"
+            "我知道了",
+            "完成",
+            "下一步",
+            "知道了",
+            "关闭",
+            "跳过",
+            "不用了",
+            "稍后再说",
+            "确定",
+            "开始体验",
+            "立即体验",
+            "收起",
         ]
         component_selectors = [
             ".cheetah-tour-footer .cheetah-btn-primary",
@@ -1208,9 +1226,7 @@ class BaijiahaoPublisher(BasePublisher):
     # 正文配图准备
     # ═══════════════════════════════════════════════════════════
 
-    async def _prepare_content_images(
-        self, article: Any, title: str
-    ) -> tuple[List[str], List[str]]:
+    async def _prepare_content_images(self, article: Any, title: str) -> tuple[List[str], List[str]]:
         """
         准备正文配图：文章自带图，默认不生成替代配图。
         返回 (image_paths, temp_files_to_cleanup)。
@@ -1269,9 +1285,7 @@ class BaijiahaoPublisher(BasePublisher):
                         logger.warning(f"[百家号] 正文配图下载失败: {exc}")
         return paths
 
-    def _build_content_blocks(
-        self, content: str, image_paths: List[str]
-    ) -> List[Dict[str, str]]:
+    def _build_content_blocks(self, content: str, image_paths: List[str]) -> List[Dict[str, str]]:
         """
         把 content 按图片标记位置切成 text/image 块，保持图文相对顺序。
         多于标记位的图片追加到末尾（移植自 bilibili._build_content_blocks）。
@@ -1285,7 +1299,7 @@ class BaijiahaoPublisher(BasePublisher):
         )
         cursor = 0
         for match in pattern.finditer(content or ""):
-            text = self._deep_clean_content((content or "")[cursor:match.start()])
+            text = self._deep_clean_content((content or "")[cursor : match.start()])
             if text:
                 blocks.append({"type": "text", "content": text})
             if image_index < len(image_paths):
@@ -1425,9 +1439,7 @@ class BaijiahaoPublisher(BasePublisher):
             logger.info(f"✅ [百家号] 标题已填写 (JS 兜底): {clean}")
         return bool(ok)
 
-    async def _fill_content(
-        self, page: Page, content: str, image_paths: Optional[List[str]] = None
-    ) -> bool:
+    async def _fill_content(self, page: Page, content: str, image_paths: Optional[List[str]] = None) -> bool:
         """
         正文填充：
           - 有配图：图文穿插（_fill_content_with_images），失败降级到纯文字
@@ -1457,9 +1469,7 @@ class BaijiahaoPublisher(BasePublisher):
 
         # 构建 HTML：段落用 <p> 包裹
         paragraphs = clean.split("\n\n") if "\n\n" in clean else clean.split("\n")
-        html_content = "".join(
-            f"<p>{p.strip()}</p>" for p in paragraphs if p.strip()
-        )
+        html_content = "".join(f"<p>{p.strip()}</p>" for p in paragraphs if p.strip())
         if not html_content:
             html_content = f"<p>{clean}</p>"
 
@@ -1623,9 +1633,7 @@ class BaijiahaoPublisher(BasePublisher):
     # 图文穿插（正文配图）
     # ═══════════════════════════════════════════════════════════
 
-    async def _fill_content_with_images(
-        self, page: Page, content: str, image_paths: List[str]
-    ) -> bool:
+    async def _fill_content_with_images(self, page: Page, content: str, image_paths: List[str]) -> bool:
         """
         图文穿插写入正文：首块 setContent 初始化 + 后续键盘追加 + 逐张工具栏插图。
         单张图失败跳过，不阻断；只要写过至少一段文字即视为正文写入成功。
@@ -1701,9 +1709,7 @@ class BaijiahaoPublisher(BasePublisher):
             return False
         if inserted_images == 0 and image_paths:
             logger.warning("[百家号] 图文穿插：无一张图片插入成功（仍保留文字正文）")
-        logger.info(
-            f"✅ [百家号] 图文正文已写入（文字={wrote_text}, 图片={inserted_images}/{len(image_paths)}）"
-        )
+        logger.info(f"✅ [百家号] 图文正文已写入（文字={wrote_text}, 图片={inserted_images}/{len(image_paths)}）")
         return wrote_text
 
     async def _get_ueditor_frame(self, page: Page):
@@ -1721,9 +1727,7 @@ class BaijiahaoPublisher(BasePublisher):
 
     async def _write_first_text_block(self, page: Page, text: str) -> bool:
         """写入首块文字：UEditor setContent → iframe body innerHTML。"""
-        html = "".join(
-            f"<p>{p.strip()}</p>" for p in (text or "").split("\n\n") if p.strip()
-        ) or "<p></p>"
+        html = "".join(f"<p>{p.strip()}</p>" for p in (text or "").split("\n\n") if p.strip()) or "<p></p>"
         # L0: UEditor API
         try:
             ok = await page.evaluate(
@@ -1976,7 +1980,7 @@ class BaijiahaoPublisher(BasePublisher):
     async def _close_ueditor_image_dialog(self, page: Page) -> None:
         """关闭 UEditor 图片弹窗（取消/关闭按钮 + Esc）。"""
         for selector in [
-            '.edui-dialog-close',
+            ".edui-dialog-close",
             'div[class*="edui-dialog"] [class*="close"]',
             'button:has-text("取消")',
             'span[class*="close"]',
@@ -2258,9 +2262,7 @@ class BaijiahaoPublisher(BasePublisher):
             if await page.locator(sel.CAPTCHA_INDICATOR).count() > 0:
                 logger.warning("🚧 [百家号] 触发安全验证，请在 60 秒内手动完成")
                 try:
-                    await page.wait_for_selector(
-                        sel.CAPTCHA_INDICATOR, state="hidden", timeout=60000
-                    )
+                    await page.wait_for_selector(sel.CAPTCHA_INDICATOR, state="hidden", timeout=60000)
                 except Exception as exc:
                     raise RuntimeError("百家号安全验证未完成，请人工处理后重试发布") from exc
                 logger.info("[百家号] 安全验证已完成，继续发布流程")
@@ -2282,8 +2284,15 @@ class BaijiahaoPublisher(BasePublisher):
         """
         success_texts = ["发布成功", "提交成功", "审核中", "作品管理", "内容管理"]
         fail_texts = [
-            "发布失败", "内容违规", "敏感词", "请设置封面",
-            "请输入标题", "请输入正文", "不符合规范", "包含敏感", "上传失败",
+            "发布失败",
+            "内容违规",
+            "敏感词",
+            "请设置封面",
+            "请输入标题",
+            "请输入正文",
+            "不符合规范",
+            "包含敏感",
+            "上传失败",
         ]
 
         last_url = page.url
@@ -2430,10 +2439,25 @@ class BaijiahaoPublisher(BasePublisher):
         title = getattr(article, "title", "") or ""
         # 提取中文词汇和英文单词
         import re as _re
+
         cn_words = _re.findall(r"[\u4e00-\u9fff]{2,8}", title)
         en_words = _re.findall(r"[a-zA-Z]{2,20}", title)
         # 过滤通用词
-        stop_words = {"可以", "这个", "什么", "这个", "那个", "怎么", "如何", "使用", "应用", "相关", "推荐", "一个", "一些"}
+        stop_words = {
+            "可以",
+            "这个",
+            "什么",
+            "这个",
+            "那个",
+            "怎么",
+            "如何",
+            "使用",
+            "应用",
+            "相关",
+            "推荐",
+            "一个",
+            "一些",
+        }
         for w in cn_words:
             if w not in stop_words and w not in keywords:
                 keywords.append(w)
@@ -2473,9 +2497,7 @@ class BaijiahaoPublisher(BasePublisher):
         logger.warning("[百家号] 未找到免费正版图库标签")
         return False
 
-    async def _insert_images_from_library(
-        self, page: Page, keywords: List[str], count: int = 2
-    ) -> bool:
+    async def _insert_images_from_library(self, page: Page, keywords: List[str], count: int = 2) -> bool:
         """从百家号免费正版图库搜图并插入正文
 
         Args:
@@ -2494,7 +2516,7 @@ class BaijiahaoPublisher(BasePublisher):
             editor_selectors = [
                 '[data-testid="content-editor"]',
                 '[class*="FeEditorApp"]',
-                'iframe#ueditor_0',
+                "iframe#ueditor_0",
             ]
             for sel in editor_selectors:
                 editor = page.locator(sel).first
@@ -2591,7 +2613,7 @@ class BaijiahaoPublisher(BasePublisher):
 
         优先使用 getByTestId 定位，确保与最新百家号页面兼容。
         """
-        clean = re.sub(r"[#*`\"<>]", "", title or "").strip()[:self.MAX_TITLE_LENGTH]
+        clean = re.sub(r"[#*`\"<>]", "", title or "").strip()[: self.MAX_TITLE_LENGTH]
         if not clean:
             return False
 

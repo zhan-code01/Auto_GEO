@@ -308,6 +308,7 @@ async def get_categories(
         )
 
         from backend.database.models import Project
+
         project_count = (
             db.query(Project).filter(Project.industry == cat.industry, Project.status == 1).count()
             if cat.industry
@@ -333,13 +334,7 @@ async def get_categories(
     pages = (total + limit - 1) // limit if total > 0 else 1
 
     return PaginatedResponse(
-        total=total,
-        items=result,
-        page=page,
-        limit=limit,
-        pages=pages,
-        has_next=page < pages,
-        has_prev=page > 1
+        total=total, items=result, page=page, limit=limit, pages=pages, has_next=page < pages, has_prev=page > 1
     )
 
 
@@ -972,9 +967,7 @@ async def search_knowledge(
         return []
 
     items = (
-        base_query.filter(
-            (Knowledge.title.like(f"%{keyword}%")) | (Knowledge.content.like(f"%{keyword}%"))
-        )
+        base_query.filter((Knowledge.title.like(f"%{keyword}%")) | (Knowledge.content.like(f"%{keyword}%")))
         .order_by(Knowledge.updated_at.desc())
         .limit(50)
         .all()
@@ -1388,12 +1381,14 @@ async def extract_info_from_text(
 
 class RAGFlowDatasetCreate(BaseModel):
     """创建 RAGFlow 知识库请求"""
+
     name: str
     description: Optional[str] = None
 
 
 class RAGFlowDatasetUpdate(BaseModel):
     """更新 RAGFlow 知识库请求"""
+
     name: Optional[str] = None
     description: Optional[str] = None
 
@@ -1420,9 +1415,9 @@ async def get_ragflow_status(
                 data={
                     "connected": False,
                     "configured": False,
-                    "message": "RAGFlow 未配置，请设置 RAGFLOW_API_KEY 和 RAGFLOW_BASE_URL"
+                    "message": "RAGFlow 未配置，请设置 RAGFLOW_API_KEY 和 RAGFLOW_BASE_URL",
                 },
-                message="RAGFlow 未配置"
+                message="RAGFlow 未配置",
             )
 
         # 测试连接
@@ -1448,29 +1443,18 @@ async def get_ragflow_status(
                     "dataset_count": len(datasets),
                     # 不返回完整 datasets 列表，避免向普通用户泄露他人知识库信息
                 },
-                message=f"已连接到 RAGFlow，当前有 {len(datasets)} 个知识库"
+                message=f"已连接到 RAGFlow，当前有 {len(datasets)} 个知识库",
             )
         else:
             return ApiResponse(
                 success=False,
-                data={
-                    "connected": False,
-                    "configured": True,
-                    "message": result.get("message", "连接失败")
-                },
-                message="RAGFlow 连接失败"
+                data={"connected": False, "configured": True, "message": result.get("message", "连接失败")},
+                message="RAGFlow 连接失败",
             )
 
     except Exception as e:
         logger.error(f"检查 RAGFlow 状态失败: {e}")
-        return ApiResponse(
-            success=False,
-            data={
-                "connected": False,
-                "error": str(e)
-            },
-            message=f"检查状态失败: {str(e)}"
-        )
+        return ApiResponse(success=False, data={"connected": False, "error": str(e)}, message=f"检查状态失败: {str(e)}")
 
 
 @router.get("/ragflow/datasets", response_model=ApiResponse)
@@ -1512,7 +1496,9 @@ async def list_ragflow_datasets(
         if getattr(current_user, "role", None) != "admin":
             # 防御性检查：确保 current_user.id 有效
             if not getattr(current_user, "id", None):
-                logger.warning(f"[知识库权限] user_id 无效，无法返回知识库列表: user={getattr(current_user, 'username', '?')}")
+                logger.warning(
+                    f"[知识库权限] user_id 无效，无法返回知识库列表: user={getattr(current_user, 'username', '?')}"
+                )
                 all_datasets = []
             else:
                 owned_ids = {
@@ -1522,7 +1508,9 @@ async def list_ragflow_datasets(
                     .filter(KnowledgeCategory.ragflow_dataset_id.isnot(None))
                     .all()
                 }
-                logger.debug(f"[知识库权限] user={current_user.username}(id={current_user.id}) 可见的知识库IDs: {owned_ids}")
+                logger.debug(
+                    f"[知识库权限] user={current_user.username}(id={current_user.id}) 可见的知识库IDs: {owned_ids}"
+                )
                 all_datasets = [d for d in all_datasets if d.get("id") in owned_ids]
 
         # 分页
@@ -1534,16 +1522,18 @@ async def list_ragflow_datasets(
         # 格式化输出 — 字段名对齐前端 RAGFlowDataset 接口
         formatted_datasets = []
         for ds in datasets:
-            formatted_datasets.append({
-                "id": ds.get("id"),
-                "name": ds.get("name"),
-                "description": ds.get("description", ""),
-                "embedding_model": ds.get("embedding_model", ""),
-                "chunk_count": ds.get("chunk_count", ds.get("chunk_num", 0)),
-                "document_count": ds.get("document_count", ds.get("document_num", 0)),
-                "created_at": ds.get("create_time", ds.get("create_date", "")),
-                "updated_at": ds.get("update_time", ds.get("update_date", "")),
-            })
+            formatted_datasets.append(
+                {
+                    "id": ds.get("id"),
+                    "name": ds.get("name"),
+                    "description": ds.get("description", ""),
+                    "embedding_model": ds.get("embedding_model", ""),
+                    "chunk_count": ds.get("chunk_count", ds.get("chunk_num", 0)),
+                    "document_count": ds.get("document_count", ds.get("document_num", 0)),
+                    "created_at": ds.get("create_time", ds.get("create_date", "")),
+                    "updated_at": ds.get("update_time", ds.get("update_date", "")),
+                }
+            )
 
         pages = (total + limit - 1) // limit if total > 0 else 1
 
@@ -1556,9 +1546,9 @@ async def list_ragflow_datasets(
                 "limit": limit,
                 "pages": pages,
                 "has_next": page < pages,
-                "has_prev": page > 1
+                "has_prev": page > 1,
             },
-            message=f"获取到 {total} 个知识库"
+            message=f"获取到 {total} 个知识库",
         )
 
     except HTTPException:
@@ -1606,9 +1596,7 @@ async def create_ragflow_dataset(
         # 同步建立归属当前用户的本地分类缓存，确保创建者可见且隔离
         if dataset_id:
             existing = (
-                db.query(KnowledgeCategory)
-                .filter(KnowledgeCategory.ragflow_dataset_id == str(dataset_id))
-                .first()
+                db.query(KnowledgeCategory).filter(KnowledgeCategory.ragflow_dataset_id == str(dataset_id)).first()
             )
             if not existing:
                 category = KnowledgeCategory(
@@ -1628,9 +1616,9 @@ async def create_ragflow_dataset(
                 "id": dataset_id,
                 "name": data.name,
                 "description": data.description,
-                "embedding_model": dataset_info.get("embedding_model", "")
+                "embedding_model": dataset_info.get("embedding_model", ""),
             },
-            message=f"知识库 '{data.name}' 创建成功"
+            message=f"知识库 '{data.name}' 创建成功",
         )
 
     except HTTPException:
@@ -1683,7 +1671,7 @@ async def get_ragflow_dataset(
                 "created_at": dataset.get("create_time", dataset.get("create_date", "")),
                 "updated_at": dataset.get("update_time", dataset.get("update_date", "")),
             },
-            message="获取知识库详情成功"
+            message="获取知识库详情成功",
         )
 
     except HTTPException:
@@ -1727,7 +1715,7 @@ async def update_ragflow_dataset(
         return ApiResponse(
             success=True,
             data={"id": dataset_id, "name": data.name, "description": data.description},
-            message="知识库更新成功"
+            message="知识库更新成功",
         )
 
     except HTTPException:
@@ -1768,20 +1756,12 @@ async def delete_ragflow_dataset(
             raise HTTPException(status_code=500, detail=result.get("message", "删除知识库失败"))
 
         # 同步清理本地分类缓存（含其下知识条目），避免残留指向已删除知识库的记录
-        cat = (
-            db.query(KnowledgeCategory)
-            .filter(KnowledgeCategory.ragflow_dataset_id == str(dataset_id))
-            .first()
-        )
+        cat = db.query(KnowledgeCategory).filter(KnowledgeCategory.ragflow_dataset_id == str(dataset_id)).first()
         if cat:
             db.delete(cat)
             db.commit()
 
-        return ApiResponse(
-            success=True,
-            data={"id": dataset_id},
-            message="知识库删除成功"
-        )
+        return ApiResponse(success=True, data={"id": dataset_id}, message="知识库删除成功")
 
     except HTTPException:
         raise
@@ -1826,10 +1806,7 @@ async def list_ragflow_documents(
             raise HTTPException(status_code=400, detail="RAGFlow 未配置")
 
         # 构建查询参数
-        params = {
-            "page": page,
-            "page_size": limit
-        }
+        params = {"page": page, "page_size": limit}
         if keywords:
             params["keywords"] = keywords
         if run_status:
@@ -1849,19 +1826,21 @@ async def list_ragflow_documents(
         # 格式化输出 — 字段名对齐前端 RAGFlowDocument 接口
         formatted_docs = []
         for doc in all_docs:
-            formatted_docs.append({
-                "id": doc.get("id"),
-                "name": doc.get("name"),
-                "size": doc.get("size", 0),
-                "type": doc.get("type", "unknown"),
-                "run_status": doc.get("run", doc.get("status", "0")),
-                "chunk_count": doc.get("chunk_count", 0),
-                "chunk_method": doc.get("chunk_method", doc.get("parser_id", "naive")),
-                "progress": doc.get("progress", 0),
-                "progress_msg": doc.get("progress_msg", doc.get("message", "")),
-                "created_at": doc.get("create_time", doc.get("create_date", "")),
-                "updated_at": doc.get("update_time", doc.get("update_date", "")),
-            })
+            formatted_docs.append(
+                {
+                    "id": doc.get("id"),
+                    "name": doc.get("name"),
+                    "size": doc.get("size", 0),
+                    "type": doc.get("type", "unknown"),
+                    "run_status": doc.get("run", doc.get("status", "0")),
+                    "chunk_count": doc.get("chunk_count", 0),
+                    "chunk_method": doc.get("chunk_method", doc.get("parser_id", "naive")),
+                    "progress": doc.get("progress", 0),
+                    "progress_msg": doc.get("progress_msg", doc.get("message", "")),
+                    "created_at": doc.get("create_time", doc.get("create_date", "")),
+                    "updated_at": doc.get("update_time", doc.get("update_date", "")),
+                }
+            )
 
         pages = (total + limit - 1) // limit if total > 0 else 1
 
@@ -1874,9 +1853,9 @@ async def list_ragflow_documents(
                 "limit": limit,
                 "pages": pages,
                 "has_next": page < pages,
-                "has_prev": page > 1
+                "has_prev": page > 1,
             },
-            message=f"获取到 {total} 个文档"
+            message=f"获取到 {total} 个文档",
         )
 
     except HTTPException:
@@ -1934,7 +1913,7 @@ async def get_ragflow_document(
                 "created_at": doc.get("create_time", doc.get("create_date", "")),
                 "updated_at": doc.get("update_time", doc.get("update_date", "")),
             },
-            message="获取文档详情成功"
+            message="获取文档详情成功",
         )
 
     except HTTPException:
@@ -1979,9 +1958,9 @@ async def get_ragflow_document_download_url(
             data={
                 "document_id": document_id,
                 "download_url": download_url,
-                "expires_in": 3600  # URL 有效期 1 小时
+                "expires_in": 3600,  # URL 有效期 1 小时
             },
-            message="获取下载链接成功"
+            message="获取下载链接成功",
         )
 
     except Exception as e:
@@ -2021,11 +2000,7 @@ async def delete_ragflow_document(
         if result.get("code") is not None and result.get("code") != 0:
             raise HTTPException(status_code=500, detail=result.get("message", "删除文档失败"))
 
-        return ApiResponse(
-            success=True,
-            data={"id": document_id},
-            message="文档删除成功"
-        )
+        return ApiResponse(success=True, data={"id": document_id}, message="文档删除成功")
 
     except HTTPException:
         raise
@@ -2066,9 +2041,7 @@ async def parse_ragflow_document(
             raise HTTPException(status_code=500, detail=result.get("message", "解析文档失败"))
 
         return ApiResponse(
-            success=True,
-            data={"document_id": document_id, "status": "parsing"},
-            message="文档解析已触发"
+            success=True, data={"document_id": document_id, "status": "parsing"}, message="文档解析已触发"
         )
 
     except HTTPException:
@@ -2119,10 +2092,7 @@ async def upload_ragflow_document(
         # 上传到 RAGFlow
         do_parse = auto_parse.lower() != "false"
         result = ragflow_client.upload_document_bytes(
-            dataset_id=dataset_id,
-            file_content=file_content,
-            file_name=file_name,
-            do_parse=do_parse
+            dataset_id=dataset_id, file_content=file_content, file_name=file_name, do_parse=do_parse
         )
 
         if result.get("code") != 0:
@@ -2136,12 +2106,8 @@ async def upload_ragflow_document(
 
         return ApiResponse(
             success=True,
-            data={
-                "id": doc_info.get("id"),
-                "name": doc_info.get("name"),
-                "status": doc_info.get("run", "UNSTART")
-            },
-            message=f"文件 '{file_name}' 上传成功"
+            data={"id": doc_info.get("id"), "name": doc_info.get("name"), "status": doc_info.get("run", "UNSTART")},
+            message=f"文件 '{file_name}' 上传成功",
         )
 
     except HTTPException:
@@ -2208,25 +2174,22 @@ async def get_ragflow_chunks(
         # 格式化
         formatted_chunks = []
         for chunk in chunks:
-            formatted_chunks.append({
-                "id": chunk.get("id"),
-                "content": chunk.get("content", ""),
-                "document_id": chunk.get("document_id"),
-                "document_name": chunk.get("document_name", ""),
-                "similarity": chunk.get("similarity"),
-                "vector_similarity": chunk.get("vector_similarity"),
-                "term_similarity": chunk.get("term_similarity")
-            })
+            formatted_chunks.append(
+                {
+                    "id": chunk.get("id"),
+                    "content": chunk.get("content", ""),
+                    "document_id": chunk.get("document_id"),
+                    "document_name": chunk.get("document_name", ""),
+                    "similarity": chunk.get("similarity"),
+                    "vector_similarity": chunk.get("vector_similarity"),
+                    "term_similarity": chunk.get("term_similarity"),
+                }
+            )
 
         return ApiResponse(
             success=True,
-            data={
-                "items": formatted_chunks,
-                "total": total,
-                "page": page,
-                "limit": limit
-            },
-            message=f"获取到 {total} 个文档块"
+            data={"items": formatted_chunks, "total": total, "page": page, "limit": limit},
+            message=f"获取到 {total} 个文档块",
         )
 
     except HTTPException:
@@ -2266,9 +2229,7 @@ async def get_document_parsing_status(
         status = ragflow_client.get_document_parsing_status(dataset_id, document_id)
 
         return ApiResponse(
-            success=True,
-            data=status,
-            message=status.get("message", f"文档状态: {status.get('status')}")
+            success=True, data=status, message=status.get("message", f"文档状态: {status.get('status')}")
         )
 
     except HTTPException:
@@ -2320,7 +2281,7 @@ async def get_documents_parsing_status(
         return ApiResponse(
             success=True,
             data=status,
-            message=f"共 {status['total']} 个文档，{status['done']} 个已完成，{status['failed']} 个失败"
+            message=f"共 {status['total']} 个文档，{status['done']} 个已完成，{status['failed']} 个失败",
         )
 
     except HTTPException:

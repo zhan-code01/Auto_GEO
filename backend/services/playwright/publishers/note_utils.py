@@ -215,16 +215,20 @@ async def _download_image(url: str, temp_files: list[str]) -> str | None:
                 resp = await client.get(url)
 
             if resp.status_code >= 400:
-                logger.warning("Image download failed: {} status={} (attempt {}/{})",
-                               url, resp.status_code, attempt + 1, max_retries)
+                logger.warning(
+                    "Image download failed: {} status={} (attempt {}/{})",
+                    url,
+                    resp.status_code,
+                    attempt + 1,
+                    max_retries,
+                )
                 if attempt < max_retries - 1:
                     logger.info("等待 {} 秒后重试...", retry_delay)
                     await asyncio.sleep(retry_delay)
                 continue
 
             if len(resp.content) < 100:
-                logger.warning("Image download got empty response (attempt {}/{})",
-                               attempt + 1, max_retries)
+                logger.warning("Image download got empty response (attempt {}/{})", attempt + 1, max_retries)
                 if attempt < max_retries - 1:
                     logger.info("等待 {} 秒后重试...", retry_delay)
                     await asyncio.sleep(retry_delay)
@@ -242,16 +246,14 @@ async def _download_image(url: str, temp_files: list[str]) -> str | None:
             return path
 
         except httpx.TimeoutException:
-            logger.warning("Image download timeout: {} (attempt {}/{})",
-                           url, attempt + 1, max_retries)
+            logger.warning("Image download timeout: {} (attempt {}/{})", url, attempt + 1, max_retries)
             if attempt < max_retries - 1:
                 logger.info("等待 {} 秒后重试...", retry_delay)
                 await asyncio.sleep(retry_delay)
             continue
 
         except Exception as exc:
-            logger.warning("Image download failed: {} {} (attempt {}/{})",
-                           url, exc, attempt + 1, max_retries)
+            logger.warning("Image download failed: {} {} (attempt {}/{})", url, exc, attempt + 1, max_retries)
             if attempt < max_retries - 1:
                 logger.info("等待 {} 秒后重试...", retry_delay)
                 await asyncio.sleep(retry_delay)

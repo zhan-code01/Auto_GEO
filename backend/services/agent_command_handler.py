@@ -154,11 +154,7 @@ class AgentCommandHandler:
             "微信公众号": "weixin",
             "微信": "weixin",
         }
-        platforms = [
-            platform_id
-            for alias, platform_id in platform_aliases.items()
-            if alias in text
-        ]
+        platforms = [platform_id for alias, platform_id in platform_aliases.items() if alias in text]
         platforms = list(dict.fromkeys(platforms))
 
         quantity = 1
@@ -166,18 +162,9 @@ class AgentCommandHandler:
         if quantity_match:
             quantity = int(quantity_match.group(1))
 
-        has_generate = any(
-            keyword in text
-            for keyword in ("写", "生成", "创作", "撰写", "起草", "帮我写", "帮我生成")
-        )
-        has_publish = any(
-            keyword in text
-            for keyword in ("发布", "发到", "发表", "推送", "分发")
-        )
-        has_status = any(
-            keyword in text
-            for keyword in ("进度", "状态", "结果", "怎么样", "如何")
-        )
+        has_generate = any(keyword in text for keyword in ("写", "生成", "创作", "撰写", "起草", "帮我写", "帮我生成"))
+        has_publish = any(keyword in text for keyword in ("发布", "发到", "发表", "推送", "分发"))
+        has_status = any(keyword in text for keyword in ("进度", "状态", "结果", "怎么样", "如何"))
         bind_match = re.search(r"绑定\s*([A-Za-z0-9]{4,20})", text)
 
         if bind_match:

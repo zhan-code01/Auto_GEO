@@ -61,10 +61,14 @@ def _fail_interrupted_batch(db: Session, task: AutoPublishTask, message: str) ->
     client closes, because a browser may already have submitted the article.
     """
     now = datetime.now()
-    records = db.query(AutoPublishRecord).filter(
-        AutoPublishRecord.task_id == task.id,
-        AutoPublishRecord.status.in_(["pending", "publishing", "manual_required"]),
-    ).all()
+    records = (
+        db.query(AutoPublishRecord)
+        .filter(
+            AutoPublishRecord.task_id == task.id,
+            AutoPublishRecord.status.in_(["pending", "publishing", "manual_required"]),
+        )
+        .all()
+    )
     affected_article_ids = {record.article_id for record in records}
     for record in records:
         record.status = "failed"
@@ -84,10 +88,14 @@ def _fail_interrupted_batch(db: Session, task: AutoPublishTask, message: str) ->
     # target in this batch that already succeeded.  Otherwise clear the stale
     # aggregate "publishing" state so the article list accurately shows failure.
     for article_id in affected_article_ids:
-        has_success = db.query(AutoPublishRecord.id).filter(
-            AutoPublishRecord.article_id == article_id,
-            AutoPublishRecord.status == "success",
-        ).first()
+        has_success = (
+            db.query(AutoPublishRecord.id)
+            .filter(
+                AutoPublishRecord.article_id == article_id,
+                AutoPublishRecord.status == "success",
+            )
+            .first()
+        )
         article = db.query(GeoArticle).filter(GeoArticle.id == article_id).first()
         if article and not has_success and article.publish_status == "publishing":
             article.publish_status = "failed"
@@ -297,22 +305,19 @@ async def poll_tasks(
     返回 execution_mode=local_client 且处于 pending（或已被领取但锁过期）的任务。
     可用 assigned_device_id 限定到本设备，或派发到任一在线设备。
     """
-    device = get_owned_device(db,device_id, current_user)
+    device = get_owned_device(db, device_id, current_user)
     now = datetime.now()
 
-    query = (
-        db.query(AutoPublishTask)
-        .filter(
-            AutoPublishTask.user_id == current_user.id,
-            AutoPublishTask.execution_mode == "local_client",
-            AutoPublishTask.status.in_(["pending", "running"]),
-            # 定时/间隔任务（exec_type='scheduled'/'interval'）在到达 scheduled_at 之前不暴露给
-            # 本地客户端领取，到点后由客户端正常领取执行；非定时任务不受影响。
-            or_(
-                AutoPublishTask.scheduled_at.is_(None),
-                AutoPublishTask.scheduled_at <= now,
-            ),
-        )
+    query = db.query(AutoPublishTask).filter(
+        AutoPublishTask.user_id == current_user.id,
+        AutoPublishTask.execution_mode == "local_client",
+        AutoPublishTask.status.in_(["pending", "running"]),
+        # 定时/间隔任务（exec_type='scheduled'/'interval'）在到达 scheduled_at 之前不暴露给
+        # 本地客户端领取，到点后由客户端正常领取执行；非定时任务不受影响。
+        or_(
+            AutoPublishTask.scheduled_at.is_(None),
+            AutoPublishTask.scheduled_at <= now,
+        ),
     )
     # 只看派发给本设备、或未指定设备的任务
     query = query.filter(
@@ -369,7 +374,7 @@ async def claim_task(
             detail="该任务已指定由其它设备执行，本机无法领取",
         )
 
-    device = get_owned_device(db,request.device_id, current_user)
+    device = get_owned_device(db, request.device_id, current_user)
     _ensure_online(device)
 
     if _settle_task_if_no_open_records(db, task):
@@ -432,9 +437,7 @@ async def claim_task(
         if stale_ids:
             _fail_interrupted_batch(db, task, "发布客户端已关闭或连接中断，当前及后续发布任务已终止。")
             db.refresh(task)
-            logger.warning(
-                f"任务 {task_id} 领取时发现 {len(stale_ids)} 条中断 publishing 记录，已终止整批任务"
-            )
+            logger.warning(f"任务 {task_id} 领取时发现 {len(stale_ids)} 条中断 publishing 记录，已终止整批任务")
             return ApiResponse(
                 data={
                     "task": _serialize_task_summary(task),
@@ -469,7 +472,7 @@ async def heartbeat_task(
     if task.claimed_by_device_id != request.device_id:
         raise HTTPException(status_code=403, detail="只有领取该任务的设备可以续租")
 
-    get_owned_device(db,request.device_id, current_user)  # 归属校验
+    get_owned_device(db, request.device_id, current_user)  # 归属校验
     expires_at = datetime.now() + timedelta(minutes=CLAIM_TTL_MINUTES)
     task.claim_expires_at = expires_at
     db.commit()
@@ -505,7 +508,7 @@ async def get_task_payload(
     素材临时下载 URL（图片等）属 Phase 3 范畴，本期返回文章内联正文，不涉及短期 token 下载。
     """
     task = _load_claimable_task(db, task_id, current_user)
-    get_owned_device(db,device_id, current_user)
+    get_owned_device(db, device_id, current_user)
 
     # 硬校验：任务指定了执行设备时，只有该设备能拉取素材
     if task.assigned_device_id and task.assigned_device_id != device_id:
@@ -582,9 +585,11 @@ async def start_record(
     now = datetime.now()
     if task.claimed_by_device_id != request.device_id or (task.claim_expires_at and task.claim_expires_at < now):
         raise HTTPException(status_code=410, detail="TASK_CLAIM_EXPIRED：领取锁已过期，请重新领取")
-    record = db.query(AutoPublishRecord).filter(
-        AutoPublishRecord.task_id == task_id, AutoPublishRecord.id == record_id
-    ).first()
+    record = (
+        db.query(AutoPublishRecord)
+        .filter(AutoPublishRecord.task_id == task_id, AutoPublishRecord.id == record_id)
+        .first()
+    )
     if not record:
         raise HTTPException(status_code=404, detail="子记录不存在")
     if record.status == "pending":
@@ -605,10 +610,39 @@ def _is_login_expired_error(msg: str | None) -> bool:
     if not msg:
         return False
     # 明确排除"非登录过期"的不确定因素
-    if any(k in msg for k in ("反爬", "安全验证", "验证码", "风控", "滑块", "人工", "扫码", "频率", "内容", "审核", "网络", "超时", "异常")):
+    if any(
+        k in msg
+        for k in (
+            "反爬",
+            "安全验证",
+            "验证码",
+            "风控",
+            "滑块",
+            "人工",
+            "扫码",
+            "频率",
+            "内容",
+            "审核",
+            "网络",
+            "超时",
+            "异常",
+        )
+    ):
         return False
     # 明确的登录过期信号
-    return any(k in msg for k in ("未登录", "登录态失效", "登录会话已过期", "请重新授权", "请重新登录", "账号未登录", "登录失效", "会话已过期"))
+    return any(
+        k in msg
+        for k in (
+            "未登录",
+            "登录态失效",
+            "登录会话已过期",
+            "请重新授权",
+            "请重新登录",
+            "账号未登录",
+            "登录失效",
+            "会话已过期",
+        )
+    )
 
 
 def _sync_account_auth_state(account, status: str, error_msg: str | None, now, auth_status: str | None = None) -> None:
@@ -654,7 +688,7 @@ async def report_result(
     全部子记录结算后任务自动转入 completed/failed。
     """
     task = _load_claimable_task(db, task_id, current_user)
-    get_owned_device(db,request.device_id, current_user)
+    get_owned_device(db, request.device_id, current_user)
 
     # 必须由本设备持有有效领取
     now = datetime.now()
@@ -738,28 +772,33 @@ async def report_result(
         try:
             import asyncio
             from backend.api.publish import get_ws_manager
+
             ws_mgr = get_ws_manager()
             if ws_mgr:
-                asyncio.ensure_future(ws_mgr.broadcast({
-                    "type": "auto_publish_progress",
-                    "task_id": task_id,
-                    "data": {
-                        "record_id": record.id,
-                        "article_id": article.id,
-                        "article_title": article.title,
-                        "account_id": record.account_id,
-                        "account_name": account.account_name if account else None,
-                        "platform": account.platform if account else None,
-                        "platform_name": platform_name,
-                        "publish_status": article.publish_status,
-                        "status": record.status,
-                        "platform_url": article.platform_url,
-                        "error_msg": article.error_msg,
-                        "completed_count": task.completed_count,
-                        "failed_count": task.failed_count,
-                        "total_count": task.total_count,
-                    },
-                }))
+                asyncio.ensure_future(
+                    ws_mgr.broadcast(
+                        {
+                            "type": "auto_publish_progress",
+                            "task_id": task_id,
+                            "data": {
+                                "record_id": record.id,
+                                "article_id": article.id,
+                                "article_title": article.title,
+                                "account_id": record.account_id,
+                                "account_name": account.account_name if account else None,
+                                "platform": account.platform if account else None,
+                                "platform_name": platform_name,
+                                "publish_status": article.publish_status,
+                                "status": record.status,
+                                "platform_url": article.platform_url,
+                                "error_msg": article.error_msg,
+                                "completed_count": task.completed_count,
+                                "failed_count": task.failed_count,
+                                "total_count": task.total_count,
+                            },
+                        }
+                    )
+                )
         except Exception:
             pass
 
@@ -791,8 +830,7 @@ async def report_result(
             )
         elif task.status == "completed":
             logger.success(
-                f"✅ 任务 {task_id} 全部完成：成功 {task.completed_count}/{task.total_count}，"
-                f"失败 {task.failed_count}"
+                f"✅ 任务 {task_id} 全部完成：成功 {task.completed_count}/{task.total_count}，失败 {task.failed_count}"
             )
         else:
             # 失败时把各子记录的失败原因一并打出，避免只能翻 exe 日志。
@@ -802,9 +840,7 @@ async def report_result(
                     .filter(AutoPublishRecord.task_id == task_id, AutoPublishRecord.status == "failed")
                     .all()
                 )
-                reasons = "; ".join(
-                    f"#{r.id}:{r.error_msg}" for r in failed_records if r.error_msg
-                )
+                reasons = "; ".join(f"#{r.id}:{r.error_msg}" for r in failed_records if r.error_msg)
                 reason_text = f"；原因: {reasons}" if reasons else ""
             except Exception:
                 reason_text = ""
@@ -813,14 +849,9 @@ async def report_result(
                 f"失败 {task.failed_count}{reason_text}"
             )
     else:
-        extra = (
-            f"，原因: {record.error_msg}"
-            if request.status == "failed" and record.error_msg
-            else ""
-        )
+        extra = f"，原因: {record.error_msg}" if request.status == "failed" and record.error_msg else ""
         logger.info(
-            f"任务 {task_id} 子记录 {record.id} 回传 {request.status}；"
-            f"进度 {settled_total}/{task.total_count}{extra}"
+            f"任务 {task_id} 子记录 {record.id} 回传 {request.status}；进度 {settled_total}/{task.total_count}{extra}"
         )
     return ApiResponse(data={"task": _serialize_task_summary(task), "settled": task_just_settled})
 
@@ -871,7 +902,7 @@ async def mark_manual_required(
 ):
     """标记任务需要人工接管（验证码/扫码/风控等），不判定失败。"""
     task = _load_claimable_task(db, task_id, current_user)
-    get_owned_device(db,request.device_id, current_user)
+    get_owned_device(db, request.device_id, current_user)
 
     task.manual_required = True
     task.manual_message = request.message

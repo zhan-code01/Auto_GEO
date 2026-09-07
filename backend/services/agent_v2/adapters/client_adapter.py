@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ClientAdapter - 客户管理适配器。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,12 +18,12 @@ class ClientAdapter:
         self.db = db
 
     def list_clients(self, user, keyword: str | None = None, page: int = 1, limit: int = 20) -> dict[str, Any]:
-        query = scoped_query(self.db, Client, user).filter(Client.deleted_at.is_(None) if hasattr(Client, "deleted_at") else True)
+        query = scoped_query(self.db, Client, user).filter(
+            Client.deleted_at.is_(None) if hasattr(Client, "deleted_at") else True
+        )
         if keyword:
             like = f"%{keyword}%"
-            query = query.filter(
-                (Client.name.ilike(like)) | (Client.company_name.ilike(like))
-            )
+            query = query.filter((Client.name.ilike(like)) | (Client.company_name.ilike(like)))
         total = query.count()
         rows = query.order_by(Client.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
         return {"total": total, "items": [self._to_dict(r) for r in rows]}
@@ -55,8 +56,19 @@ class ClientAdapter:
         client = scoped_query(self.db, Client, user).filter(Client.id == client_id).first()
         if not client:
             return None
-        for key in ("name", "company_name", "contact_person", "phone", "email", "industry",
-                     "location", "address", "website", "description", "status"):
+        for key in (
+            "name",
+            "company_name",
+            "contact_person",
+            "phone",
+            "email",
+            "industry",
+            "location",
+            "address",
+            "website",
+            "description",
+            "status",
+        ):
             if key in data and data[key] is not None:
                 setattr(client, key, data[key])
         self.db.commit()
@@ -73,9 +85,9 @@ class ClientAdapter:
 
     def find_by_company_name(self, user, company_name: str) -> list[dict[str, Any]]:
         """按公司名模糊查找（多候选时用）。"""
-        rows = scoped_query(self.db, Client, user).filter(
-            Client.company_name.ilike(f"%{company_name}%")
-        ).limit(10).all()
+        rows = (
+            scoped_query(self.db, Client, user).filter(Client.company_name.ilike(f"%{company_name}%")).limit(10).all()
+        )
         return [self._to_dict(r) for r in rows]
 
     @staticmethod

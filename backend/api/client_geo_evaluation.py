@@ -158,11 +158,15 @@ def _company_payload(db: Session, run: GeoEvaluationRun) -> Dict[str, Any]:
 
 def _reclaim_stale_runs(db: Session, current_user: User) -> None:
     stale_before = _now() - timedelta(seconds=HEARTBEAT_STALE_SECONDS)
-    stale_runs = db.query(GeoEvaluationRun).filter(
-        GeoEvaluationRun.created_by == current_user.id,
-        GeoEvaluationRun.status.in_(["running", "manual_required"]),
-        or_(GeoEvaluationRun.heartbeat_at.is_(None), GeoEvaluationRun.heartbeat_at < stale_before),
-    ).all()
+    stale_runs = (
+        db.query(GeoEvaluationRun)
+        .filter(
+            GeoEvaluationRun.created_by == current_user.id,
+            GeoEvaluationRun.status.in_(["running", "manual_required"]),
+            or_(GeoEvaluationRun.heartbeat_at.is_(None), GeoEvaluationRun.heartbeat_at < stale_before),
+        )
+        .all()
+    )
     for run in stale_runs:
         run.status = "interrupted"
         run.interruption_reason = "client_offline"
@@ -291,11 +295,15 @@ async def get_payload(
     ]
     platform_sessions: Dict[str, Any] = {}
     if run.account_id:
-        account = db.query(Account).filter(
-            Account.id == run.account_id,
-            Account.user_id == current_user.id,
-            Account.deleted_at.is_(None),
-        ).first()
+        account = (
+            db.query(Account)
+            .filter(
+                Account.id == run.account_id,
+                Account.user_id == current_user.id,
+                Account.deleted_at.is_(None),
+            )
+            .first()
+        )
         if not account or not account.storage_state:
             raise HTTPException(status_code=409, detail="任务绑定的授权账户不存在或登录状态不可用")
         state = decrypt_storage_state(account.storage_state)
@@ -376,12 +384,16 @@ async def save_platform_session_state(
     if not saved:
         raise HTTPException(status_code=500, detail="保存平台登录会话失败")
     if run.account_id:
-        account = db.query(Account).filter(
-            Account.id == run.account_id,
-            Account.user_id == current_user.id,
-            Account.platform == request.platform,
-            Account.deleted_at.is_(None),
-        ).first()
+        account = (
+            db.query(Account)
+            .filter(
+                Account.id == run.account_id,
+                Account.user_id == current_user.id,
+                Account.platform == request.platform,
+                Account.deleted_at.is_(None),
+            )
+            .first()
+        )
         if not account:
             raise HTTPException(status_code=404, detail="任务绑定账户不存在")
         account.storage_state = encrypt_storage_state(request.storage_state)
@@ -410,21 +422,29 @@ async def record_result(
     if run.prompt_ids and request.prompt_id not in run.prompt_ids:
         raise HTTPException(status_code=400, detail="提交问题不属于当前测评任务")
 
-    existing = db.query(GeoEvaluationRecord).filter(
-        GeoEvaluationRecord.run_id == run.id,
-        GeoEvaluationRecord.platform == request.platform,
-        GeoEvaluationRecord.round_no == request.round_no,
-        GeoEvaluationRecord.prompt_id == request.prompt_id,
-    ).first()
+    existing = (
+        db.query(GeoEvaluationRecord)
+        .filter(
+            GeoEvaluationRecord.run_id == run.id,
+            GeoEvaluationRecord.platform == request.platform,
+            GeoEvaluationRecord.round_no == request.round_no,
+            GeoEvaluationRecord.prompt_id == request.prompt_id,
+        )
+        .first()
+    )
     if existing:
         if existing.success and existing.answer and existing.evaluated_at is None:
             background_tasks.add_task(_evaluate_record, existing.id)
         return ApiResponse(data={"run": _serialize_run(run), "record_id": existing.id, "idempotent": True})
 
-    prompt = db.query(GeoPrompt).filter(
-        GeoPrompt.id == request.prompt_id,
-        GeoPrompt.prompt_set_id == run.prompt_set_id,
-    ).first()
+    prompt = (
+        db.query(GeoPrompt)
+        .filter(
+            GeoPrompt.id == request.prompt_id,
+            GeoPrompt.prompt_set_id == run.prompt_set_id,
+        )
+        .first()
+    )
     if not prompt:
         raise HTTPException(status_code=400, detail="测评问题不存在或不属于当前问题集")
     record_time = _now()
@@ -556,10 +576,14 @@ async def mark_manual_required(
         details = f"[{request.error_code or request.risk_type}] {details}"
     run.error_message = details[:500]
     if request.error_code in {"LOGIN_REQUIRED", "AUTH_REQUIRED"} and run.account_id:
-        account = db.query(Account).filter(
-            Account.id == run.account_id,
-            Account.user_id == current_user.id,
-        ).first()
+        account = (
+            db.query(Account)
+            .filter(
+                Account.id == run.account_id,
+                Account.user_id == current_user.id,
+            )
+            .first()
+        )
         if account:
             account.status = 0
             account.health_score = 0

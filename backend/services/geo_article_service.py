@@ -185,6 +185,7 @@ class GeoArticleService:
             )
             # 使用 DeepSeek AI 直连
             from backend.services.ai_generation_service import get_ai_service
+
             ai = get_ai_service()
             gen_log.info(f"🤖 开始 AI 生成文章 (article_id: {article.id})")
             ai_res = await ai.generate_geo_article(
@@ -417,11 +418,7 @@ class GeoArticleService:
         # 查找账号：优先使用前端/任务已绑定的 account_id，避免发布到同平台的错误账号
         account = None
         if db_article.account_id:
-            account = (
-                self.db.query(Account)
-                .filter(Account.id == db_article.account_id, Account.status == 1)
-                .first()
-            )
+            account = self.db.query(Account).filter(Account.id == db_article.account_id, Account.status == 1).first()
             if not account:
                 db_article.publish_status = "failed"
                 db_article.error_msg = "指定发布账号不可用或未授权"
@@ -437,7 +434,9 @@ class GeoArticleService:
                 self.db.commit()
                 self.db.refresh(db_article)
         else:
-            account = self.db.query(Account).filter(Account.platform == db_article.platform, Account.status == 1).first()
+            account = (
+                self.db.query(Account).filter(Account.platform == db_article.platform, Account.status == 1).first()
+            )
 
         if not account or not account.storage_state:
             db_article.publish_status = "failed"

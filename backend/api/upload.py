@@ -101,7 +101,9 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
 
         # 匹配前端期望的响应格式
         return UploadResponse(
-            success=True, message="图片上传成功", data={"url": file_url, "original_name": file.filename, "alt": file.filename}
+            success=True,
+            message="图片上传成功",
+            data={"url": file_url, "original_name": file.filename, "alt": file.filename},
         )
 
     except Exception as e:

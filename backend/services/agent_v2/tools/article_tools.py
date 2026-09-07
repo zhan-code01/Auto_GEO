@@ -10,6 +10,7 @@
 注：原 article_tools 中的 get_article / delete_article / get_article_batch_status /
 retry_article_job 不在 PRD §8.4 的 18 工具清单内，已移除。
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -100,10 +101,7 @@ async def list_articles_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
         project_list_raw = project_adapter.list_projects(fake_user)
         # 注意：list_projects 返回的是 {"total": ..., "items": [...]}
         project_items = project_list_raw.get("items", []) if isinstance(project_list_raw, dict) else []
-        project_options = [
-            {"id": p["id"], "name": p.get("name") or f"项目{p['id']}"}
-            for p in project_items
-        ]
+        project_options = [{"id": p["id"], "name": p.get("name") or f"项目{p['id']}"} for p in project_items]
         project_map = {p["id"]: p.get("name") or f"项目{p['id']}" for p in project_items}
 
         # 2. 查询文章
@@ -157,19 +155,18 @@ async def list_articles_tool(slots: dict[str, Any], user_id: int) -> ToolOutcome
 
         # 按项目分组格式化展示，便于 Agent 直接呈现给用户选择
         grouped_reply = _build_grouped_article_reply(items, project_map, max_per_project=2)
-        reply = (
-            f"共 {total} 篇文章。按项目展示如下（每个项目最多 2 篇，"
-            f"已发布/失败的也可再次发布）：\n{grouped_reply}"
-        )
+        reply = f"共 {total} 篇文章。按项目展示如下（每个项目最多 2 篇，已发布/失败的也可再次发布）：\n{grouped_reply}"
 
         return ToolOutcome.success(
             data={"items": items, "total": total, "page": page, "limit": limit, "project_options": project_options},
             reply=reply,
-            actions=[make_action(
-                "show_article_list",
-                "查看文章列表",
-                payload,
-            )],
+            actions=[
+                make_action(
+                    "show_article_list",
+                    "查看文章列表",
+                    payload,
+                )
+            ],
         )
     except Exception as e:
         logger.error(f"[list_articles] 失败: {e}", exc_info=True)
@@ -260,8 +257,7 @@ async def generate_articles_tool(slots: dict[str, Any], user_id: int) -> ToolOut
                 )
 
             invalid_ids = [
-                q["id"] for q in questions
-                if q.get("has_article") or q.get("article_generation_status") == "generating"
+                q["id"] for q in questions if q.get("has_article") or q.get("article_generation_status") == "generating"
             ]
             if invalid_ids:
                 return ToolOutcome.need_clarification(
@@ -281,10 +277,7 @@ async def generate_articles_tool(slots: dict[str, Any], user_id: int) -> ToolOut
             )
 
             return ToolOutcome.running(
-                reply=(
-                    f"已提交 {len(valid_ids) - len(skipped)} 篇文章生成任务，"
-                    f"预计需要几分钟。完成时会通知您。"
-                ),
+                reply=(f"已提交 {len(valid_ids) - len(skipped)} 篇文章生成任务，预计需要几分钟。完成时会通知您。"),
                 data={
                     "article_batch_id": batch_id,
                     "accepted_question_ids": valid_ids,
@@ -308,8 +301,7 @@ async def generate_articles_tool(slots: dict[str, Any], user_id: int) -> ToolOut
         if existing_count > 0:
             # 项目已有问题：直接基于“尚未生成文章”的问题生成，严格遵守 文章数 ≤ 问题数。
             available_ids = sorted(
-                q.id for q in existing_questions
-                if not q.has_article and q.article_generation_status != "generating"
+                q.id for q in existing_questions if not q.has_article and q.article_generation_status != "generating"
             )
             if count_int > len(available_ids):
                 return ToolOutcome.failure(
@@ -334,20 +326,20 @@ async def generate_articles_tool(slots: dict[str, Any], user_id: int) -> ToolOut
             )
             return ToolOutcome.running(
                 reply=(
-                    f"{limit_note}"
-                    f"已基于 {len(target_ids)} 个已有问题开始生成文章，"
-                    f"预计需要几分钟，可随时查询进度。"
+                    f"{limit_note}已基于 {len(target_ids)} 个已有问题开始生成文章，预计需要几分钟，可随时查询进度。"
                 ),
                 data={
                     "article_batch_id": article_batch_id,
                     "question_ids": target_ids,
                     "skipped_question_ids": skipped,
                 },
-                async_task_refs=[{
-                    "task_type": "article_generation",
-                    "task_id": article_batch_id,
-                    "query_tool": "list_articles",
-                }],
+                async_task_refs=[
+                    {
+                        "task_type": "article_generation",
+                        "task_id": article_batch_id,
+                        "query_tool": "list_articles",
+                    }
+                ],
             )
 
         # 项目暂无问题：从零规划（保留原自动规划行为）

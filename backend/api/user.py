@@ -42,6 +42,7 @@ security = HTTPBearer(auto_error=False)
 # ==================== Pydantic模型 ====================
 class UserRegisterRequest(BaseModel):
     """用户注册请求"""
+
     username: str = Field(..., min_length=3, max_length=50, description="用户名")
     email: Optional[EmailStr] = Field(None, description="邮箱")
     password: str = Field(..., min_length=6, max_length=100, description="密码")
@@ -49,12 +50,14 @@ class UserRegisterRequest(BaseModel):
 
 class UserLoginRequest(BaseModel):
     """用户登录请求"""
+
     username: str = Field(..., description="用户名或邮箱")
     password: str = Field(..., description="密码")
 
 
 class UserResponse(BaseModel):
     """用户响应模型"""
+
     id: int
     username: str
     email: Optional[str] = None
@@ -68,6 +71,7 @@ class UserResponse(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     """用户更新请求"""
+
     email: Optional[EmailStr] = Field(None, description="邮箱")
     password: Optional[str] = Field(None, min_length=6, max_length=100, description="新密码")
     role: Optional[str] = Field(None, description="角色: admin, user")
@@ -77,6 +81,7 @@ class UserUpdateRequest(BaseModel):
 
 class UserLoginResponse(BaseModel):
     """用户登录响应"""
+
     access_token: str
     token_type: str = "bearer"
     expires_in: int
@@ -85,12 +90,14 @@ class UserLoginResponse(BaseModel):
 
 class UserListResponse(BaseModel):
     """用户列表响应"""
+
     total: int
     items: List[UserResponse]
 
 
 class TokenPayload(BaseModel):
     """Token载荷"""
+
     user_id: int
     username: str
     exp: datetime
@@ -117,13 +124,7 @@ def create_access_token(user_id: int, username: str, expires_delta: Optional[tim
     else:
         expire = datetime.utcnow() + timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    payload = {
-        "user_id": user_id,
-        "username": username,
-        "exp": expire,
-        "iat": datetime.utcnow(),
-        "type": "access"
-    }
+    payload = {"user_id": user_id, "username": username, "exp": expire, "iat": datetime.utcnow(), "type": "access"}
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
@@ -139,8 +140,7 @@ def decode_token(token: str) -> Optional[dict]:
 
 
 def get_current_user_from_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)
 ) -> User:
     """从Token获取当前用户"""
     if not credentials:
@@ -193,10 +193,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user_from_t
 def require_admin(current_user: User = Depends(get_current_user_from_token)) -> User:
     """需要管理员权限"""
     if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="需要管理员权限"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="需要管理员权限")
     return current_user
 
 
@@ -233,29 +230,21 @@ async def register_user(request: UserRegisterRequest, db: Session = Depends(get_
 
         # 🔒 安全加固：检查系统是否开放注册
         from backend.database.models import SystemConfig
+
         reg_config = db.query(SystemConfig).filter(SystemConfig.config_key == "enable_register").first()
         if reg_config and reg_config.config_value == "false":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="系统已关闭注册，请联系管理员"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="系统已关闭注册，请联系管理员")
 
         # 检查用户名是否已存在（大小写归一化后检查）
         existing_user = db.query(User).filter(User.username == normalized_username).first()
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="用户名已存在"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户名已存在")
 
         # 检查邮箱是否已存在（如果提供了邮箱）
         if normalized_email:
             existing_email = db.query(User).filter(User.email == normalized_email).first()
             if existing_email:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="邮箱已被注册"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="邮箱已被注册")
 
         # 确定角色：第一个注册的用户自动成为管理员
         user_count = db.query(User).count()
@@ -269,7 +258,7 @@ async def register_user(request: UserRegisterRequest, db: Session = Depends(get_
             password_hash=hashed_password,
             role=role,
             is_active=True,
-            status=1
+            status=1,
         )
 
         db.add(new_user)
@@ -287,8 +276,8 @@ async def register_user(request: UserRegisterRequest, db: Session = Depends(get_
                 "email": new_user.email,
                 "role": new_user.role,
                 "is_active": new_user.is_active,
-                "created_at": new_user.created_at.isoformat() if new_user.created_at else None
-            }
+                "created_at": new_user.created_at.isoformat() if new_user.created_at else None,
+            },
         )
 
     except HTTPException:
@@ -296,17 +285,11 @@ async def register_user(request: UserRegisterRequest, db: Session = Depends(get_
     except IntegrityError as e:
         db.rollback()
         logger.error(f"数据库完整性错误: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="用户数据冲突"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户数据冲突")
     except Exception as e:
         db.rollback()
         logger.error(f"用户注册失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"注册失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"注册失败: {str(e)}")
 
 
 @router.post("/login", response_model=ApiResponse)
@@ -322,9 +305,7 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
         normalized_input = request.username.strip().lower()
 
         # 查找用户（支持用户名或邮箱登录）
-        user = db.query(User).filter(
-            (User.username == normalized_input) | (User.email == normalized_input)
-        ).first()
+        user = db.query(User).filter((User.username == normalized_input) | (User.email == normalized_input)).first()
 
         if not user:
             return ApiResponse(success=False, message="用户名或密码错误", data=None)
@@ -333,9 +314,7 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
         if user.locked_until and user.locked_until > datetime.utcnow():
             remaining_seconds = int((user.locked_until - datetime.utcnow()).total_seconds())
             return ApiResponse(
-                success=False,
-                message=f"账户已被锁定，请在 {remaining_seconds // 60 + 1} 分钟后重试",
-                data=None
+                success=False, message=f"账户已被锁定，请在 {remaining_seconds // 60 + 1} 分钟后重试", data=None
             )
 
         # 检查用户激活状态
@@ -353,9 +332,7 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
                 db.commit()
                 logger.warning(f"用户 {user.username} 登录失败次数过多，账户已锁定")
                 return ApiResponse(
-                    success=False,
-                    message=f"登录失败次数过多，账户已被锁定 {LOCKOUT_DURATION} 分钟",
-                    data=None
+                    success=False, message=f"登录失败次数过多，账户已被锁定 {LOCKOUT_DURATION} 分钟", data=None
                 )
 
             db.commit()
@@ -387,9 +364,9 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
                     "email": user.email,
                     "role": user.role,
                     "is_active": user.is_active,
-                    "created_at": user.created_at.isoformat() if user.created_at else None
-                }
-            }
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                },
+            },
         )
 
     except Exception as e:
@@ -405,11 +382,7 @@ async def logout_user(current_user: User = Depends(get_current_active_user)):
     此接口仅通知客户端丢弃令牌，实际鉴权失效由客户端完成。
     """
     logger.info(f"用户登出: {current_user.username} (id={current_user.id})")
-    return ApiResponse(
-        success=True,
-        message="登出成功",
-        data=None
-    )
+    return ApiResponse(success=True, message="登出成功", data=None)
 
 
 @router.post("/refresh", response_model=ApiResponse)
@@ -446,8 +419,8 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
             "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
             "updated_at": current_user.updated_at.isoformat() if current_user.updated_at else None,
             "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
-            "login_count": current_user.login_count or 0
-        }
+            "login_count": current_user.login_count or 0,
+        },
     )
 
 
@@ -482,7 +455,7 @@ async def list_users(
     is_active: Optional[bool] = None,
     status: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_admin),
 ):
     """
     获取用户列表（仅管理员）
@@ -521,17 +494,19 @@ async def list_users(
 
         items = []
         for user in users:
-            items.append({
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "role": user.role,
-                "is_active": user.is_active,
-                "status": user.status,
-                "created_at": user.created_at.isoformat() if user.created_at else None,
-                "last_login": user.last_login.isoformat() if user.last_login else None,
-                "login_count": user.login_count or 0
-            })
+            items.append(
+                {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "role": user.role,
+                    "is_active": user.is_active,
+                    "status": user.status,
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                    "last_login": user.last_login.isoformat() if user.last_login else None,
+                    "login_count": user.login_count or 0,
+                }
+            )
 
         return ApiResponse(
             success=True,
@@ -541,16 +516,13 @@ async def list_users(
                 "items": items,
                 "page": page,
                 "limit": limit,
-                "pages": (total + limit - 1) // limit if total > 0 else 0
-            }
+                "pages": (total + limit - 1) // limit if total > 0 else 0,
+            },
         )
 
     except Exception as e:
         logger.error(f"获取用户列表失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取用户列表失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"获取用户列表失败: {str(e)}")
 
 
 @router.get("/{user_id}", response_model=ApiResponse)
@@ -632,10 +604,7 @@ async def reset_user_password(
 
 @router.put("/{user_id}/status", response_model=ApiResponse)
 async def update_user_status(
-    user_id: int,
-    request: UserUpdateRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    user_id: int, request: UserUpdateRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin)
 ):
     """
     更新用户状态/角色（仅管理员）
@@ -647,17 +616,11 @@ async def update_user_status(
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="用户不存在"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
 
         # 不能禁用自己
         if user.id == current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="不能修改当前登录用户的状态"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能修改当前登录用户的状态")
 
         updated_fields = []
 
@@ -671,16 +634,10 @@ async def update_user_status(
 
         if request.role is not None:
             if request.role not in ["admin", "user"]:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="无效的角色，仅支持 admin 或 user"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无效的角色，仅支持 admin 或 user")
             # 不能移除自己的管理员角色
             if user.role == "admin" and request.role != "admin" and user.id == current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="不能移除自己的管理员角色"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能移除自己的管理员角色")
             user.role = request.role
             updated_fields.append(f"role={request.role}")
 
@@ -696,8 +653,8 @@ async def update_user_status(
                 "username": user.username,
                 "role": user.role,
                 "is_active": user.is_active,
-                "status": user.status
-            }
+                "status": user.status,
+            },
         )
 
     except HTTPException:
@@ -705,18 +662,11 @@ async def update_user_status(
     except Exception as e:
         db.rollback()
         logger.error(f"更新用户失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"更新失败: {str(e)}")
 
 
 @router.delete("/{user_id}", response_model=ApiResponse)
-async def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
+async def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """
     删除用户（仅管理员）
 
@@ -725,17 +675,11 @@ async def delete_user(
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="用户不存在"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
 
         # 不能删除自己
         if user.id == current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="不能删除当前登录的用户"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能删除当前登录的用户")
 
         username = user.username
         user_role = user.role
@@ -744,28 +688,19 @@ async def delete_user(
 
         logger.info(f"管理员 {current_user.username} 删除了用户 {username} (角色: {user_role})")
 
-        return ApiResponse(
-            success=True,
-            message="用户已删除",
-            data={"id": user_id, "username": username}
-        )
+        return ApiResponse(success=True, message="用户已删除", data={"id": user_id, "username": username})
 
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
         logger.error(f"删除用户失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"删除失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"删除失败: {str(e)}")
 
 
 @router.put("/me/password", response_model=ApiResponse)
 async def change_password(
-    body: dict = Body(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    body: dict = Body(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ):
     """
     修改当前用户密码
@@ -777,24 +712,15 @@ async def change_password(
     new_password = body.get("new_password")
 
     if not old_password or not new_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="旧密码和新密码都是必填的"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="旧密码和新密码都是必填的")
 
     if len(new_password) < 6 or len(new_password) > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="新密码长度必须在6-100位之间"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="新密码长度必须在6-100位之间")
 
     try:
         # 验证旧密码
         if not verify_password(old_password, current_user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="旧密码错误"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="旧密码错误")
 
         # 更新密码
         current_user.password_hash = hash_password(new_password)
@@ -802,28 +728,18 @@ async def change_password(
 
         logger.info(f"用户 {current_user.username} 修改了密码")
 
-        return ApiResponse(
-            success=True,
-            message="密码修改成功"
-        )
+        return ApiResponse(success=True, message="密码修改成功")
 
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
         logger.error(f"修改密码失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"修改密码失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"修改密码失败: {str(e)}")
 
 
 @router.post("/unlock/{user_id}", response_model=ApiResponse)
-async def unlock_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
+async def unlock_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """
     解锁用户账户（仅管理员）
 
@@ -832,10 +748,7 @@ async def unlock_user(
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="用户不存在"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
 
         # 重置锁定状态
         user.failed_login_attempts = 0
@@ -847,12 +760,7 @@ async def unlock_user(
         return ApiResponse(
             success=True,
             message="用户已解锁",
-            data={
-                "id": user.id,
-                "username": user.username,
-                "failed_login_attempts": 0,
-                "locked_until": None
-            }
+            data={"id": user.id, "username": user.username, "failed_login_attempts": 0, "locked_until": None},
         )
 
     except HTTPException:
@@ -860,7 +768,4 @@ async def unlock_user(
     except Exception as e:
         db.rollback()
         logger.error(f"解锁用户失败: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"解锁失败: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"解锁失败: {str(e)}")

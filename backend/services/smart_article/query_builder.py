@@ -7,8 +7,28 @@ from .schemas import CONTEXT_TYPES, INTENT_TYPES, PlannedQuestion, ProjectContex
 
 
 STOP_WORDS = {
-    "如何", "哪些", "什么", "怎么", "为什么", "有没有", "是否", "比较", "值得", "可以", "应该",
-    "需要", "关注", "了解", "推荐", "选择", "哪个", "哪些是", "的", "吗", "呢", "有哪些",
+    "如何",
+    "哪些",
+    "什么",
+    "怎么",
+    "为什么",
+    "有没有",
+    "是否",
+    "比较",
+    "值得",
+    "可以",
+    "应该",
+    "需要",
+    "关注",
+    "了解",
+    "推荐",
+    "选择",
+    "哪个",
+    "哪些是",
+    "的",
+    "吗",
+    "呢",
+    "有哪些",
 }
 
 
@@ -64,7 +84,9 @@ def build_queries(context: ProjectContext, planned: PlannedQuestion) -> list[Que
 
     add(f"{context.company_name} {context.project_name} 产品介绍", "project_identity", "查找公司和项目基础事实")
     add(planned.question, "user_need", "检索与完整用户问题相关的资料")
-    domain_parts = list(dict.fromkeys(part for part in [context.project_name, context.industry, context.domain_keyword] if part))
+    domain_parts = list(
+        dict.fromkeys(part for part in [context.project_name, context.industry, context.domain_keyword] if part)
+    )
     domain_query = " ".join(domain_parts)
     add(domain_query, "user_need", "检索项目领域和通用场景资料")
 
@@ -80,7 +102,15 @@ def build_queries(context: ProjectContext, planned: PlannedQuestion) -> list[Que
     if planned.context_type == "region" or region:
         region = region or context.location
         if region:
-            add(f"{context.company_name} {region} {context.project_name} 公司介绍", "region_verification", "核验公司地域归属资料")
-            add(f"{context.company_name} {context.project_name} 服务区域 交付方式", "region_verification", "核验服务区域和交付方式")
+            add(
+                f"{context.company_name} {region} {context.project_name} 公司介绍",
+                "region_verification",
+                "核验公司地域归属资料",
+            )
+            add(
+                f"{context.company_name} {context.project_name} 服务区域 交付方式",
+                "region_verification",
+                "核验服务区域和交付方式",
+            )
 
     return specs[:6]

@@ -85,11 +85,15 @@ class TiebaPublisher(BasePublisher):
                 # 拆分模糊判断：确认落到百度登录页 = 确定登出；其余（网络/安全验证/首页迟迟不出现）= 不确定
                 if self._is_on_login_page(page):
                     return await self._auth_failure(
-                        page, stage, definitive=True,
+                        page,
+                        stage,
+                        definitive=True,
                         message="无法进入贴吧，已被重定向到百度登录页，登录态已失效，请重新授权",
                     )
                 return await self._auth_failure(
-                    page, stage, definitive=False,
+                    page,
+                    stage,
+                    definitive=False,
                     message="无法进入贴吧，疑似网络异常或安全验证，未判定账号失效",
                 )
 
@@ -97,7 +101,9 @@ class TiebaPublisher(BasePublisher):
             stage = "login_check"
             if not await self._ensure_logged_in(page):
                 return await self._auth_failure(
-                    page, stage, definitive=True,
+                    page,
+                    stage,
+                    definitive=True,
                     message="贴吧登录态失效，请到账号管理重新授权百度贴吧",
                 )
 
@@ -261,6 +267,7 @@ class TiebaPublisher(BasePublisher):
                 }"""
             )
             import json as _json
+
             json_path = debug_dir / f"{safe_stage}_{stamp}.editors.json"
             json_path.write_text(_json.dumps(editors, ensure_ascii=False, indent=2), encoding="utf-8")
             logger.info(f"[贴吧] 编辑器结构 dump（含 shadow）已存: {json_path}（{len(editors)} 个输入元素）")
@@ -548,7 +555,7 @@ class TiebaPublisher(BasePublisher):
         （get_by_placeholder / get_by_text 穿透 shadow DOM）。
         """
         # 占位符优先（真机可靠）
-        for ph in (sel.TITLE_PLACEHOLDER_TEXTS + sel.CONTENT_PLACEHOLDER_TEXTS):
+        for ph in sel.TITLE_PLACEHOLDER_TEXTS + sel.CONTENT_PLACEHOLDER_TEXTS:
             try:
                 if await page.get_by_placeholder(ph, exact=False).count() > 0:
                     return True
@@ -598,9 +605,7 @@ class TiebaPublisher(BasePublisher):
                     await short_delay()
                     # 护栏：面板本来在、点完没了 = 误伤，立即停手并告警
                     if panel_before and not await self._post_panel_present(page):
-                        logger.warning(
-                            f"⚠️ [贴吧] 关闭“{btn_selector}”后发帖面板消失，判为误点，停止关弹窗"
-                        )
+                        logger.warning(f"⚠️ [贴吧] 关闭“{btn_selector}”后发帖面板消失，判为误点，停止关弹窗")
                         return
                     logger.info(f"[贴吧] 已关闭干扰弹窗: {btn_selector}")
                     break
@@ -626,9 +631,7 @@ class TiebaPublisher(BasePublisher):
     # 标题（#tb-editor-title，contenteditable div）
     # ═══════════════════════════════════════════════════════════
 
-    async def _fill_editor_codegen(
-        self, page: Page, editor_id: str, text: str, label: str = ""
-    ) -> bool:
+    async def _fill_editor_codegen(self, page: Page, editor_id: str, text: str, label: str = "") -> bool:
         """按 codegen 实录方式填写贴吧富文本编辑器（标题/正文通用）。
 
         真机结论（2026-07-13）：编辑器 `#tb-editor-title` / `#tb-editor-content` 在
@@ -736,9 +739,7 @@ class TiebaPublisher(BasePublisher):
     # 正文（#tb-editor-content，contenteditable div）
     # ═══════════════════════════════════════════════════════════
 
-    async def _fill_content(
-        self, page: Page, content: str, image_paths: Optional[List[str]] = None
-    ) -> bool:
+    async def _fill_content(self, page: Page, content: str, image_paths: Optional[List[str]] = None) -> bool:
         clean = self._deep_clean_content(content or "")
         original_len = len(clean)
         if original_len > self.MAX_CONTENT_LENGTH:
@@ -826,9 +827,7 @@ class TiebaPublisher(BasePublisher):
             plan[idx] = plan.get(idx, 0) + 1
         return plan
 
-    async def _fill_content_blocks(
-        self, page: Page, blocks: List[Dict[str, str]]
-    ) -> Optional[int]:
+    async def _fill_content_blocks(self, page: Page, blocks: List[Dict[str, str]]) -> Optional[int]:
         """按原文图片标记位置逐块写入：文本块逐段 insert_text，图片块在光标处插入。
 
         文本块内部段落间只留 1 个换行；每插一张图后 Ctrl+End 把光标移回正文末尾，
@@ -1029,10 +1028,7 @@ class TiebaPublisher(BasePublisher):
             logger.debug(f"[贴吧] 注入图片失败: {exc}")
         return False
 
-
-    async def _type_by_placeholder(
-        self, page: Page, placeholder_texts: List[str], text: str, label: str = ""
-    ) -> bool:
+    async def _type_by_placeholder(self, page: Page, placeholder_texts: List[str], text: str, label: str = "") -> bool:
         """用占位符文字定位输入框并写入（穿透 shadow DOM）。
 
         真机证据：贴吧发帖 modal 在 Shadow DOM 里，CSS/id 选择器（#tb-editor-*）
@@ -1079,9 +1075,7 @@ class TiebaPublisher(BasePublisher):
                 continue
         return False
 
-    async def _deep_set_by_placeholder(
-        self, page: Page, placeholder_texts: List[str], text: str
-    ) -> bool:
+    async def _deep_set_by_placeholder(self, page: Page, placeholder_texts: List[str], text: str) -> bool:
         """Shadow DOM 深度穿透兜底：递归遍历所有 shadow root，按占位符文字
         （placeholder / aria-placeholder / data-placeholder）找到输入框，
         input/textarea 设 value、contenteditable 设文本，并 dispatch 事件。
@@ -1180,9 +1174,7 @@ class TiebaPublisher(BasePublisher):
             pass
         return False
 
-    async def _type_into_editable(
-        self, page: Page, selectors: List[str], text: str, label: str = ""
-    ) -> bool:
+    async def _type_into_editable(self, page: Page, selectors: List[str], text: str, label: str = "") -> bool:
         """向 contenteditable div 输入文本：click 聚焦 → 清空 → insert_text（失败降级 type）。"""
         for selector in selectors:
             try:
@@ -1531,8 +1523,13 @@ class TiebaPublisher(BasePublisher):
         head = text[:budget]
         # 优先在最后一个句末标点处断开（中英文句号/问号/感叹号/换行）
         cut = max(
-            head.rfind("。"), head.rfind("！"), head.rfind("？"),
-            head.rfind("\n"), head.rfind("."), head.rfind("!"), head.rfind("?"),
+            head.rfind("。"),
+            head.rfind("！"),
+            head.rfind("？"),
+            head.rfind("\n"),
+            head.rfind("."),
+            head.rfind("!"),
+            head.rfind("?"),
         )
         # 断点不能太靠前（至少保留 60% 内容），否则宁可硬切
         if cut >= int(budget * 0.6):

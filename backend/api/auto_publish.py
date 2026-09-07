@@ -108,8 +108,7 @@ def rearm_interval_task(db: Session, task: AutoPublishTask) -> bool:
         record.error_msg = None
     db.commit()
     logger.info(
-        f"⏳ 间隔任务 {task.id} 本轮完成，已重武装，将于 "
-        f"{task.scheduled_at.strftime('%Y-%m-%d %H:%M')} 再次执行"
+        f"⏳ 间隔任务 {task.id} 本轮完成，已重武装，将于 {task.scheduled_at.strftime('%Y-%m-%d %H:%M')} 再次执行"
     )
     return True
 
@@ -148,9 +147,7 @@ async def get_auto_publish_tasks(
     表示筛选「失败或已取消」的任务。
     """
     # 按当前用户隔离：普通用户只看自己创建的任务，admin 可见全部
-    query = scoped_query(db, AutoPublishTask, current_user).order_by(
-        AutoPublishTask.created_at.desc()
-    )
+    query = scoped_query(db, AutoPublishTask, current_user).order_by(AutoPublishTask.created_at.desc())
 
     if status:
         # 支持逗号分隔的多值筛选
@@ -162,11 +159,7 @@ async def get_auto_publish_tasks(
 
     # 如果指定了平台筛选，使用持久化的 platforms 列在 Python 层过滤
     if platform:
-        matched_tasks = [
-            task
-            for task in query.all()
-            if platform in (task.platforms or [])
-        ]
+        matched_tasks = [task for task in query.all() if platform in (task.platforms or [])]
         total = len(matched_tasks)
         tasks = matched_tasks[offset : offset + limit]
     else:
@@ -317,20 +310,12 @@ async def create_auto_publish_task(
 
     # 1. 验证文章和账号是否存在，且必须属于当前用户
     #    （防 IDOR：禁止用他人的文章/账号发起发布任务）
-    articles = (
-        scoped_query(db, GeoArticle, current_user)
-        .filter(GeoArticle.id.in_(article_ids))
-        .all()
-    )
+    articles = scoped_query(db, GeoArticle, current_user).filter(GeoArticle.id.in_(article_ids)).all()
     if len(articles) != len(article_ids):
         # 模糊消息：不区分"不存在"与"无权"，避免被用于探测他人数据
         raise HTTPException(status_code=403, detail="部分文章不存在或无权使用")
 
-    accounts = (
-        scoped_query(db, Account, current_user)
-        .filter(Account.id.in_(account_ids))
-        .all()
-    )
+    accounts = scoped_query(db, Account, current_user).filter(Account.id.in_(account_ids)).all()
     if len(accounts) != len(account_ids):
         raise HTTPException(status_code=403, detail="部分账号不存在或无权使用")
 
@@ -349,11 +334,7 @@ async def create_auto_publish_task(
         meta = PLATFORMS.get(acc.platform) or {}
         return meta.get("name") or acc.platform
 
-    unauthorized = [
-        f"{a.account_name}（{_platform_label(a)}）"
-        for a in accounts
-        if not a.is_authorized
-    ]
+    unauthorized = [f"{a.account_name}（{_platform_label(a)}）" for a in accounts if not a.is_authorized]
     if unauthorized:
         raise HTTPException(
             status_code=400,
@@ -436,6 +417,7 @@ async def create_auto_publish_task(
     if server_executable and request.exec_type == "immediate":
         # 立即执行：启动后台任务（通过 BackgroundTaskManager 保护，防止 SSE 取消）
         from backend.services.background_task_manager import background_task_manager
+
         background_task_manager.submit(
             execute_auto_publish_task(task.id),
             task_name=f"auto_publish_{task.id}",
@@ -542,9 +524,7 @@ async def delete_auto_publish_task(
 
     # 先删除关联的子任务记录，再删除任务主记录
     # （SQLite 默认未启用外键级联，故显式删除 records，避免留下孤儿数据）
-    db.query(AutoPublishRecord).filter(AutoPublishRecord.task_id == task_id).delete(
-        synchronize_session=False
-    )
+    db.query(AutoPublishRecord).filter(AutoPublishRecord.task_id == task_id).delete(synchronize_session=False)
     db.delete(task)
     db.commit()
 
@@ -596,6 +576,7 @@ async def start_auto_publish_task(
         return ApiResponse(data={"task_id": task_id, "message": "任务已准备好，等待本地客户端执行"})
 
     from backend.services.background_task_manager import background_task_manager
+
     background_task_manager.submit(
         execute_auto_publish_task(task_id),
         task_name=f"auto_publish_manual_{task_id}",
@@ -688,6 +669,7 @@ async def retry_auto_publish_task(
 
     # 启动后台执行任务（通过 BackgroundTaskManager 保护，防止 SSE 取消）
     from backend.services.background_task_manager import background_task_manager
+
     background_task_manager.submit(
         execute_auto_publish_task(task_id),
         task_name=f"auto_publish_retry_{task_id}",
@@ -836,7 +818,11 @@ async def execute_auto_publish_task(task_id: int):
                         return
 
                     if event_type == "manual_required":
-                        message = event.get("message") or event.get("matched_text") or "平台要求人工验证，请在浏览器中完成操作"
+                        message = (
+                            event.get("message")
+                            or event.get("matched_text")
+                            or "平台要求人工验证，请在浏览器中完成操作"
+                        )
                         current_task.manual_required = True
                         current_task.manual_message = message
                         current_task.status = "manual_required"
