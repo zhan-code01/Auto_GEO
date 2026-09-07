@@ -11,6 +11,8 @@ Citation fields may still exist on records for historical compatibility, but
 they are no longer part of aggregation, diagnosis, or UI metrics.
 """
 
+import re
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -801,3 +803,146 @@ class GeoEvaluationAnalyticsService:
         if vis_delta >= -3:
             return "基本持平"
         return "下降"
+
+    # ==================== 竞品与来源分析 ====================
+
+    def get_client_competitor_analysis(
+        self,
+        client_id: int,
+        phase: Optional[str] = None,
+        platform: Optional[str] = None,
+        top_domains: int = 15,
+    ) -> Dict[str, Any]:
+        """竞品与来源分析：品牌提及份额 + 引用域名榜 + 自有来源引用率。
+
+        复用测评判卷时落库的 cited_domains / matched_names / own_source_cited 字段，
+        做纯读聚合，不改动四指标诊断模型。
+        """
+        client = self.db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            return {"error": "公司不存在"}
+
+        company_name = (client.company_name or client.name or "").strip()
+        own_domain = self._extract_domain(client.website)
+        own_key = self._normalize_brand_text(company_name)
+
+        # 竞品观察名单来自提示词级配置（geo_prompts.competitor_names）
+        watch_names: set = set()
+        for (names,) in (
+            self.db.query(GeoPrompt.competitor_names)
+            .filter(GeoPrompt.client_id == client_id, GeoPrompt.competitor_names.isnot(None))
+            .all()
+        ):
+            for name in names or []:
+                if isinstance(name, str) and name.strip():
+                    watch_names.add(name.strip())
+
+        query = self.db.query(GeoEvaluationRecord).filter(
+            GeoEvaluationRecord.client_id == client_id,
+            GeoEvaluationRecord.success == True,  # noqa: E712
+            GeoEvaluationRecord.answer.isnot(None),
+        )
+        if phase:
+            query = query.filter(GeoEvaluationRecord.phase == phase)
+        if platform:
+            query = query.filter(GeoEvaluationRecord.platform == platform)
+        records = query.all()
+        total = len(records)
+
+        brand_counter: Counter = Counter()
+        domain_counter: Counter = Counter()
+        own_cited = 0
+        platform_stats: Dict[str, Dict[str, Any]] = {}
+
+        for r in records:
+            names = {n.strip() for n in (r.matched_names or []) if isinstance(n, str) and n.strip()}
+            domains = {
+                d.strip().lower()
+                for d in (r.cited_domains or [])
+                if isinstance(d, str) and d.strip()
+            }
+            brand_counter.update(names)
+            domain_counter.update(domains)
+            if r.own_source_cited:
+                own_cited += 1
+
+            stat = platform_stats.setdefault(
+                r.platform,
+                {"total": 0, "own_cited": 0, "mentions": Counter(), "domains": Counter()},
+            )
+            stat["total"] += 1
+            if r.own_source_cited:
+                stat["own_cited"] += 1
+            stat["mentions"].update(names)
+            stat["domains"].update(domains)
+
+        def _brand_row(name: str, count: int) -> Dict[str, Any]:
+            norm = self._normalize_brand_text(name)
+            # 公司全称与回答中的简称互为包含即视为我方（如「XX有限公司」vs「XX」）
+            is_own = (
+                bool(own_key)
+                and bool(norm)
+                and (own_key in norm or norm in own_key)
+            )
+            return {
+                "name": name,
+                "mentions": count,
+                "share": round(count / total * 100, 1) if total else 0,
+                "is_own": is_own,
+                "is_competitor": name in watch_names and not is_own,
+            }
+
+        brand_shares = sorted(
+            (_brand_row(n, c) for n, c in brand_counter.items()),
+            key=lambda x: (-x["mentions"], x["name"]),
+        )
+        domain_rows = [
+            {
+                "domain": d,
+                "citations": c,
+                "share": round(c / total * 100, 1) if total else 0,
+                "is_own": d == own_domain,
+            }
+            for d, c in domain_counter.most_common(max(1, top_domains))
+        ]
+
+        platform_names = {"doubao": "豆包", "qianwen": "通义千问", "deepseek": "DeepSeek"}
+        by_platform = []
+        for p, stat in sorted(platform_stats.items(), key=lambda kv: -kv[1]["total"]):
+            by_platform.append(
+                {
+                    "platform": p,
+                    "platform_name": platform_names.get(p, p),
+                    "total": stat["total"],
+                    "own_source_cited": stat["own_cited"],
+                    "own_source_rate": round(stat["own_cited"] / stat["total"] * 100, 1) if stat["total"] else 0,
+                    "top_names": [_brand_row(n, c) for n, c in stat["mentions"].most_common(5)],
+                    "top_domains": [
+                        {"domain": d, "citations": c}
+                        for d, c in stat["domains"].most_common(8)
+                    ],
+                }
+            )
+
+        return {
+            "client_id": client_id,
+            "company_name": company_name,
+            "own_domain": own_domain,
+            "competitor_watchlist": sorted(watch_names),
+            "total_records": total,
+            "own_source_cited_count": own_cited,
+            "own_source_rate": round(own_cited / total * 100, 1) if total else 0,
+            "brand_shares": brand_shares,
+            "top_domains": domain_rows,
+            "by_platform": by_platform,
+        }
+
+    @staticmethod
+    def _extract_domain(url: Optional[str]) -> Optional[str]:
+        """Extract bare domain from a website URL, e.g. https://a.b.com/x -> a.b.com."""
+        if not url or not str(url).strip():
+            return None
+        text = str(url).strip().lower()
+        text = re.sub(r"^https?://", "", text)
+        text = text.split("/", 1)[0].split(":", 1)[0]
+        return text or None

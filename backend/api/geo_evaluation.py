@@ -353,6 +353,36 @@ async def get_client_diagnosis(
     return ApiResponse(success=True, data=result)
 
 
+@router.get("/clients/{client_id}/competitor-analysis")
+async def get_client_competitor_analysis(
+    client_id: int,
+    phase: Optional[str] = Query(None, description="阶段：baseline/ongoing，不传=全部"),
+    platform: Optional[str] = Query(None, description="平台：doubao/qianwen/deepseek"),
+    top_domains: int = Query(15, ge=5, le=50, description="引用域名榜条数"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_from_token),
+):
+    """竞品与来源分析：品牌提及份额、引用域名榜、自有来源引用率。"""
+    _require_client_owner(db, client_id, current_user)
+
+    analytics = GeoEvaluationAnalyticsService(db)
+    try:
+        result = analytics.get_client_competitor_analysis(
+            client_id,
+            phase=phase,
+            platform=platform,
+            top_domains=top_domains,
+        )
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning(f"GEO evaluation schema is not ready: {exc}")
+        if _is_missing_geo_evaluation_table(exc):
+            db.rollback()
+            _raise_schema_not_ready()
+        raise
+
+    return ApiResponse(success=True, data=result)
+
+
 @router.get("/clients/{client_id}/records")
 async def get_client_records(
     client_id: int,

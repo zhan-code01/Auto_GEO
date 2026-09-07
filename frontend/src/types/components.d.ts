@@ -64,6 +64,7 @@ declare module 'vue' {
     ElUpload: typeof import('element-plus/es')['ElUpload']
     EmptyState: typeof import('./../components/common/EmptyState.vue')['default']
     ErrorBoundary: typeof import('./../components/common/ErrorBoundary.vue')['default']
+    GeoCompetitorAnalysis: typeof import('./../components/business/geo/GeoCompetitorAnalysis.vue')['default']
     GeoEvaluationStatus: typeof import('./../components/business/geo/GeoEvaluationStatus.vue')['default']
     GeoEvidenceTable: typeof import('./../components/business/geo/GeoEvidenceTable.vue')['default']
     GeoFiveMetrics: typeof import('./../components/business/geo/GeoFiveMetrics.vue')['default']

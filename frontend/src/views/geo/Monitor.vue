@@ -246,6 +246,11 @@
         :delta="selectedMetricDelta"
       />
 
+      <GeoCompetitorAnalysis
+        :client-id="selectedClientId"
+        :platform="selectedPlatformFilter"
+      />
+
       <GeoEvidenceTable
         ref="evidenceRef"
         :client-id="selectedClientId"
@@ -327,6 +332,7 @@ import { accountApi, clientApi, del, geoEvaluationApi, get, post } from '@/servi
 import { useUserStore } from '@/stores/modules/user'
 import GeoEvaluationStatus from '@/components/business/geo/GeoEvaluationStatus.vue'
 import GeoEvidenceTable from '@/components/business/geo/GeoEvidenceTable.vue'
+import GeoCompetitorAnalysis from '@/components/business/geo/GeoCompetitorAnalysis.vue'
 import GeoFiveMetrics from '@/components/business/geo/GeoFiveMetrics.vue'
 import GeoMetricComparisonChart from '@/components/business/geo/GeoMetricComparisonChart.vue'
 import RemoteAuthDialog from '@/components/common/RemoteAuthDialog.vue'

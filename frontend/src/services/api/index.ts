@@ -431,6 +431,10 @@ export const geoEvaluationApi = {
   getClientDiagnosis: (clientId: number, params?: any, config?: AxiosRequestConfig) =>
     get<any>(`/geo-evaluation/clients/${clientId}/diagnosis`, params, config),
 
+  // Get client competitor & source analysis（竞品与来源分析）
+  getClientCompetitorAnalysis: (clientId: number, params?: any, config?: AxiosRequestConfig) =>
+    get<any>(`/geo-evaluation/clients/${clientId}/competitor-analysis`, params, config),
+
   // Get client evidence records（主接口）
   getClientRecords: (clientId: number, params?: any, config?: AxiosRequestConfig) =>
     get<any>(`/geo-evaluation/clients/${clientId}/records`, params, config),
