@@ -15,6 +15,7 @@ from backend.api.user import get_current_user_from_token
 from backend.database import SessionLocal, get_db
 from backend.database.models import Account, Client, GeoEvaluationRecord, GeoEvaluationRun, GeoPrompt, Project, User
 from backend.services.crypto import decrypt_storage_state, encrypt_cookies, encrypt_storage_state
+from backend.services.geo_citation import VALID_CITATION_STATUSES
 from backend.schemas import ApiResponse
 from backend.services.geo_evaluation_run_service import (
     EVALUATION_QUESTION_LIMIT,
@@ -50,6 +51,7 @@ class RecordResultRequest(BaseModel):
     success: bool
     answer: Optional[str] = None
     citations: Optional[List[Any]] = None
+    citation_status: Optional[str] = None
     error_msg: Optional[str] = None
     context_cleaned: bool = True
     capture_method: Optional[str] = None
@@ -421,6 +423,8 @@ async def record_result(
         raise HTTPException(status_code=400, detail="提交平台不属于当前测评任务")
     if run.prompt_ids and request.prompt_id not in run.prompt_ids:
         raise HTTPException(status_code=400, detail="提交问题不属于当前测评任务")
+    if request.citation_status is not None and request.citation_status not in VALID_CITATION_STATUSES:
+        raise HTTPException(status_code=400, detail=f"非法引用状态: {request.citation_status}")
 
     existing = (
         db.query(GeoEvaluationRecord)
@@ -433,6 +437,20 @@ async def record_result(
         .first()
     )
     if existing:
+        # 幂等命中。若本次补传了真实引用而旧记录未带引用证据，则回填引用字段，
+        # 避免重试/补传时引用证据被幂等去重丢弃；未判卷的记录重新触发判卷。
+        needs_backfill = bool(request.citations) and not existing.raw_citations
+        if needs_backfill:
+            existing.raw_citations = request.citations
+            if request.citation_status is not None:
+                existing.citation_status = request.citation_status
+            if request.capture_method is not None:
+                existing.capture_method = request.capture_method
+            db.commit()
+            logger.info(
+                f"[GeoEval] 幂等命中回填引用证据: run_id={run.id} record_id={existing.id} "
+                f"citations={len(request.citations)} status={existing.citation_status}"
+            )
         if existing.success and existing.answer and existing.evaluated_at is None:
             background_tasks.add_task(_evaluate_record, existing.id)
         return ApiResponse(data={"run": _serialize_run(run), "record_id": existing.id, "idempotent": True})
@@ -462,6 +480,8 @@ async def record_result(
         question=request.question,
         answer=answer,
         raw_citations=request.citations,
+        citation_status=request.citation_status,
+        capture_method=request.capture_method,
         context_cleaned=request.context_cleaned,
         success=bool(request.success and answer),
         error_message=None if request.success else request.error_msg,
@@ -517,6 +537,7 @@ async def _evaluate_record(record_id: int) -> None:
             "question_type": prompt.question_type if prompt else None,
             "answer": record.answer,
             "citations": record.raw_citations,
+            "citation_status": record.citation_status,
         }
     finally:
         # Release the connection before waiting for the external judge API.

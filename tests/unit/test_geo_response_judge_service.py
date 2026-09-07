@@ -28,6 +28,7 @@ class _FakeResponse:
 
 class _FakeAsyncClient:
     """可配置响应序列的假 AsyncClient，支持重试场景。"""
+
     response = None
     responses = None  # 若设置则按顺序返回，用于模拟重试
     _idx = 0
@@ -65,13 +66,16 @@ def _reset_fake():
 
 def _patch_judge(monkeypatch):
     monkeypatch.setattr("backend.services.geo_response_judge_service.AUTOGEO_CONVERSATION_LLM_API_KEY", "sk-test")
-    monkeypatch.setattr("backend.services.geo_response_judge_service.AUTOGEO_CONVERSATION_LLM_BASE_URL", "https://api.test/v1")
+    monkeypatch.setattr(
+        "backend.services.geo_response_judge_service.AUTOGEO_CONVERSATION_LLM_BASE_URL", "https://api.test/v1"
+    )
     # 重试退避设为 0，避免测试中真实等待
     monkeypatch.setattr("backend.services.geo_response_judge_service.JUDGE_RETRY_BACKOFF", 0.0)
     monkeypatch.setattr("httpx.AsyncClient", _FakeAsyncClient)
 
 
 # ── JSON 提取工具单测 ──
+
 
 def test_extract_json_text_plain():
     assert _extract_json_text('{"a": 1}') == '{"a": 1}'
@@ -98,6 +102,7 @@ def test_extract_json_text_with_surrounding_text():
 
 
 # ── 正常评估路径 ──
+
 
 @pytest.mark.asyncio
 async def test_llm_judge_normalizes_scores_and_citation_fields(monkeypatch):
@@ -191,6 +196,7 @@ async def test_llm_judge_accepts_reasoning_content(monkeypatch):
 
 
 # ── 失败降级路径 ──
+
 
 @pytest.mark.asyncio
 async def test_llm_judge_fallback_on_api_error(monkeypatch):
@@ -317,4 +323,151 @@ async def test_llm_judge_fallback_on_malformed_json(monkeypatch):
     )
 
     assert "judge_error" in result
+
+
+# ── 引用证据链三态:citation_supported 只由真实采集引用决定 ──
+
+_CITATION_SRC = [
+    {"url": "https://example.com/case", "domain": "example.com"},
+    {"url": "https://example.org/doc", "domain": "example.org"},
+]
+
+
+def _llm_claim_strong_support():
+    """LLM 猜测结果:声称有引用 + 自有来源被引用(无论真实采集是否为零)。"""
+    return {
+        "brand_mentioned": True,
+        "is_recommended": True,
+        "recommendation_rank": 1,
+        "ranking_score": 100,
+        "citation_supported": True,
+        "own_source_cited": True,
+        "sentiment": "positive",
+        "sentiment_score": 80,
+        "visibility_score": 90,
+    }
+
+
+async def _evaluate_with_status(monkeypatch, citation_status, citations):
+    _patch_judge(monkeypatch)
+    _FakeAsyncClient.response = _FakeResponse(
+        payload={"choices": [{"message": {"content": json.dumps(_llm_claim_strong_support(), ensure_ascii=False)}}]},
+    )
+    return await GeoResponseJudgeService(model="deepseek-test").evaluate(
+        company_name="测试品牌",
+        brand_aliases=[],
+        official_domains=["example.com"],
+        competitors=[],
+        question="问题",
+        question_type="recommendation",
+        answer="测试品牌是首选。",
+        citations=citations,
+        citation_status=citation_status,
+    )
+
+
+@pytest.mark.asyncio
+async def test_judge_citation_supported_true_only_when_captured_with_evidence(monkeypatch):
+    """captured + 真实引用 → citation_supported=True,evidence 字段由真实引用回填。
+
+    LLM 声称支持引用的前提必须与真实采集一致;新证据链下以真实采集为准。
+    """
+    result = await _evaluate_with_status(monkeypatch, "captured", _CITATION_SRC)
+    assert result["citation_supported"] is True
+    assert result["citation_status"] == "captured"
+    assert result["cited_urls"] == ["https://example.com/case", "https://example.org/doc"]
+    assert "example.com" in result["cited_domains"]
+
+
+@pytest.mark.asyncio
+async def test_judge_citation_supported_forced_false_on_empty_even_if_llm_claims(monkeypatch):
+    """empty(抓取成功但零条)→ citation_supported 恒 False,压制 LLM 猜测。"""
+    result = await _evaluate_with_status(monkeypatch, "empty", [])
+    assert result["citation_supported"] is False
+    assert result["own_source_cited"] is False
+    assert result["citation_status"] == "empty"
+    assert result["cited_urls"] == []
+
+
+@pytest.mark.asyncio
+async def test_judge_citation_supported_forced_false_on_unavailable(monkeypatch):
+    """unavailable(抓取异常)→ citation_supported 恒 False。"""
+    result = await _evaluate_with_status(monkeypatch, "unavailable", None)
+    assert result["citation_supported"] is False
+    assert result["own_source_cited"] is False
+    assert result["citation_status"] == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_judge_citation_supported_forced_false_on_not_supported(monkeypatch):
+    """not_supported(平台无引用能力)→ citation_supported 恒 False,报表按 null 呈现。"""
+    result = await _evaluate_with_status(monkeypatch, "not_supported", None)
+    assert result["citation_supported"] is False
+    assert result["own_source_cited"] is False
+    assert result["citation_status"] == "not_supported"
+
+
+@pytest.mark.asyncio
+async def test_judge_legacy_without_status_keeps_llm_heuristic(monkeypatch):
+    """未上报引用状态(遗留调用方)→ 保留历史语义:LLM 猜测与真实引用取或。"""
+    _patch_judge(monkeypatch)
+    _FakeAsyncClient.response = _FakeResponse(
+        payload={"choices": [{"message": {"content": json.dumps(_llm_claim_strong_support(), ensure_ascii=False)}}]},
+    )
+    result = await GeoResponseJudgeService(model="deepseek-test").evaluate(
+        company_name="测试品牌",
+        brand_aliases=[],
+        official_domains=["example.com"],
+        competitors=[],
+        question="问题",
+        question_type="recommendation",
+        answer="测试品牌是首选。",
+        citations=[],
+    )
+    # 无三态上报 + LLM 声称有引用 → 保持 legacy 行为为 True
+    assert result["citation_supported"] is True
+    assert result["citation_status"] is None
+
+
+@pytest.mark.asyncio
+async def test_judge_fallback_honors_declared_status_on_api_error(monkeypatch):
+    """LLM 失败降级路径同样尊重三态:empty 上报时降级结果 citation_supported 为 False。"""
+    _patch_judge(monkeypatch)
+    _FakeAsyncClient.response = _FakeResponse(status_code=500, text="server error")
+
+    result = await GeoResponseJudgeService(model="deepseek-test").evaluate(
+        company_name="测试品牌",
+        brand_aliases=[],
+        official_domains=[],
+        competitors=[],
+        question="问题",
+        question_type="recommendation",
+        answer="测试品牌是不错的选择。",
+        citations=[],
+        citation_status="empty",
+    )
+    assert result["judge_error"].startswith("LLM judge")
+    assert result["citation_supported"] is False
+    assert result["citation_status"] == "empty"
+
+
+@pytest.mark.asyncio
+async def test_judge_fallback_captured_status_keeps_real_citations(monkeypatch):
+    """降级路径 + captured 真实引用:即便无 LLM,真实引用证据仍回填 cited_urls。"""
+    _patch_judge(monkeypatch)
+    _FakeAsyncClient.response = _FakeResponse(status_code=500, text="server error")
+
+    result = await GeoResponseJudgeService(model="deepseek-test").evaluate(
+        company_name="测试品牌",
+        brand_aliases=[],
+        official_domains=[],
+        competitors=[],
+        question="问题",
+        question_type="recommendation",
+        answer="测试品牌是不错的选择。",
+        citations=_CITATION_SRC,
+        citation_status="captured",
+    )
+    assert result["citation_supported"] is True
+    assert result["cited_urls"] == ["https://example.com/case", "https://example.org/doc"]
     assert result["brand_mentioned"] is True  # 关键词降级命中

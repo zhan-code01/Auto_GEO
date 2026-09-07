@@ -16,6 +16,38 @@ from backend.config import (
     AUTOGEO_CONVERSATION_LLM_BASE_URL,
     AUTOGEO_CONVERSATION_LLM_MODEL,
 )
+from backend.services.geo_citation import (
+    CITATION_STATUS_CAPTURED,
+    CITATION_STATUS_EMPTY,
+    CITATION_STATUS_NOT_SUPPORTED,
+    CITATION_STATUS_UNAVAILABLE,
+)
+
+# 引用状态判定：无可用引用证据的状态集合（这些状态下引用字段只应为 False/空）。
+_CITATION_NO_EVIDENCE_STATUSES = frozenset(
+    {
+        CITATION_STATUS_EMPTY,
+        CITATION_STATUS_UNAVAILABLE,
+        CITATION_STATUS_NOT_SUPPORTED,
+    }
+)
+
+
+def _citation_supported_from_evidence(citations: Optional[List], citation_status: Optional[str]) -> bool:
+    """引用支撑判定：新证据链下只由真实采集引用决定。
+
+    - 上报了 empty/unavailable/not_supported → 确定无可用引用证据，恒为 False；
+    - 否则沿用历史语义：citations 非空即为有引用（兼容未上报状态的调用方）。
+    """
+    if citation_status in _CITATION_NO_EVIDENCE_STATUSES:
+        return False
+    return bool(citations)
+
+
+def _citation_evidence_declared(citation_status: Optional[str]) -> bool:
+    """调用方是否已上报引用状态（区分「新证据链」与「遗留调用方」）。"""
+    return citation_status == CITATION_STATUS_CAPTURED or citation_status in _CITATION_NO_EVIDENCE_STATUSES
+
 
 # 评估 schema 版本号
 SCHEMA_VERSION = "1.0.0"
@@ -186,11 +218,15 @@ class GeoResponseJudgeService:
         question_type: str,
         answer: str,
         citations: Optional[List[Dict[str, str]]] = None,
+        citation_status: Optional[str] = None,
     ) -> Dict[str, Any]:
         """评估单条 AI 回答。
 
         LLM 评分失败时返回带 judge_error 的降级结果，而不是抛异常，
         以免把 LLM 抖动误判为平台风控失败。
+
+        citation_status 为引用证据链三态（captured/empty/unavailable/not_supported）：
+        新证据链下引用类字段只由真实采集引用决定，LLM 猜测不得越权。
         """
         if not answer:
             raise ValueError("无法评估空回答")
@@ -204,10 +240,11 @@ class GeoResponseJudgeService:
                 question_type,
                 answer,
                 citations,
+                citation_status,
             )
         except Exception as e:
             logger.warning(f"[Judge] LLM 评估失败，返回降级结果: {e}")
-            return self._fallback_result(company_name, answer, citations, str(e))
+            return self._fallback_result(company_name, answer, citations, str(e), citation_status)
 
     # ── 真实 LLM 评估 ──
 
@@ -221,6 +258,7 @@ class GeoResponseJudgeService:
         question_type: str,
         answer: str,
         citations: Optional[List[Dict[str, str]]] = None,
+        citation_status: Optional[str] = None,
     ) -> Dict[str, Any]:
         """通过 httpx 调用 DeepSeek API 进行评估"""
         import httpx
@@ -308,7 +346,7 @@ class GeoResponseJudgeService:
                     raise RuntimeError(f"LLM judge {last_error}") from e
 
                 # 解析成功，规范化并返回
-                return self._normalize_result(result, citations)
+                return self._normalize_result(result, citations, citation_status)
 
             except httpx.TimeoutException:
                 last_error = f"API 超时({JUDGE_TIMEOUT_SECONDS:.0f}s)"
@@ -336,9 +374,10 @@ class GeoResponseJudgeService:
         self,
         result: Dict[str, Any],
         citations: Optional[List[Dict[str, str]]] = None,
+        citation_status: Optional[str] = None,
     ) -> Dict[str, Any]:
         """校验 & 补全评估结果字段"""
-        citation_supported = bool(citations)
+        evidence_supported = _citation_supported_from_evidence(citations, citation_status)
         cited_urls: List[str] = []
         cited_domains: List[str] = []
         for citation in citations or []:
@@ -358,8 +397,17 @@ class GeoResponseJudgeService:
         result.setdefault("is_recommended", False)
         result.setdefault("recommendation_rank", None)
         result.setdefault("ranking_score", 0)
-        result["citation_supported"] = bool(result.get("citation_supported") or citation_supported)
-        result.setdefault("own_source_cited", False)
+        if _citation_evidence_declared(citation_status):
+            # 新证据链：引用支撑只由真实采集引用决定，LLM 猜测不得越权（否则会抹平三态）。
+            result["citation_supported"] = evidence_supported
+        else:
+            # 遗留调用方（未上报引用状态）：保留历史语义，LLM 可从引用文本自行判断。
+            result["citation_supported"] = bool(result.get("citation_supported") or evidence_supported)
+        if not evidence_supported:
+            # 无真实引用证据时，自有来源引用恒为 False，防止 LLM 从正文臆断。
+            result["own_source_cited"] = False
+        else:
+            result.setdefault("own_source_cited", False)
         if not result.get("cited_urls") and cited_urls:
             result["cited_urls"] = cited_urls
         else:
@@ -368,6 +416,7 @@ class GeoResponseJudgeService:
             result["cited_domains"] = cited_domains
         else:
             result.setdefault("cited_domains", [])
+        result["citation_status"] = citation_status
         result.setdefault("sentiment", "not_mentioned" if not result.get("brand_mentioned") else "neutral")
         result.setdefault("sentiment_score", 0)
         result.setdefault("visibility_score", 0)
@@ -397,17 +446,20 @@ class GeoResponseJudgeService:
         answer: str,
         citations: Optional[List[Dict[str, str]]],
         error: str,
+        citation_status: Optional[str] = None,
     ) -> Dict[str, Any]:
         """LLM 评分失败时的降级结果：基于关键词做最小可信评估，并标记 judge_error。"""
         mentioned = company_name in answer
+        evidence_supported = _citation_supported_from_evidence(citations, citation_status)
         cited_urls: List[str] = []
         cited_domains: List[str] = []
-        for citation in citations or []:
-            if isinstance(citation, dict):
-                if citation.get("url"):
-                    cited_urls.append(citation["url"])
-                if citation.get("domain"):
-                    cited_domains.append(citation["domain"])
+        if evidence_supported:
+            for citation in citations or []:
+                if isinstance(citation, dict):
+                    if citation.get("url"):
+                        cited_urls.append(citation["url"])
+                    if citation.get("domain"):
+                        cited_domains.append(citation["domain"])
 
         logger.warning(
             f"[Judge] 降级评估 company={company_name} mentioned={mentioned} "
@@ -420,10 +472,11 @@ class GeoResponseJudgeService:
             "is_recommended": False,
             "recommendation_rank": None,
             "ranking_score": 0,
-            "citation_supported": bool(citations),
+            "citation_supported": evidence_supported,
             "own_source_cited": False,
             "cited_urls": cited_urls,
             "cited_domains": cited_domains,
+            "citation_status": citation_status,
             "sentiment": "neutral" if mentioned else "not_mentioned",
             "sentiment_score": 50 if mentioned else 0,
             "visibility_score": 20 if mentioned else 0,

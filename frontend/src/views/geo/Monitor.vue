@@ -308,6 +308,22 @@
             {{ sentimentLabel(answerRecord.sentiment) }}
           </el-tag>
         </div>
+        <div v-if="answerCitation && answerCitation.kind !== 'none'" class="answer-citations">
+          <div class="answer-citations-head">
+            <strong>引用来源：</strong>
+            <el-tag :type="citationTagType(answerCitation.kind)" size="small" effect="plain">
+              {{ answerCitation.label }}
+            </el-tag>
+          </div>
+          <ul v-if="answerCitation.links.length" class="citation-list">
+            <li v-for="(link, i) in answerCitation.links" :key="i">
+              <a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
+              <span v-if="link.domain" class="citation-domain">{{ link.domain }}</span>
+            </li>
+          </ul>
+          <div v-else-if="answerCitation.tooltip" class="citation-note">{{ answerCitation.tooltip }}</div>
+          <div v-if="answerCitation.captureMethod" class="citation-note">采集方式：{{ answerCitation.captureMethod }}</div>
+        </div>
         <div class="answer-body-box">
           <strong>AI 回答：</strong>
           <div class="answer-text">{{ answerRecord.answer || '（无回答内容）' }}</div>
@@ -332,6 +348,7 @@ import { accountApi, clientApi, del, geoEvaluationApi, get, post } from '@/servi
 import { useUserStore } from '@/stores/modules/user'
 import GeoEvaluationStatus from '@/components/business/geo/GeoEvaluationStatus.vue'
 import GeoEvidenceTable from '@/components/business/geo/GeoEvidenceTable.vue'
+import { describeCitationState, citationTagType } from '@/components/business/geo/citationState'
 import GeoCompetitorAnalysis from '@/components/business/geo/GeoCompetitorAnalysis.vue'
 import GeoFiveMetrics from '@/components/business/geo/GeoFiveMetrics.vue'
 import GeoMetricComparisonChart from '@/components/business/geo/GeoMetricComparisonChart.vue'
@@ -523,6 +540,7 @@ const availablePlatforms = ref<Platform[]>([
 
 const answerVisible = ref(false)
 const answerRecord = ref<any>(null)
+const answerCitation = computed(() => (answerRecord.value ? describeCitationState(answerRecord.value) : null))
 const evidenceRef = ref<InstanceType<typeof GeoEvidenceTable> | null>(null)
 const selectedPlatformFilter = ref('')
 
@@ -1779,6 +1797,57 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.answer-citations {
+  padding: 12px 16px;
+  background: var(--surface-field, #faf7f0);
+  border: 1px solid var(--border-thin);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.answer-citations-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.citation-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.citation-list li {
+  word-break: break-all;
+}
+
+.citation-list a {
+  color: var(--text-link, #3a6b8c);
+  text-decoration: none;
+}
+
+.citation-list a:hover {
+  text-decoration: underline;
+}
+
+.citation-domain {
+  margin-left: 8px;
+  color: var(--text-disabled, #c0c4cc);
+  font-size: 12px;
+}
+
+.citation-note {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .answer-body-box strong {

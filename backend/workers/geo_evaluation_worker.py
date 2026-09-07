@@ -33,6 +33,12 @@ import httpx  # noqa: E402
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright  # noqa: E402
 
 from backend.config import AI_PLATFORMS, BROWSER_ARGS  # noqa: E402
+from backend.services.geo_citation import (  # noqa: E402
+    CITATION_STATUS_NOT_SUPPORTED,
+    CITATION_STATUS_UNAVAILABLE,
+    classify_citation_status,
+    platform_supports_citations,
+)
 from backend.services.local_browser_bridge import local_browser_bridge  # noqa: E402
 from backend.services.playwright.ai_platforms import DeepSeekChecker, DoubaoChecker, QianwenChecker  # noqa: E402
 from backend.services.playwright.risk_detector import RiskDetection, risk_detector  # noqa: E402
@@ -189,10 +195,11 @@ class WorkerApi:
                 "question": prompt["question"],
                 "success": result["success"],
                 "answer": result.get("answer"),
-                "citations": [],
+                "citations": result.get("citations"),
+                "citation_status": result.get("citation_status"),
                 "error_msg": result.get("error"),
                 "context_cleaned": True,
-                "capture_method": result.get("method"),
+                "capture_method": result.get("method") or result.get("capture_method"),
                 "attempt_count": result.get("attempt_count", 1),
             },
         )
@@ -417,10 +424,13 @@ class GeoEvaluationWorker:
             answer = await self._wait_and_capture(page, question, before)
             if not answer.get("success"):
                 raise RuntimeError(answer.get("error_msg") or "未获取到完整回答")
+            captured = await self._capture_citations(page)
             return {
                 "success": True,
                 "answer": answer["answer"],
                 "method": answer.get("method") or "dom",
+                "citations": captured["citations"],
+                "citation_status": captured["citation_status"],
             }
         finally:
             await page.close()
@@ -475,6 +485,35 @@ class GeoEvaluationWorker:
                         return
             await asyncio.sleep(0.25)
         raise RuntimeError("未在聊天区确认当前问题已发送")
+
+    async def _capture_citations(self, page: Page) -> dict[str, Any]:
+        """回答稳定后从页面抽取引用来源，并归类引用三态。
+
+        引用采集失败不影响回答成功落库：引用不可信不等于回答不可用，
+        状态由判卷/报表层区分（captured/empty/unavailable/not_supported）。
+        """
+        if not platform_supports_citations(self.platform):
+            emit("citation_skipped", platform=self.platform, reason="not_supported")
+            return {"citations": None, "citation_status": CITATION_STATUS_NOT_SUPPORTED}
+        try:
+            # DOM 抽取引用可能在回答渲染完成后才出现，做少量有界重试。
+            citations = []
+            for _ in range(3):
+                citations = await self.checker.extract_citations_from_page(page)
+                if citations:
+                    break
+                await asyncio.sleep(0.8)
+            status = classify_citation_status(True, citations)
+            emit(
+                "citation_captured",
+                platform=self.platform,
+                count=len(citations) if citations else 0,
+                status=status,
+            )
+            return {"citations": citations, "citation_status": status}
+        except Exception as exc:
+            emit("citation_capture_failed", platform=self.platform, error=str(exc)[:300])
+            return {"citations": None, "citation_status": CITATION_STATUS_UNAVAILABLE}
 
     async def _wait_and_capture(
         self,

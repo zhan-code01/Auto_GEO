@@ -125,6 +125,16 @@
           <span v-else class="na">-</span>
         </template>
       </el-table-column>
+      <el-table-column label="引用" width="128" align="center">
+        <template #default="{ row }">
+          <el-tooltip v-if="row.__citation?.tooltip" :content="row.__citation.tooltip" placement="top">
+            <el-tag :type="citationTagType(row.__citation.kind)" size="small" effect="plain">
+              {{ row.__citation.label }}
+            </el-tag>
+          </el-tooltip>
+          <span v-else class="na">—</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="asked_at" label="时间" width="116">
         <template #default="{ row }">
           <span class="time-cell">{{ fmtTime(row.asked_at || row.created_at) }}</span>
@@ -169,6 +179,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox, type CheckboxValueType } from 'element-plus'
 import { geoEvaluationApi } from '@/services/api'
+import { describeCitationState, citationTagType } from './citationState'
 
 const props = defineProps<{
   projectId?: number | null
@@ -279,7 +290,7 @@ const loadPage = async (page?: number) => {
 
     const res = await geoEvaluationApi.getClientRecords(props.clientId, params, { silent: true })
     const data = (res as any)?.data || res || {}
-    tableData.value = data.items || []
+    tableData.value = (data.items || []).map((item: any) => ({ ...item, __citation: describeCitationState(item) }))
     total.value = data.total || 0
   } catch (e: any) {
     console.error('加载证据明细失败:', e)

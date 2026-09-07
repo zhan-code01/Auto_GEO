@@ -2411,6 +2411,12 @@ class GeoEvaluationRecord(Base):
     question = Column(Text, nullable=False, comment="提问内容")
     answer = Column(Text, nullable=True, comment="AI 原始回答")
     raw_citations = Column(JSON, nullable=True, comment="原始引用来源")
+    citation_status = Column(
+        String(20),
+        nullable=True,
+        comment="引用三态：captured/empty/unavailable/not_supported（NULL=历史未标注）",
+    )
+    capture_method = Column(String(30), nullable=True, comment="回答/引用采集方式：clipboard/dom/dom-visible-candidate/network 等")
     context_cleaned = Column(Boolean, default=True, comment="是否清空了上下文")
 
     # 执行状态
