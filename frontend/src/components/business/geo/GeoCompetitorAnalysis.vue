@@ -23,19 +23,20 @@
     <template v-else>
       <div v-if="!data" v-loading="loading" class="gca-empty" style="min-height: 120px" />
 
-      <template v-else-if="data.total_records > 0">
+      <template v-else-if="data.total_records > 0 || data.total_units > 0">
         <div class="gca-summary">
           <div class="summary-item">
-            <div class="summary-value">{{ data.total_records }}</div>
-            <div class="summary-label">有效测评回答</div>
+            <div class="summary-value">{{ data.total_units }}</div>
+            <div class="summary-label">有效回答单元（问题×平台去重）</div>
+            <div class="summary-legacy">原始行 {{ data.total_records }}（旧口径，只读）</div>
           </div>
           <div class="summary-item">
-            <div class="summary-value highlight">{{ data.own_source_rate }}%</div>
-            <div class="summary-label">自有来源引用率</div>
+            <div class="summary-value highlight">{{ data.own_source_unit_rate }}%</div>
+            <div class="summary-label">自有来源引用率（单元级）</div>
           </div>
           <div class="summary-item">
-            <div class="summary-value">{{ data.own_source_cited_count }}</div>
-            <div class="summary-label">引用我方来源次数</div>
+            <div class="summary-value">{{ data.own_source_cited_units }}</div>
+            <div class="summary-label">引用我方来源单元</div>
           </div>
           <div class="summary-item" v-if="data.own_domain">
             <div class="summary-value small">{{ data.own_domain }}</div>
@@ -45,7 +46,7 @@
 
         <div class="gca-sections">
           <div class="gca-section">
-            <div class="section-title">品牌提及份额</div>
+            <div class="section-title">品牌提及份额<span class="sec-badge">口径 v2</span></div>
             <el-table :data="data.brand_shares" size="small" max-height="320" empty-text="暂无品牌提及记录">
               <el-table-column label="品牌" min-width="140">
                 <template #default="{ row }">
@@ -56,13 +57,14 @@
                   <el-tag v-else-if="row.is_competitor" size="small" type="warning" effect="plain" class="mini-tag">竞品</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="mentions" label="提及次数" width="90" />
-              <el-table-column label="提及份额" width="160">
+              <el-table-column prop="mentioned_units" label="提及单元" width="86" align="center" />
+              <el-table-column label="回答份额" width="180">
                 <template #default="{ row }">
                   <div class="bar-wrap">
-                    <div class="bar" :style="{ width: barWidth(row.share), background: row.is_own ? '#67c23a' : '#a0cfff' }" />
-                    <span class="bar-text">{{ row.share }}%</span>
+                    <div class="bar" :style="{ width: barWidth(row.answer_share), background: row.is_own ? '#67c23a' : '#a0cfff' }" />
+                    <span class="bar-text">{{ row.answer_share }}%</span>
                   </div>
+                  <div class="share-sub">提及率 {{ row.mention_rate }}%（可&gt;100%）</div>
                 </template>
               </el-table-column>
             </el-table>
@@ -72,7 +74,7 @@
           </div>
 
           <div class="gca-section">
-            <div class="section-title">AI 引用域名榜</div>
+            <div class="section-title">AI 引用域名榜<span class="sec-badge">口径 v2</span></div>
             <el-table :data="data.top_domains" size="small" max-height="320" empty-text="回答中未提取到引用来源">
               <el-table-column label="域名" min-width="170">
                 <template #default="{ row }">
@@ -80,17 +82,23 @@
                   <el-tag v-if="row.is_own" size="small" type="success" effect="plain" class="mini-tag">我方</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="citations" label="被引次数" width="90" />
-              <el-table-column label="出现率" width="160">
+              <el-table-column prop="cited_units" label="引用单元" width="86" align="center" />
+              <el-table-column label="引用份额" width="190">
                 <template #default="{ row }">
                   <div class="bar-wrap">
-                    <div class="bar" :style="{ width: barWidth(row.share), background: row.is_own ? '#67c23a' : '#a0cfff' }" />
-                    <span class="bar-text">{{ row.share }}%</span>
+                    <div class="bar" :style="{ width: barWidth(row.citation_share), background: row.is_own ? '#67c23a' : '#a0cfff' }" />
+                    <span class="bar-text">{{ row.citation_share }}%</span>
                   </div>
+                  <div class="share-sub">合格引用份额 {{ row.qualified_citation_share }}%（{{ row.qualified_cited_units }} 单元）</div>
                 </template>
               </el-table-column>
             </el-table>
           </div>
+        </div>
+
+        <div class="gca-footnote">
+          口径 v2：按 问题×平台 去重计数。answer_share 总和≈100%；mention_rate 因多品牌同现总和可&gt;100%；
+          qualified_citation_share 仅计 captured 且有原始证据的引用；旧 share/提及次数 字段只读保留、不再更新。
         </div>
 
         <div v-if="data.by_platform.length" class="gca-platforms">
@@ -99,10 +107,10 @@
             <div v-for="p in data.by_platform" :key="p.platform" class="platform-card">
               <div class="platform-head">
                 <strong>{{ p.platform_name }}</strong>
-                <span class="muted">{{ p.total }} 条</span>
+                <span class="muted">{{ p.total }} 单元</span>
               </div>
               <div class="platform-metric">
-                自有来源引用率 <b>{{ p.own_source_rate }}%</b>
+                自有来源引用率 <b>{{ p.own_source_unit_rate }}%</b>
               </div>
               <div class="platform-line" v-if="p.top_names.length">
                 高频品牌：{{ p.top_names.slice(0, 3).map(n => n.name).join('、') }}
@@ -130,27 +138,42 @@ import { geoEvaluationApi } from '@/services/api'
 
 interface BrandShare {
   name: string
+  canonical: string
+  // 旧口径字段（只读保留、不再更新）
   mentions: number
   share: number
   is_own: boolean
   is_competitor: boolean
+  // 口径 v2 字段（权威）
+  mentioned_units: number
+  mention_rate: number
+  answer_share: number
 }
 
 interface DomainRow {
   domain: string
+  is_own: boolean
+  // 旧口径字段（只读保留、不再更新）
   citations: number
   share: number
-  is_own: boolean
+  // 口径 v2 字段（权威）
+  cited_units: number
+  citation_share: number
+  qualified_cited_units: number
+  qualified_citation_share: number
 }
 
 interface PlatformBlock {
   platform: string
   platform_name: string
   total: number
+  legacy_total: number
   own_source_cited: number
   own_source_rate: number
+  own_source_cited_units: number
+  own_source_unit_rate: number
   top_names: BrandShare[]
-  top_domains: { domain: string; citations: number }[]
+  top_domains: DomainRow[]
 }
 
 interface CompetitorAnalysis {
@@ -158,9 +181,16 @@ interface CompetitorAnalysis {
   company_name: string
   own_domain: string | null
   competitor_watchlist: string[]
+  metric_version: number
+  metric_version_label: string
+  metric_version_note: string
+  legacy_metric_version: number
   total_records: number
+  total_units: number
   own_source_cited_count: number
   own_source_rate: number
+  own_source_cited_units: number
+  own_source_unit_rate: number
   brand_shares: BrandShare[]
   top_domains: DomainRow[]
   by_platform: PlatformBlock[]
@@ -281,6 +311,16 @@ watch(() => props.platform, () => load())
   color: #606266;
   margin-bottom: 8px;
 }
+.sec-badge {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #909399;
+  background: #f0f2f5;
+  border-radius: 3px;
+  padding: 1px 5px;
+  vertical-align: 1px;
+}
 .bar-wrap {
   position: relative;
   height: 14px;
@@ -300,6 +340,26 @@ watch(() => props.platform, () => load())
   font-size: 11px;
   line-height: 14px;
   color: #303133;
+}
+.share-sub {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #909399;
+  line-height: 1.4;
+}
+.summary-legacy {
+  font-size: 11px;
+  color: #c0c4cc;
+  margin-top: 2px;
+}
+.gca-footnote {
+  margin-top: 14px;
+  padding: 8px 12px;
+  background: #fafbfc;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #909399;
 }
 .own-name {
   color: #67c23a;

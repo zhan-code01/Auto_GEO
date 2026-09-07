@@ -363,7 +363,7 @@ async def get_client_competitor_analysis(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_from_token),
 ):
-    """竞品与来源分析：品牌提及份额、引用域名榜、自有来源引用率。"""
+    """竞品与来源分析（份额口径 v2）：品牌四指标、引用域名榜、自有来源引用率。见 geo_share_metrics。"""
     _require_client_owner(db, client_id, current_user)
 
     analytics = GeoEvaluationAnalyticsService(db)

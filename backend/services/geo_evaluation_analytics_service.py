@@ -7,19 +7,29 @@ The active monitor model uses four visible metrics:
 - recommendation ranking score
 - sentiment score
 
-Citation fields may still exist on records for historical compatibility, but
-they are no longer part of aggregation, diagnosis, or UI metrics.
+Citation fields (raw_citations / cited_domains / citation_status / capture_method)
+are consumed by the competitor & source analysis (份额口径重写 v2), see
+geo_share_metrics / geo_brand_alias; they are not part of the four-metric diagnosis.
 """
 
 import re
-from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from backend.database.models import GeoEvaluationRecord, GeoPrompt, GeoPromptSet, Project, Client
+from backend.database.models import (
+    Client,
+    GeoBrandAlias,
+    GeoEvaluationRecord,
+    GeoPrompt,
+    GeoPromptSet,
+    Project,
+)
+from backend.services.geo_brand_alias import BrandAliasResolver
+from backend.services.geo_share_metrics import compute_share_report
 
 
 DIRECT_BRAND_QUESTION_TYPES = {"reputation", "brand_awareness"}
@@ -811,10 +821,14 @@ class GeoEvaluationAnalyticsService:
         platform: Optional[str] = None,
         top_domains: int = 15,
     ) -> Dict[str, Any]:
-        """竞品与来源分析：品牌提及份额 + 引用域名榜 + 自有来源引用率。
+        """竞品与来源分析(份额口径 v2,§六 优化项2)：品牌四指标 + 引用域名榜 + 自有来源引用率。
 
-        复用测评判卷时落库的 cited_domains / matched_names / own_source_cited 字段，
-        做纯读聚合，不改动四指标诊断模型。
+        计数单位 = 多轮去重后的"问题×平台"单元：brand 行输出 mention_rate/answer_share，
+        domain 行输出 citation_share/qualified_citation_share，自有来源引用率按单元计。
+        品牌提及名经 geo_brand_aliases 别名表(客户级作用域)+ 内置归一归一到规范名；
+        旧单值 share/mentions 字段按 v1 公式只读保留、停更(见 geo_share_metrics 口径版本化)。
+        复用判卷落库的 matched_names / cited_domains / raw_citations / citation_status /
+        own_source_cited，纯读聚合，不改动四指标诊断模型。
         """
         client = self.db.query(Client).filter(Client.id == client_id).first()
         if not client:
@@ -822,7 +836,6 @@ class GeoEvaluationAnalyticsService:
 
         company_name = (client.company_name or client.name or "").strip()
         own_domain = self._extract_domain(client.website)
-        own_key = self._normalize_brand_text(company_name)
 
         # 竞品观察名单来自提示词级配置（geo_prompts.competitor_names）
         watch_names: set = set()
@@ -845,84 +858,34 @@ class GeoEvaluationAnalyticsService:
         if platform:
             query = query.filter(GeoEvaluationRecord.platform == platform)
         records = query.all()
-        total = len(records)
 
-        brand_counter: Counter = Counter()
-        domain_counter: Counter = Counter()
-        own_cited = 0
-        platform_stats: Dict[str, Dict[str, Any]] = {}
-
-        for r in records:
-            names = {n.strip() for n in (r.matched_names or []) if isinstance(n, str) and n.strip()}
-            domains = {d.strip().lower() for d in (r.cited_domains or []) if isinstance(d, str) and d.strip()}
-            brand_counter.update(names)
-            domain_counter.update(domains)
-            if r.own_source_cited:
-                own_cited += 1
-
-            stat = platform_stats.setdefault(
-                r.platform,
-                {"total": 0, "own_cited": 0, "mentions": Counter(), "domains": Counter()},
+        # 别名行:客户级作用域 = 全局行 + 该客户行(project_id 为空);项目级行留给后续
+        # 项目级端点,避免跨项目误映射。表空时由内置文本归一兜底(见 geo_brand_alias)。
+        alias_rows = (
+            self.db.query(GeoBrandAlias)
+            .filter(
+                or_(GeoBrandAlias.client_id.is_(None), GeoBrandAlias.client_id == client_id),
+                GeoBrandAlias.project_id.is_(None),
             )
-            stat["total"] += 1
-            if r.own_source_cited:
-                stat["own_cited"] += 1
-            stat["mentions"].update(names)
-            stat["domains"].update(domains)
-
-        def _brand_row(name: str, count: int) -> Dict[str, Any]:
-            norm = self._normalize_brand_text(name)
-            # 公司全称与回答中的简称互为包含即视为我方（如「XX有限公司」vs「XX」）
-            is_own = bool(own_key) and bool(norm) and (own_key in norm or norm in own_key)
-            return {
-                "name": name,
-                "mentions": count,
-                "share": round(count / total * 100, 1) if total else 0,
-                "is_own": is_own,
-                "is_competitor": name in watch_names and not is_own,
-            }
-
-        brand_shares = sorted(
-            (_brand_row(n, c) for n, c in brand_counter.items()),
-            key=lambda x: (-x["mentions"], x["name"]),
+            .all()
         )
-        domain_rows = [
-            {
-                "domain": d,
-                "citations": c,
-                "share": round(c / total * 100, 1) if total else 0,
-                "is_own": d == own_domain,
-            }
-            for d, c in domain_counter.most_common(max(1, top_domains))
-        ]
 
-        platform_names = {"doubao": "豆包", "qianwen": "通义千问", "deepseek": "DeepSeek"}
-        by_platform = []
-        for p, stat in sorted(platform_stats.items(), key=lambda kv: -kv[1]["total"]):
-            by_platform.append(
-                {
-                    "platform": p,
-                    "platform_name": platform_names.get(p, p),
-                    "total": stat["total"],
-                    "own_source_cited": stat["own_cited"],
-                    "own_source_rate": round(stat["own_cited"] / stat["total"] * 100, 1) if stat["total"] else 0,
-                    "top_names": [_brand_row(n, c) for n, c in stat["mentions"].most_common(5)],
-                    "top_domains": [{"domain": d, "citations": c} for d, c in stat["domains"].most_common(8)],
-                }
-            )
+        resolver = BrandAliasResolver(
+            own_label=company_name,
+            watch_labels=watch_names,
+            alias_rows=alias_rows,
+        )
 
-        return {
-            "client_id": client_id,
-            "company_name": company_name,
-            "own_domain": own_domain,
-            "competitor_watchlist": sorted(watch_names),
-            "total_records": total,
-            "own_source_cited_count": own_cited,
-            "own_source_rate": round(own_cited / total * 100, 1) if total else 0,
-            "brand_shares": brand_shares,
-            "top_domains": domain_rows,
-            "by_platform": by_platform,
-        }
+        return compute_share_report(
+            records=records,
+            resolver=resolver,
+            own_domain=own_domain,
+            watch_names=watch_names,
+            platform_names={"doubao": "豆包", "qianwen": "通义千问", "deepseek": "DeepSeek"},
+            top_domains=top_domains,
+            client_id=client_id,
+            company_name=company_name,
+        )
 
     @staticmethod
     def _extract_domain(url: Optional[str]) -> Optional[str]:

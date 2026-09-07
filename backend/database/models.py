@@ -2267,6 +2267,56 @@ class GeoPrompt(Base):
         return f"<GeoPrompt id={self.id} type={self.question_type}>"
 
 
+class GeoBrandAlias(Base):
+    """GEO 品牌别名表（份额口径归一用）
+
+    把判卷落库的 matched_names 自由文本写法归一到 canonical_name，供竞品/来源份额聚合读时使用。
+
+    作用域语义：client_id + project_id 双 NULL = 全局行；client_id 有值 + project_id NULL = 客户级；
+    双有值 = 项目级。**不支持** client_id NULL + project_id 有值。
+    优先：项目级 > 客户级 > 全局（解析器分桶后按序命中）。
+
+    本切片只建表、不建 CRUD/UI，表初始为空。唯一性注意：PostgreSQL 下复合唯一把 NULL 视为互不相同，
+    同一 alias 多条全局行仍可插入；CRUD 切片上线写入前须补 partial unique index（见迁移 0038 注释）。
+    """
+
+    __tablename__ = "geo_brand_aliases"
+    __table_args__ = (
+        UniqueConstraint(
+            "alias",
+            "client_id",
+            "project_id",
+            name="uq_geo_brand_aliases_alias_scope",
+        ),
+        TABLE_ARGS,
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    client_id = Column(
+        Integer,
+        ForeignKey("clients.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="作用域：所属公司ID（NULL 表示全局/客户级之上的全局档）",
+    )
+    project_id = Column(
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="作用域：所属项目ID（NULL 表示全局/客户级档）",
+    )
+    alias = Column(String(255), nullable=False, index=True, comment="原始写法（matched_names/回答中出现的拼写）")
+    canonical_name = Column(String(255), nullable=False, comment="归一后的规范品牌名")
+    created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
+
+    client = relationship("Client")
+    project = relationship("Project")
+
+    def __repr__(self):
+        return f"<GeoBrandAlias alias={self.alias!r} canonical={self.canonical_name!r}>"
+
+
 class GeoEvaluationRun(Base):
     """GEO 测评任务表
 
