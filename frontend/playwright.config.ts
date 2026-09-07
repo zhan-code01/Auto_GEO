@@ -2,10 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright 配置
- * 测试文件路径指向根目录的 tests/e2e
+ * 测试文件放在 frontend/e2e(与依赖同目录,保证 @playwright/test 可解析);
+ * 需要后端与种子数据,故默认不纳入 push CI,本地手动运行 npm test。
  */
 export default defineConfig({
-  testDir: '../tests/e2e',
+  testDir: './e2e',
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

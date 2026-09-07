@@ -6,7 +6,8 @@ AutoGeo 是一个前后端一体的自动化平台项目：
 
 - `backend/`：Python FastAPI 后端，包含 API、数据库模型、迁移、Playwright 自动化、静态资源与模板。
 - `frontend/`：Vue 3 + Vite + Electron 前端，主要 UI 在 `frontend/src`，桌面端入口在 `frontend/electron`。
-- `tests/`：测试目录，包含 `unit/`、`integration/`、`e2e/`，公共 fixture 在 `tests/conftest.py`。
+- `tests/`：后端 pytest 测试目录，包含 `unit/`、`integration/`，公共 fixture 在 `tests/conftest.py`。
+- `frontend/e2e/`：前端 Playwright e2e（依赖后端与种子数据，默认不纳入 push CI，本地 `npm test` 手动执行）。
 - `deploy/production/`：生产 Docker Compose 部署配置。
 - `extensions/cookie-sync/`：浏览器 Cookie 同步插件。
 - `docs/`：架构、部署、功能方案和实施文档。

@@ -105,14 +105,17 @@ jobs:
       - name: Install dependencies
         run: npm install --no-package-lock
 
-      - name: Run tests
-        run: npm run test
-
       - name: Type check
         run: npm run type-check
 
       - name: Build
-        run: npm run build || true
+        run: npm run build
+
+      # Playwright e2e 依赖后端与种子数据, CI 无此环境;默认跳过, 仅在仓库变量
+      # RUN_E2E_IN_CI=true 时开启(本地开发用 npm test 手动跑)。
+      - name: Run E2E tests
+        if: ${{ vars.RUN_E2E_IN_CI == 'true' }}
+        run: npm run test
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
