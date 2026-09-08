@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Electron/local-client GEO evaluation task protocol."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -94,7 +94,7 @@ class SessionStateRequest(BaseModel):
 
 
 def _now() -> datetime:
-    return datetime.utcnow() + timedelta(hours=8)
+    return (datetime.now(timezone.utc) + timedelta(hours=8)).replace(tzinfo=None)
 
 
 def _serialize_run(run: GeoEvaluationRun) -> Dict[str, Any]:

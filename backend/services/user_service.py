@@ -6,7 +6,7 @@
 
 import bcrypt
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from loguru import logger
@@ -33,12 +33,13 @@ class UserService:
 
     def _generate_token(self, user_id: int, username: str, role: str) -> str:
         """生成 JWT token"""
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         payload = {
             "user_id": user_id,
             "username": username,
             "role": role,
-            "exp": datetime.utcnow() + timedelta(days=7),
-            "iat": datetime.utcnow(),
+            "exp": now + timedelta(days=7),
+            "iat": now,
         }
         return jwt.encode(payload, self.secret_key, algorithm="HS256")
 
@@ -104,7 +105,7 @@ class UserService:
                 return {"success": False, "error": "用户名或密码错误"}
 
             # 更新最后登录时间
-            user.last_login = datetime.utcnow()
+            user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
             db.commit()
 
             # 生成 token

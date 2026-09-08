@@ -7,7 +7,7 @@
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -76,8 +76,7 @@ class ProjectResponse(BaseModel):
     status: int = 1
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class KeywordCreate(BaseModel):
@@ -100,8 +99,7 @@ class KeywordResponse(BaseModel):
 
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuestionVariantResponse(BaseModel):
@@ -112,8 +110,7 @@ class QuestionVariantResponse(BaseModel):
     question: str
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DistillRequest(BaseModel):

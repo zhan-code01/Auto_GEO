@@ -8,7 +8,7 @@ import uuid
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -80,8 +80,7 @@ class ReferenceArticleResponse(BaseModel):
     def serialize_collected_at(self, dt: datetime) -> str:
         return dt.isoformat() if dt else ""
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReferenceArticleListResponse(BaseModel):

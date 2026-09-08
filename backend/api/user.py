@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from loguru import logger
 import bcrypt
 import jwt
@@ -19,7 +19,7 @@ import os
 from backend.database.models import User
 from backend.database import get_db
 from backend.schemas import ApiResponse, ErrorResponse
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # 路由配置
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -65,8 +65,7 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdateRequest(BaseModel):
@@ -117,14 +116,19 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 
+def _utcnow() -> datetime:
+    """Naive UTC datetime for comparison with DB columns stored without tzinfo."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def create_access_token(user_id: int, username: str, expires_delta: Optional[timedelta] = None) -> str:
     """创建JWT访问令牌"""
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = _utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = _utcnow() + timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    payload = {"user_id": user_id, "username": username, "exp": expire, "iat": datetime.utcnow(), "type": "access"}
+    payload = {"user_id": user_id, "username": username, "exp": expire, "iat": _utcnow(), "type": "access"}
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
@@ -311,8 +315,8 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
             return ApiResponse(success=False, message="用户名或密码错误", data=None)
 
         # 检查账户锁定
-        if user.locked_until and user.locked_until > datetime.utcnow():
-            remaining_seconds = int((user.locked_until - datetime.utcnow()).total_seconds())
+        if user.locked_until and user.locked_until > _utcnow():
+            remaining_seconds = int((user.locked_until - _utcnow()).total_seconds())
             return ApiResponse(
                 success=False, message=f"账户已被锁定，请在 {remaining_seconds // 60 + 1} 分钟后重试", data=None
             )
@@ -328,7 +332,7 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
 
             # 如果失败次数超过阈值，锁定账户
             if user.failed_login_attempts >= MAX_LOGIN_ATTEMPTS:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION)
+                user.locked_until = _utcnow() + timedelta(minutes=LOCKOUT_DURATION)
                 db.commit()
                 logger.warning(f"用户 {user.username} 登录失败次数过多，账户已锁定")
                 return ApiResponse(
@@ -341,7 +345,7 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
         # 登录成功：重置失败计数，更新登录信息
         user.failed_login_attempts = 0
         user.locked_until = None
-        user.last_login = datetime.utcnow()
+        user.last_login = _utcnow()
         user.login_count = (user.login_count or 0) + 1
         db.commit()
 

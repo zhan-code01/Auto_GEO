@@ -4,7 +4,7 @@ Pydantic schemas 用于API请求和响应
 用这个做数据校验，别传垃圾数据给我！
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from enum import IntEnum
@@ -107,8 +107,7 @@ class AccountResponse(AccountBase):
     created_at: Optional[datetime] = None  # 防御NULL值
     updated_at: Optional[datetime] = None  # 防御NULL值
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AccountDetailResponse(AccountResponse):
@@ -149,8 +148,7 @@ class AccountGroupResponse(BaseModel):
     created_at: Optional[datetime] = None  # 防御NULL值
     updated_at: Optional[datetime] = None  # 防御NULL值
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== 批量操作相关 ====================
@@ -261,8 +259,7 @@ class ArticleResponse(ArticleBase):
     updated_at: Optional[datetime] = None  # 防御NULL值
     published_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ArticleListResponse(BaseModel):
@@ -436,8 +433,7 @@ class AutoPublishTaskResponse(BaseModel):
     created_at: Optional[datetime] = None  # 防御NULL值
     updated_at: Optional[datetime] = None  # 防御NULL值
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AutoPublishRecordResponse(BaseModel):
@@ -460,8 +456,7 @@ class AutoPublishRecordResponse(BaseModel):
     account_name: Optional[str] = None
     platform: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== 自动发布任务相关 ====================
@@ -506,8 +501,7 @@ class FeishuBindingResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FeishuBindingCheckResponse(BaseModel):

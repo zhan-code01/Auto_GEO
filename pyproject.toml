@@ -5,6 +5,13 @@
 line-length = 120
 target-version = "py312"
 
+[tool.pytest.ini_options]
+# Pin asyncio fixture loop scope to suppress pytest-asyncio's
+# "asyncio_default_fixture_loop_scope is unset" DeprecationWarning and keep
+# behavior explicit for existing async fixtures.
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+
 [tool.ruff.lint]
 # 只检查最基本的错误和未使用导入
 select = ["F"]
