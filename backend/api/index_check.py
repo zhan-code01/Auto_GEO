@@ -7,11 +7,12 @@
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.services.index_check_service import IndexCheckService
+from backend.services.ai_platform_registry import AI_EVALUATION_PLATFORMS
 from backend.database.models import IndexCheckRecord, Keyword, Project, User
 from backend.schemas import ApiResponse
 from backend.api.user import get_current_user_from_token
@@ -112,8 +113,7 @@ class RecordResponse(BaseModel):
     def serialize_check_time(self, dt: datetime) -> str:
         return dt.isoformat() if dt else ""
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HitRateResponse(BaseModel):
@@ -173,7 +173,7 @@ async def update_project_platforms(
     project = _require_project_owner(db, project_id, current_user)
 
     # 校验传入的平台 ID 是否合法
-    valid_platforms = {"doubao", "qianwen", "deepseek"}
+    valid_platforms = set(AI_EVALUATION_PLATFORMS)
     if request.platforms is not None:
         invalid = [p for p in request.platforms if p not in valid_platforms]
         if invalid:
