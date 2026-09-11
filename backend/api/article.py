@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.database.models import GeoArticle, SmartArticleQuestion, User, Project
+from backend.database.models import GeoArticle, Keyword, SmartArticleQuestion, User, Project
 from backend.schemas import ApiResponse
 from backend.api.user import get_current_user_from_token
 from backend.middleware.user_isolation import scoped_query, require_owner
@@ -59,6 +59,8 @@ class ArticleCreateRequest(BaseModel):
     status: int | None = None  # 0=草稿, 1=已发布
     tags: str | None = None
     category: str | None = None
+    keyword_id: int | None = None
+    project_id: int | None = None
 
 
 # 更新文章请求模型
@@ -106,7 +108,7 @@ def _convert_article_to_dict(article: GeoArticle) -> dict:
     # 处理可能为NULL的字段，提供默认值
     return {
         "id": article.id,
-        "keyword_id": article.keyword_id or 1,
+        "keyword_id": article.keyword_id,
         "project_id": article.project_id,
         "title": article.title or "",
         "content": article.content or "",
@@ -145,6 +147,31 @@ def _get_owned_article(db: Session, article_id: int, current_user: User) -> GeoA
         raise HTTPException(status_code=404, detail="文章不存在")
     require_owner(article, current_user, name="文章")
     return article
+
+
+def _get_article_keyword(db: Session, request: ArticleCreateRequest, current_user: User) -> Keyword:
+    """Resolve a keyword that belongs to one of the current user's projects."""
+    owned_keywords = (
+        db.query(Keyword).join(Project, Project.id == Keyword.project_id).filter(Project.user_id == current_user.id)
+    )
+
+    if request.keyword_id is not None:
+        keyword = owned_keywords.filter(Keyword.id == request.keyword_id).first()
+        if keyword is None:
+            raise HTTPException(status_code=404, detail="关键词不存在或无权访问")
+        if request.project_id is not None and keyword.project_id != request.project_id:
+            raise HTTPException(status_code=400, detail="关键词与项目不匹配")
+        return keyword
+
+    if request.project_id is not None:
+        owned_keywords = owned_keywords.filter(Keyword.project_id == request.project_id)
+
+    keyword = (
+        owned_keywords.filter(Keyword.status == "active").order_by(Keyword.created_at.desc(), Keyword.id.desc()).first()
+    )
+    if keyword is None:
+        raise HTTPException(status_code=400, detail="请先创建可用关键词，或在请求中传入 keyword_id")
+    return keyword
 
 
 @router.get("", response_model=GeoArticleListResponse)
@@ -233,6 +260,8 @@ async def create_article(
     """
     创建新文章（归属当前用户）
     """
+    keyword = _get_article_keyword(db, request, current_user)
+
     try:
         # 根据status确定publish_status
         publish_status = "draft"
@@ -243,8 +272,8 @@ async def create_article(
 
         # 创建新文章（归属当前用户，确保数据隔离）
         new_article = GeoArticle(
-            keyword_id=1,  # 默认值
-            project_id=None,
+            keyword_id=keyword.id,
+            project_id=keyword.project_id,
             user_id=current_user.id,  # 数据隔离归属
             title=request.title or "未命名文章",
             content=request.content or "",

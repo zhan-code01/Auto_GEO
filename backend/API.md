@@ -140,6 +140,8 @@
 **请求体**
 ```json
 {
+  "keyword_id": 30,
+  "project_id": 12,
   "title": "文章标题",
   "content": "文章内容",
   "tags": "标签1,标签2",
@@ -147,6 +149,8 @@
   "cover_image": "封面图URL"
 }
 ```
+
+`keyword_id` 和 `project_id` 均可省略；省略时接口会选择当前用户项目中最新的活跃关键词，并自动关联其项目。若当前用户没有可用关键词，接口返回 `400`。
 
 ### GET /api/articles/{article_id}
 获取文章详情

@@ -9,6 +9,8 @@ import { get, post, put, del } from '@/services/api'
 
 export interface Article {
   id: number
+  keyword_id?: number
+  project_id?: number
   title: string
   content: string
   tags?: string
@@ -151,6 +153,8 @@ export const useArticleStore = defineStore('article', () => {
         status: articleData.status,
         tags: articleData.tags,
         category: articleData.category,
+        keyword_id: articleData.keyword_id,
+        project_id: articleData.project_id,
       })
 
       if (data.success !== false) {
