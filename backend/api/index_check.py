@@ -593,11 +593,16 @@ async def get_platform_performance(
     # 普通用户：聚合其名下所有项目的平台表现
     pids = _user_project_ids(db, current_user)
     if not pids:
-        return ApiResponse(success=True, message="暂无平台表现数据", data=[])
+        return ApiResponse(
+            success=True,
+            message="暂无平台表现数据",
+            data={
+                "platforms": [],
+                "summary": {"total_platforms": 0, "total_checks": 0, "avg_success_rate": 0},
+            },
+        )
     service = IndexCheckService(db)
-    performance = []
-    for pid in pids:
-        performance.extend(service.get_platform_performance(pid, days) or [])
+    performance = service.get_platform_performance(project_ids=pids, days=days)
     return ApiResponse(success=True, message="获取平台表现数据成功", data=performance)
 
 

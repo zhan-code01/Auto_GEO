@@ -5,7 +5,7 @@ Index check service.
 AI answers are captured through Playwright browser automation and DOM extraction.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Sequence
 from loguru import logger
 from sqlalchemy.orm import Session
 from playwright.async_api import async_playwright, Browser
@@ -828,13 +828,19 @@ class IndexCheckService:
             "summary": summary,
         }
 
-    def get_platform_performance(self, project_id: Optional[int] = None, days: int = 7) -> Dict[str, Any]:
+    def get_platform_performance(
+        self,
+        project_id: Optional[int] = None,
+        days: int = 7,
+        project_ids: Optional[Sequence[int]] = None,
+    ) -> Dict[str, Any]:
         """
         获取各平台的表现分析
 
         Args:
             project_id: 项目ID（可选）
             days: 统计天数
+            project_ids: 项目ID集合（可选），用于跨项目聚合
 
         Returns:
             平台表现数据
@@ -846,7 +852,22 @@ class IndexCheckService:
         # 构建查询条件
         query = self.db.query(IndexCheckRecord)
 
-        if project_id:
+        if project_ids is not None:
+            from sqlalchemy import and_
+
+            if not project_ids:
+                return {
+                    "platforms": [],
+                    "summary": {"total_platforms": 0, "total_checks": 0, "avg_success_rate": 0},
+                }
+            query = query.join(Keyword).filter(
+                and_(
+                    IndexCheckRecord.check_time >= start_date,
+                    Keyword.project_id.in_(project_ids),
+                    Keyword.status == "active",
+                )
+            )
+        elif project_id:
             # 通过关键词关联到项目
             from sqlalchemy import and_
 
@@ -863,7 +884,7 @@ class IndexCheckService:
         records = query.all()
 
         if not records:
-            return {"platforms": [], "summary": {"total_checks": 0}}
+            return {"platforms": [], "summary": {"total_platforms": 0, "total_checks": 0, "avg_success_rate": 0}}
 
         # 按平台分组统计
         platform_data = {}

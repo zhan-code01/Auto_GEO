@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from backend.database.models import GeoArticle, SmartArticleBatch
@@ -23,7 +24,7 @@ class ArticleAdapter:
         user,
         project_id: int | None = None,
         keyword: str | None = None,
-        publish_status: int | None = None,
+        publish_status: str | None = None,
         page: int = 1,
         limit: int = 20,
     ) -> dict[str, Any]:
@@ -34,7 +35,10 @@ class ArticleAdapter:
         if keyword:
             query = query.filter(GeoArticle.title.ilike(f"%{keyword}%"))
         if publish_status is not None:
-            query = query.filter(GeoArticle.status == publish_status)
+            if publish_status == "published":
+                query = query.filter(GeoArticle.publish_status == "published")
+            else:
+                query = query.filter(or_(GeoArticle.publish_status != "published", GeoArticle.publish_status.is_(None)))
         total = query.count()
         rows = query.order_by(GeoArticle.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
         return {"total": total, "items": [self._to_dict(r) for r in rows]}
